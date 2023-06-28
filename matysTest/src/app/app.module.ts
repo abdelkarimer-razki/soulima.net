@@ -8,6 +8,7 @@ import { Exercice2Component } from './exercice2/exercice2.component';
 import { HomeComponent } from './home/home.component';
 import { FormsModule } from '@angular/forms';
 import {HttpClientModule } from '@angular/common/http';
+import { MovieComponent } from './movie/movie.component';
 HttpClientModule
 
 @NgModule({
@@ -15,7 +16,8 @@ HttpClientModule
     AppComponent,
     Exercice1Component,
     Exercice2Component,
-    HomeComponent
+    HomeComponent,
+    MovieComponent
   ],
   imports: [
     BrowserModule,

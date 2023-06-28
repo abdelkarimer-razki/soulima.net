@@ -1,6 +1,7 @@
 <h1>Movies Api</h1>
-<input type="text" value="search for movies" [(ngModel)]="searchQuery">
-<input type="button" value="search movie" (click)="searchMovies()">
-<div *ngFor="let movie of movies">
-	{{movie.original_title}}
+<input type="text" value="search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()">
+<br>
+<div class="movies" *ngFor="let movie of movies" (click)="routerDetailMovie(movie.id)" >
+	{{movie.title}}
 </div>
+<div *ngIf="noMoviesFound">No movies with this name were found</div>
