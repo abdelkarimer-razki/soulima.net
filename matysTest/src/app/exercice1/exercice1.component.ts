@@ -9,12 +9,14 @@ export class Exercice1Component {
 	price:any = "";
 	name:string = "";
 	total:any = 0;
+	payment:boolean = false;
 	priceToPay:any = "";
 	isEnough:boolean = false;
 	isName:boolean = false;
 	prices:any = [];
 	tens:any = 0;
 	fives:any = 0;
+	done:boolean = false;
 	ones:any = 0;
 	ngOnInit(): void {}
 	insertPrices()
@@ -34,10 +36,11 @@ export class Exercice1Component {
 	pay()
 	{
 		if (this.priceToPay <= this.total)
-		this.isEnough = true;
+			this.isEnough = true;
 		else
 		{
 			this.isEnough = false;
+			this.done = true;
 			var rest = this.priceToPay - this.total;
 			this.tens = Math.floor(rest / 10);
 			rest = rest % 10;
@@ -45,5 +48,10 @@ export class Exercice1Component {
 			rest = rest % 5;
 			this.ones = rest;
 		}
+	}
+	goToPayment()
+	{
+		this.payment = true;
+		console.log(this.payment);
 	}
 }
