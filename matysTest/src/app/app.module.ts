@@ -7,6 +7,8 @@ import { Exercice1Component } from './exercice1/exercice1.component';
 import { Exercice2Component } from './exercice2/exercice2.component';
 import { HomeComponent } from './home/home.component';
 import { FormsModule } from '@angular/forms';
+import {HttpClientModule } from '@angular/common/http';
+HttpClientModule
 
 @NgModule({
   declarations: [
@@ -18,7 +20,8 @@ import { FormsModule } from '@angular/forms';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    FormsModule
+    FormsModule,
+    HttpClientModule 
   ],
   providers: [],
   bootstrap: [AppComponent]

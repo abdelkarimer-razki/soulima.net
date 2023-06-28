@@ -1,1 +1,6 @@
-<p>exercice2 works!</p>
+<h1>Movies Api</h1>
+<input type="text" value="search for movies" [(ngModel)]="searchQuery">
+<input type="button" value="search movie" (click)="searchMovies()">
+<div *ngFor="let movie of movies">
+	{{movie.original_title}}
+</div>
