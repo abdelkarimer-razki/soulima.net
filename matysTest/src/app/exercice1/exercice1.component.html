@@ -1,0 +1,32 @@
+<div class="container">
+	<div *ngIf="!isName">
+		<h1>Insert your name please</h1>
+		<input type="text" id="" placeholder="Your name" [(ngModel)]="name">
+		<input type="button" value="insert" (click)="insertClientName()">
+	</div>
+	<div *ngIf="isName">
+		<h1>Hi {{name}}</h1>
+		<label for="">you purshases</label>
+		<input type="number" placeholder="purshases prices" [(ngModel)]="price">
+		<input type="button" value="insert" (click)="insertPrices()">
+		<table>
+			<tr>
+				<th>Number of Command</th>
+				<th>Price of Command</th>
+			</tr>
+			<tr *ngFor="let price of prices;index as i">
+				<td>{{i + 1}}</td>
+				<td>{{price}} Euro</td>
+			</tr>
+			<tr>
+				<td>Total</td>
+				<td>{{total}} Euro</td>
+			</tr>
+		</table>
+		<label for="">price you desire to pay</label>
+		<input type="number" placeholder="price to pay" [(ngModel)]="priceToPay">
+		<input type="button" value="insert" (click)="pay()">
+		<h3 *ngIf="isEnough" style="color: red;">you Have to Pay More</h3>
+		<h3>the rest is : {{tens}} x 10 Euros, {{fives}} x 5 Euros and {{ones}} x 1 Euros</h3>
+	</div>
+</div>
