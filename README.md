@@ -1,23 +1,33 @@
-# Matys Programming Test
+# Test de programmation Matys
 
-This repository contains my solution to the programming test conducted by Matys. The test consisted of two exercises, one focusing on programming logic and the other on my Angular knowledge.
+Ce dépôt contient ma solution au test de programmation réalisé par Matys. Le test se compose de deux exercices, l'un axé sur la logique de programmation et l'autre sur mes connaissances en Angular.
 
-## Time Constraints
+## Contraintes de temps
 
-I started the test on Wednesday at 17:45 and completed it within the allocated two-hour time frame. Although I wasn't able to finish all the requirements for Exercise 2 within the given time, I am committed to continuing my contributions to this repository until I complete all the tasks and enhance the user experience.
+J'ai commencé le test le mercredi à 17h45 et je l'ai terminé dans la limite des deux heures allouées. Bien que je n'aie pas réussi à terminer toutes les exigences de l'Exercice 2 dans le temps imparti, je m'engage à poursuivre mes contributions à ce dépôt jusqu'à ce que j'achève toutes les tâches et améliore l'expérience utilisateur.
 
-## Repository Structure
+Exercice 1
+- [x] Terminé
 
-The repository is structured as follows:
+Exercice 2
+- [x] Implémenter une barre de recherche
+- [x] Afficher les résultats
+- [x] Afficher le détail d'un film ou d'un produit... (exemple : utiliser le resolver d'Angular)
+- [x] Un bouton "J'aime" (localStorage, sessionStorage, StageManagement...)
+- [x] Ajouter un film aux favoris (localStorage, sessionStorage, StageManagement...)
+- [ ] Afficher les favoris
+- [ ] Faire des filtres (optionnel)
 
-One Angular project where i mad routerlinking to the two exercice
+## Structure du dépôt
 
-## Contact Information
+Le dépôt est structuré comme suit :
 
-If you have any questions, suggestions, or require further information, please don't hesitate to contact me at bilrim.errazki@gmail.com. I am available and happy to discuss any aspects related to this programming test.
+Un projet Angular où j'ai effectué un routage vers les deux exercices.
 
-Thank you for taking the time to review my work and considering my participation in this test.
+## Informations de contact
 
-Best regards,
+Si vous avez des questions, des suggestions ou si vous avez besoin de plus d'informations, n'hésitez pas à me contacter à l'adresse bilrim.errazki@gmail.com. Je suis disponible et heureux de discuter de tous les aspects liés à ce test de programmation.
 
-ABDELKARIM ER-RAZKI
+Je vous remercie d'avoir pris le temps d'examiner mon travail et de considérer ma participation à ce test.
+
+Cordialement,
