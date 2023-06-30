@@ -30,4 +30,4 @@ Si vous avez des questions, des suggestions ou si vous avez besoin de plus d'inf
 
 Je vous remercie d'avoir pris le temps d'examiner mon travail et de considérer ma participation à ce test.
 
-Cordialement,
+Cordialement
