@@ -16,15 +16,12 @@ export class Exercice2Component {
     this.moviedbAPIService.searchMovies(this.searchQuery)
       .subscribe((response: any) => {
         this.movies = response.results;
-        if (response.results.length === 0) {
+        if (response.results.length === 0)
           this.noMoviesFound = true;
-        }
         else
           this.noMoviesFound = false;
-        if (this.searchQuery == ""){
+        if (this.searchQuery == "")
             this.noMoviesFound = false;
-        }
-        console.log(this.movies)
       });
     }
     ngOnInit(): void {

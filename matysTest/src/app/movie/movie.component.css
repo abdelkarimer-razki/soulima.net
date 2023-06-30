@@ -1,0 +1,41 @@
+.navBar
+{
+	list-style: none;
+	background-color: antiquewhite;
+}
+
+.navBar > ul > li
+{
+	display: inline-block;
+	padding: 20px;
+	cursor: pointer;
+}
+
+.movieContainer
+{
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+}
+
+.nameAndPic > img
+{
+	margin: 20pt;
+}
+
+.nameAndPic > h2
+{
+	margin: 20pt;
+}
+
+
+.details > p
+{
+	margin: 20pt;
+	width: 1000px;
+}
+
+.details > input
+{
+	margin: 20pt;
+}

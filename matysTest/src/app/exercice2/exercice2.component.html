@@ -1,7 +1,15 @@
-<h1>Movies Api</h1>
-<input type="text" value="search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()">
-<br>
-<div class="movies" *ngFor="let movie of movies" (click)="routerDetailMovie(movie.id)" >
-	{{movie.title}}
+<div class="navBar">
+	<ul>
+		<li><h1>Movies Api</h1></li>
+		<li><input class="searchBar" type="text" placeholder="search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></li>
+		<li>Favorites</li>
+	</ul>
 </div>
-<div *ngIf="noMoviesFound">No movies with this name were found</div>
+<h2 class="title">All the movies you like in one place:</h2>
+<div class="moviesContainer">
+	<div class="movies" *ngFor="let movie of movies" style="background-size: 250px 375px;background-repeat: no-repeat;color: white;" [ngStyle]="{ 'background-image': 'url(' +'https://image.tmdb.org/t/p/w500' + movie.poster_path + ')' }" (click)="routerDetailMovie(movie.id)" style="width: 250px;height: 375px;">
+		{{movie.title}}
+	</div>
+	<p *ngIf="!noMoviesFound">Write the name of a movie in the search bar</p>
+	<p *ngIf="noMoviesFound">No movies with this name were found</p>
+</div>

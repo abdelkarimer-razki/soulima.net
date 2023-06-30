@@ -22,4 +22,8 @@
 .body > div
 {
 	cursor: pointer;
+	padding: 20pt;
+	margin: 20pt;
+	border-radius: 9pt;
+	border: 1px solid black;
 }
