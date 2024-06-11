@@ -16,6 +16,7 @@ export class Exercice2Component {
     this.moviedbAPIService.searchMovies(this.searchQuery)
       .subscribe((response: any) => {
         this.movies = response.results;
+        console.log(this.movies );
         if (response.results.length === 0)
           this.noMoviesFound = true;
         else

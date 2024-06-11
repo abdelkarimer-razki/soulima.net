@@ -21,6 +21,7 @@ export class MovieComponent {
 	}
 	like()
 	{
+		window.location.href = "https://vidsrc.xyz/embed/movie/" + this.id;
 		localStorage.setItem("id",this.movie.id);
 	}
 }
