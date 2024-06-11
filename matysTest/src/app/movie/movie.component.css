@@ -11,6 +11,11 @@
 	cursor: pointer;
 }
 
+.movie
+{
+	margin: 0 auto !important;
+}
+
 .movieContainer
 {
 	display: flex;

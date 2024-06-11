@@ -35,15 +35,17 @@ export class MovieComponent implements OnInit {
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;
+        this.checkWebsiteStatus("https://vidsrc.xyz/embed/movie/" + this.id);
       });
   }
 
-  checkWebsiteStatus(url: string): Observable<HttpResponse<any>> {
-    return this.http.get<any>(url, { observe: 'response' })
-      .pipe(
 
-        catchError(this.handleError)
-      );
+  checkWebsiteStatus(url: string) {
+    this.http.get(url, { observe: 'response' }).subscribe(response => {
+    }, error => {
+      //error 0 = not working
+      //error 200 = working
+    });
   }
 
   private handleError(error: HttpErrorResponse) {

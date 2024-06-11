@@ -6,9 +6,7 @@ import { HomeComponent } from './home/home.component';
 import { MovieComponent } from './movie/movie.component';
 
 const routes: Routes = [
-  { path: 'exercice1', component: Exercice1Component },
-  { path: 'exercice2', component: Exercice2Component },
-  { path: '', component: HomeComponent },
+  { path: '', component: Exercice2Component },
   {path:'movie/:id', component: MovieComponent}
 ];
 

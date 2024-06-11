@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import {HttpClientModule } from '@angular/common/http';
 import { MovieComponent } from './movie/movie.component';
 import { TopMenuComponent } from './top-menu/top-menu.component';
+import { SeriesComponent } from './series/series.component';
 HttpClientModule
 
 @NgModule({
@@ -19,7 +20,8 @@ HttpClientModule
     Exercice2Component,
     HomeComponent,
     MovieComponent,
-    TopMenuComponent
+    TopMenuComponent,
+    SeriesComponent
   ],
   imports: [
     BrowserModule,
