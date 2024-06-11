@@ -15,5 +15,6 @@
 		<p>rating: {{movie.vote_average}}</p>
 		<input type="button" (click)="like()" value="add to favorite">
 	</div>
-	<iframe [src]="'https://vidsrc.xyz/embed/movie/'+this.id" frameborder="0" allowfullscreen="true" width="640" height="360"></iframe>
+	<iframe [src]="link" frameborder="0" allowfullscreen="true"></iframe>
+
 </div>
