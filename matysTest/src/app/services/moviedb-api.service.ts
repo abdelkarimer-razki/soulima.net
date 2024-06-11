@@ -16,9 +16,23 @@ export class MoviedbAPIService {
     return this.http.get('https://api.themoviedb.org/3/search/movie', { params });
   }
 
+  searchSeries(query: string) {
+    const params = new HttpParams()
+      .set('api_key', this.apiKey)
+      .set('query', query);
+
+    return this.http.get('https://api.themoviedb.org/3/search/tv', { params });
+  }
+
   getMovieDetails(movieId: number) {
     const params = new HttpParams().set('api_key', this.apiKey);
 
     return this.http.get(`https://api.themoviedb.org/3/movie/${movieId}`, { params });
+  }
+
+  getSerieDetails(movieId: number) {
+    const params = new HttpParams().set('api_key', this.apiKey);
+
+    return this.http.get(`https://api.themoviedb.org/3/tv/${movieId}`, { params });
   }
 }
