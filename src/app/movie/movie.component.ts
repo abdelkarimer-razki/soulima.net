@@ -27,7 +27,7 @@ export class MovieComponent implements OnInit {
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.xyz/embed/movie/" + this.id);
+      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id);
   });
   }
 
@@ -35,7 +35,7 @@ export class MovieComponent implements OnInit {
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;
-        this.checkWebsiteStatus("https://vidsrc.xyz/embed/movie/" + this.id);
+        this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
       });
   }
 
@@ -58,5 +58,14 @@ export class MovieComponent implements OnInit {
   like() {
     window.location.href = "https://vidsrc.xyz/embed/movie/" + this.id;
     localStorage.setItem("id", this.movie.id);
+  }
+
+  clicked(event:any)
+  {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'iframe' || target.tagName === 'iframe') {
+      event.preventDefault();  // Prevent the default action (e.g., link redirection)
+      console.log('Action blocked in child div!');
+    }
   }
 }
