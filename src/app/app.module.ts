@@ -11,6 +11,8 @@ import {HttpClientModule } from '@angular/common/http';
 import { MovieComponent } from './movie/movie.component';
 import { TopMenuComponent } from './top-menu/top-menu.component';
 import { SeriesComponent } from './series/series.component';
+import { LocationStrategy,HashLocationStrategy } from '@angular/common';
+
 HttpClientModule
 
 @NgModule({
@@ -29,7 +31,7 @@ HttpClientModule
     FormsModule,
     HttpClientModule 
   ],
-  providers: [],
+  providers: [{provide:LocationStrategy, useClass:HashLocationStrategy}],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
