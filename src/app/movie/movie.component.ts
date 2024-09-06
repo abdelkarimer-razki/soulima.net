@@ -37,6 +37,14 @@ export class MovieComponent implements OnInit {
         this.movie = response;
         this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
       });
+      const iframe = document.getElementById('vidsrc') as HTMLIFrameElement;
+  
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.open = function() {
+          console.log('Pop-up blocked from vidsrc iframe!');
+          return null;
+        };
+      }
   }
 
 
@@ -62,7 +70,7 @@ export class MovieComponent implements OnInit {
 
   clicked(event:any)
   {
-
+    alert("hey")
       event.preventDefault();  // Prevent the default action (e.g., link redirection)
   }
 }

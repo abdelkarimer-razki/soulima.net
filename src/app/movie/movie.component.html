@@ -16,6 +16,6 @@
 		<input type="button" (click)="like()" value="add to favorite">
 	</div>
 </div>
-<div (click)="clicked($event)">
-	<iframe (click)="clicked($event)" class="movie"  height="450px" [src]="link" frameborder="0" allowfullscreen="true" allow="picture-in-picture" ></iframe>
+<div >
+	<iframe (click)="clicked($event)" id="vidsrc" class="movie"  height="450px" [src]="link" frameborder="0" allowfullscreen="true" allow="picture-in-picture" ></iframe>
 </div>
