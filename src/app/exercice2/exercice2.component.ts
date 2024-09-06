@@ -21,7 +21,7 @@ export class Exercice2Component {
   }
 
   searchMovies() {
-    this.moviedbAPIService.searchSeries(this.searchQuery)
+    this.moviedbAPIService.searchMovies(this.searchQuery)
       .subscribe((response: any) => {
         this.movies = response.results;
         if (response.results.length === 0)

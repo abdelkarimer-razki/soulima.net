@@ -1,33 +1,27 @@
-# Test de programmation Matys
+# MatysTest
 
-Ce dépôt contient ma solution au test de programmation réalisé par Matys. Le test se compose de deux exercices, l'un axé sur la logique de programmation et l'autre sur mes connaissances en Angular.
+This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.0.0.
 
-## Contraintes de temps
+## Development server
 
-J'ai commencé le test le mercredi à 17h45 et je l'ai terminé dans la limite des deux heures allouées. Bien que je n'aie pas réussi à terminer toutes les exigences de l'Exercice 2 dans le temps imparti, je m'engage à poursuivre mes contributions à ce dépôt jusqu'à ce que j'achève toutes les tâches et améliore l'expérience utilisateur.
+Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
 
-Exercice 1
-- [x] Terminé
+## Code scaffolding
 
-Exercice 2
-- [x] Implémenter une barre de recherche
-- [x] Afficher les résultats
-- [x] Afficher le détail d'un film ou d'un produit... (exemple : utiliser le resolver d'Angular)
-- [x] Un bouton "J'aime" (localStorage, sessionStorage, StageManagement...)
-- [x] Ajouter un film aux favoris (localStorage, sessionStorage, StageManagement...)
-- [ ] Afficher les favoris
-- [ ] Faire des filtres (optionnel)
+Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
 
-## Structure du dépôt
+## Build
 
-Le dépôt est structuré comme suit :
+Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
 
-Un projet Angular où j'ai effectué un routage vers les deux exercices.
+## Running unit tests
 
-## Informations de contact
+Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
 
-Si vous avez des questions, des suggestions ou si vous avez besoin de plus d'informations, n'hésitez pas à me contacter à l'adresse bilrim.errazki@gmail.com. Je suis disponible et heureux de discuter de tous les aspects liés à ce test de programmation.
+## Running end-to-end tests
 
-Je vous remercie d'avoir pris le temps d'examiner mon travail et de considérer ma participation à ce test.
+Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
 
-Cordialement
+## Further help
+
+To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
