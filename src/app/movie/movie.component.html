@@ -17,5 +17,5 @@
 	</div>
 </div>
 <div (click)="clicked($event)">
-	<iframe class="movie" width="800px" height="450px" [src]="link" frameborder="0" allowfullscreen="true" allow="picture-in-picture" ></iframe>
+	<iframe (click)="clicked($event)" class="movie"  height="450px" [src]="link" frameborder="0" allowfullscreen="true" allow="picture-in-picture" ></iframe>
 </div>

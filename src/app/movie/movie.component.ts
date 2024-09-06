@@ -62,10 +62,7 @@ export class MovieComponent implements OnInit {
 
   clicked(event:any)
   {
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'iframe' || target.tagName === 'iframe') {
+
       event.preventDefault();  // Prevent the default action (e.g., link redirection)
-      console.log('Action blocked in child div!');
-    }
   }
 }
