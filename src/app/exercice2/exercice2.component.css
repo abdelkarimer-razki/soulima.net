@@ -29,6 +29,7 @@
 {
 	list-style: none;
 	background-color: black;
+	background-image: linear-gradient(rgb(18 18 18), black);
 	display: flex;
 	flex-direction: row;
 	align-items: center;
@@ -57,6 +58,17 @@
 .searchBar::placeholder
 {
 	color: rgba(255, 255, 255, 0.672);
+}
+
+.movies
+{
+	transition: 0.2s;
+}
+
+.movies:hover
+{
+	transform: scale(1.1);
+	filter: drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.211));
 }
 
 .moviesContainer
