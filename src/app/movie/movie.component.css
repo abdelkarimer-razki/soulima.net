@@ -15,8 +15,16 @@
 {
 	margin: 0 auto !important;
 	display: block;
-	max-width: 800px;
+	max-width: 1000px;
 	width: 100%;
+	position: relative;
+}
+
+.back
+{
+	position: absolute;
+	top: 10px;
+	left: 10px;
 }
 
 .movieContainer
@@ -24,7 +32,17 @@
 	/* display: flex; */
 	display: none;
 	flex-direction: row;
+	background-color: black;
 	justify-content: center;
+}
+
+.moviePlayer
+{
+	background-color: black;
+	min-height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 .nameAndPic > img

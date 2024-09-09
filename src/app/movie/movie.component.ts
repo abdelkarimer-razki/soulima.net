@@ -31,14 +31,39 @@ export class MovieComponent implements OnInit {
   });
   }
 
-  ngOnInit(): void {
-    const originalWindowOpen = window.open;
+  // removeSpecificElement() {
+  //   // Select all elements in the document
+  //   const elements = document.querySelectorAll<HTMLElement>("*");
+  //   const player = document.getElementById("player");
+  //   if (player)
+  //       player.style.zIndex = "2147483647"
+  //   console.log("trying")
+  //   // Iterate through the elements and check if the inline style matches
+  //   elements.forEach((element) => {
+  //       const style = element.getAttribute("style");
+  //       console.log("done")
+  //       // Check if the style matches exactly the one we want to remove
+  //       if (style === "pointer-events: none; position: absolute; top: 0; left: 0; width: 1000px; height: 450px; z-index: 2147483647;") {
+  //           element.remove(); // Remove the entire element from the DOM
+  //       }
+  //   });
+// }
 
-    // Block all popups globally
-    window.open = (url?: string | URL, target?: string, features?: string) => {
-      console.log("Popup blocked:", url);
-      return null; // Prevent the popup from opening
-    };
+detectNewTabOpened() {
+  const originalOpen = window.open;
+
+  window.open = (url?: string | URL, target?: string, features?: string): Window | null => {
+    console.log('A new tab has been opened with URL:', url);
+    return originalOpen.call(window, url, target, features);
+  };
+}
+
+// Run the function repeatedly every 1000 milliseconds (1 second)
+
+  ngOnInit(): void {
+    // this.detectNewTabOpened();
+      // setInterval(this.removeSpecificElement, 1);
+
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;
