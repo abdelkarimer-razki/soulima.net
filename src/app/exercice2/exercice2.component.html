@@ -1,13 +1,13 @@
-<div class="navBar">
-	<ul>
-		<li><img src="../../assets/soulima2.png" width="50px"  alt=""></li>
-		<li><input class="searchBar" type="text" placeholder="search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></li>
-		<li>Favorites</li>
-	</ul>
-</div>
-<h2 class="title">All the movies you like in one place:</h2>
+<nav class="navBar">
+	<a><img src="../../assets/soulimaWhiteLogo.png" width="50px"  alt=""></a>
+	<a>Movies</a>
+	<a class="notActive">Tv shows
+		<div class="soon">Soon</div>
+	</a>
+	<a><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></a>
+</nav>
 <div class="moviesContainer">
-		<img *ngFor="let movie of movies" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" width="250px">
+		<img *ngFor="let movie of movies" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" width="200px" height="300px">
 	<!--<div class="movies" *ngFor="let movie of movies" style="background-size: 250px 375px;background-repeat: no-repeat;color: white;" [ngStyle]="{ 'background-image': 'url(' +'https://image.tmdb.org/t/p/w500' + movie.poster_path + ')' }" (click)="routerDetailMovie(movie.id)" style="width: 250px;height: 375px;">
 		{{movie.title}}
 	</div>-->

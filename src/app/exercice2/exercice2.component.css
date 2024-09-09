@@ -4,25 +4,59 @@
 	border: 1px solid black;
 	margin: 20px;
 	cursor: pointer;
+	border-radius: 6px;
 }
+
+.soon
+{
+	color: white;
+	position: absolute;
+	font-size: 8px;
+	background-color: rgb(216, 46, 46);
+	padding: 4px;
+	border-radius: 6px;
+	right: 0px;
+	bottom: -2px;
+	transform: rotate(-23deg);
+}
+
+.notActive
+{
+	color: rgba(255, 255, 255, 0.413) !important;
+}
+
 .navBar
 {
 	list-style: none;
-	background-color: antiquewhite;
+	background-color: black;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
 }
 
-.navBar > ul > li
+.navBar > a
 {
 	display: inline-block;
-	padding: 20px;
+	padding: 8px;
+	position: relative;
+	margin-left: 10px;
 	cursor: pointer;
+	color: white;
 }
 
 .searchBar
 {
-	padding: 12pt;
-	border-radius: 9pt;
+	padding: 8pt;
 	width: 300px;
+	outline: none;
+	background-color: black;
+	border: 1px solid white;
+	color: white;
+}
+
+.searchBar::placeholder
+{
+	color: rgba(255, 255, 255, 0.672);
 }
 
 .moviesContainer
@@ -32,9 +66,6 @@
 	justify-content: center;
 	flex-direction: row;
 	flex-wrap: wrap;
-}
-
-.title
-{
-	margin: 20pt;
+	background-color: black;
+	min-height: 100vh;
 }
