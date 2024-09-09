@@ -32,6 +32,13 @@ export class MovieComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    const originalWindowOpen = window.open;
+
+    // Block all popups globally
+    window.open = (url?: string | URL, target?: string, features?: string) => {
+      console.log("Popup blocked:", url);
+      return null; // Prevent the popup from opening
+    };
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;
