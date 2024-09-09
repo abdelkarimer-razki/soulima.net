@@ -7,11 +7,14 @@ import { Exercice1Component } from './exercice1/exercice1.component';
 import { Exercice2Component } from './exercice2/exercice2.component';
 import { HomeComponent } from './home/home.component';
 import { FormsModule } from '@angular/forms';
+import { RouterModule, Routes } from '@angular/router';
 import {HttpClientModule } from '@angular/common/http';
 import { MovieComponent } from './movie/movie.component';
 import { TopMenuComponent } from './top-menu/top-menu.component';
 import { SeriesComponent } from './series/series.component';
 import { LocationStrategy,HashLocationStrategy } from '@angular/common';
+import { PathLocationStrategy } from '@angular/common';
+
 
 HttpClientModule
 
@@ -29,9 +32,9 @@ HttpClientModule
     BrowserModule,
     AppRoutingModule,
     FormsModule,
-    HttpClientModule 
+    HttpClientModule
   ],
-  providers: [{provide:LocationStrategy, useClass:HashLocationStrategy}],
+  providers: [{provide:LocationStrategy, useClass:PathLocationStrategy}],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
