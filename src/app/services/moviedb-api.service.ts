@@ -24,6 +24,38 @@ export class MoviedbAPIService {
     return this.http.get('https://api.themoviedb.org/3/search/tv', { params });
   }
 
+  getTrendingMovies()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/trending/movie/day', { params });
+  }
+
+  getTopRatedMovies()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/movie/top_rated', { params });
+  }
+
+  getVideosMovie(query: string)
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/movie/' + query +'/videos', { params });
+  }
+
+  getNewRelease()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/movie/now_playing', { params });
+  }
+
   getMovieDetails(movieId: number) {
     const params = new HttpParams().set('api_key', this.apiKey);
 
