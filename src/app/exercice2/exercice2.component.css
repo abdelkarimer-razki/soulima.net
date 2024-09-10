@@ -114,6 +114,9 @@
 .movies
 {
 	transition: 0.2s;
+	aspect-ratio: 2/3;
+	width: 30%;
+	max-width: 200px;
 }
 
 .movies:hover
