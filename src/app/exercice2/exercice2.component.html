@@ -30,7 +30,7 @@
 	</div>
 
 	<div class="searchResutls" *ngIf="this.searchQuery">
-		<img *ngFor="let movie of movies" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		<img *ngFor="let movie of movies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 	</div>
 	<!--<div class="movies" *ngFor="let movie of movies" style="background-size: 250px 375px;background-repeat: no-repeat;color: white;" [ngStyle]="{ 'background-image': 'url(' +'https://image.tmdb.org/t/p/w500' + movie.poster_path + ')' }" (click)="routerDetailMovie(movie.id)" style="width: 250px;height: 375px;">
 		{{movie.title}}
