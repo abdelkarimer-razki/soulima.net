@@ -27,7 +27,7 @@ export class MovieComponent implements OnInit {
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id);
+      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id + "?player=new");
   });
   }
 

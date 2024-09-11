@@ -38,6 +38,7 @@
 	width: 100%;
 	position: relative;
 	margin-bottom: 20px;
+	white-space: nowrap; /* Prevent line breaks */
 }
 
 @media(max-width:605px)

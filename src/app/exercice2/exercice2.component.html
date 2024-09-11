@@ -30,24 +30,14 @@
 	</div>
 
 	<div class="search" *ngIf="this.searchQuery">
-		<h2 class="categorieTitle" style="margin-bottom: 20px;">Search Results</h2>
+		<h2 class="categorieTitle" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
+			<img *ngFor="let movie of trendingMovies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
 		<div class="searchResutls" >
 			<img *ngFor="let movie of movies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
-	<!--<div class="movies" *ngFor="let movie of movies" style="background-size: 250px 375px;background-repeat: no-repeat;color: white;" [ngStyle]="{ 'background-image': 'url(' +'https://image.tmdb.org/t/p/w500' + movie.poster_path + ')' }" (click)="routerDetailMovie(movie.id)" style="width: 250px;height: 375px;">
-		{{movie.title}}
-
-		
-	</div>-->
-	<!-- <iframe 
-    width="560" 
-    height="315" 
-    [src]="'https://www.youtube.com/embed/' + this.videos[0]?.key" 
-    frameborder="0" 
-    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-    allowfullscreen>
-  </iframe>
-	<p *ngIf="!noMoviesFound && movies.length == 0">Write the name of a movie in the search bar</p>
-	<p *ngIf="noMoviesFound">No movies with this name were found</p> -->
+	
 </div>
