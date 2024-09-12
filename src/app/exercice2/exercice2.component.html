@@ -11,21 +11,21 @@
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
 			<img 
-			  *ngFor="let movie of trendingMovies| slice:0:10" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			  *ngFor="let movie of trendingMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 
 	<div class="categorie" *ngIf="!this.searchQuery">
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of newReleasedMovies| slice:0:10" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img *ngFor="let movie of newReleasedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 
 	<div class="categorie" *ngIf="!this.searchQuery">
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of topRatedMovies| slice:0:10" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img *ngFor="let movie of topRatedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 

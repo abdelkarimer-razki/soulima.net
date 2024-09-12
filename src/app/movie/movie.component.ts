@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit,  ViewChild, ElementRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -13,6 +13,8 @@ import { throwError } from 'rxjs';
   styleUrls: ['./movie.component.css']
 })
 export class MovieComponent implements OnInit {
+  @ViewChild('iframeElement') iframeElement!: ElementRef;
+
   id: number = 0;
   movie: any = "";
   private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie';
@@ -63,7 +65,6 @@ detectNewTabOpened() {
   ngOnInit(): void {
     // this.detectNewTabOpened();
       // setInterval(this.removeSpecificElement, 1);
-
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;

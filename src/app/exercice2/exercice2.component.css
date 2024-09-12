@@ -167,6 +167,6 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	background-color: black;
-	min-height: 100vh;
+	min-height: fit-content;
 	overflow: hidden;
 }
