@@ -2,10 +2,7 @@ import { Component, OnInit,  ViewChild, ElementRef } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-movie',
@@ -17,48 +14,20 @@ export class MovieComponent implements OnInit {
 
   id: number = 0;
   movie: any = "";
-  private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie';
   link: SafeResourceUrl = "";
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router,
     private moviedbAPIService: MoviedbAPIService,
     private sanitizer: DomSanitizer,
     private http: HttpClient
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id + "?player=new");
+      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id + "?player=new&ds_lang=ar");
   });
+
   }
-
-  // removeSpecificElement() {
-  //   // Select all elements in the document
-  //   const elements = document.querySelectorAll<HTMLElement>("*");
-  //   const player = document.getElementById("player");
-  //   if (player)
-  //       player.style.zIndex = "2147483647"
-  //   console.log("trying")
-  //   // Iterate through the elements and check if the inline style matches
-  //   elements.forEach((element) => {
-  //       const style = element.getAttribute("style");
-  //       console.log("done")
-  //       // Check if the style matches exactly the one we want to remove
-  //       if (style === "pointer-events: none; position: absolute; top: 0; left: 0; width: 1000px; height: 450px; z-index: 2147483647;") {
-  //           element.remove(); // Remove the entire element from the DOM
-  //       }
-  //   });
-// }
-
-detectNewTabOpened() {
-  const originalOpen = window.open;
-
-  window.open = (url?: string | URL, target?: string, features?: string): Window | null => {
-    console.log('A new tab has been opened with URL:', url);
-    return originalOpen.call(window, url, target, features);
-  };
-}
 
 // Run the function repeatedly every 1000 milliseconds (1 second)
 
@@ -87,23 +56,5 @@ detectNewTabOpened() {
       //error 0 = not working
       //error 200 = working
     });
-  }
-
-  private handleError(error: HttpErrorResponse) {
-    alert("error");
-    // Log the error or handle it based on your requirements
-    return throwError(error);
-  }
-
-
-  like() {
-    window.location.href = "https://vidsrc.xyz/embed/movie/" + this.id;
-    localStorage.setItem("id", this.movie.id);
-  }
-
-  clicked(event:any)
-  {
-    alert("hey")
-      event.preventDefault();  // Prevent the default action (e.g., link redirection)
   }
 }

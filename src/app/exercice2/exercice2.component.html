@@ -1,12 +1,11 @@
 <nav class="navBar">
 	<a routerLink="/" (click)="this.searchQuery = ''"><img src="../../assets/soulimaWhiteLogo.png" width="50px"  alt=""></a>
-	<a (click)="this.searchQuery = ''">Movies</a>
-	<a class="notActive">Tv shows
-		<div class="soon">Soon</div>
-	</a>
-	<a><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></a>
+	<a [class.notActive]="!this.isMovies" (click)="this.searchQuery = '';this.isMovies=true;this.isSeries=false">Movies</a>
+	<a (click)="this.searchQuery = '';this.isMovies=false;this.isSeries=true" [class.notActive]="!this.isSeries">Tv shows</a>
+	<a><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="isMovies ?searchMovies():searchSeries()"></a>
 </nav>
-<div class="moviesContainer">
+
+<div class="moviesContainer" *ngIf="this.isMovies">
 	<div class="categorie" *ngIf="!this.searchQuery">
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
@@ -41,3 +40,42 @@
 	</div>
 	
 </div>
+
+
+<div class="moviesContainer" *ngIf="this.isSeries">
+	<div class="categorie" *ngIf="!this.searchQuery">
+		<h2 class="categorieTitle">Trending</h2>
+		<div class="moviesInCategorie">
+			<img 
+			  *ngFor="let movie of trendingSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+
+	<div class="categorie" *ngIf="!this.searchQuery">
+		<h2 class="categorieTitle">New Releases</h2>
+		<div class="moviesInCategorie">
+			<img *ngFor="let movie of newReleasedSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+
+	<div class="categorie" *ngIf="!this.searchQuery">
+		<h2 class="categorieTitle">Top Rated</h2>
+		<div class="moviesInCategorie">
+			<img *ngFor="let movie of topRatedSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+
+	<div class="search" *ngIf="this.searchQuery">
+		<h2 class="categorieTitle" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
+			<img *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+		<div class="searchResutls" >
+			<img *ngFor="let movie of series" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+	
+</div>
+
+

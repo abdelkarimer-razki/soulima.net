@@ -29,6 +29,21 @@
 	color: rgba(255, 255, 255, 0.413) !important;
 }
 
+.navBar > a
+{
+	display: inline-block;
+	padding: 8px;
+	position: relative;
+	margin-left: 10px;
+	cursor: pointer;
+	color: white;
+	transition: 0.3s;
+	font-family: 'Helvetica Neue', sans-serif;
+}
+
+
+
+
 .categorie
 {
 	overflow-x: scroll;
@@ -99,16 +114,6 @@
 	align-items: center;
 }
 
-.navBar > a
-{
-	display: inline-block;
-	padding: 8px;
-	position: relative;
-	margin-left: 10px;
-	cursor: pointer;
-	color: white;
-	font-family: 'Helvetica Neue', sans-serif;
-}
 
 .searchBar
 {

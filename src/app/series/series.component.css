@@ -1,0 +1,80 @@
+.navBar
+{
+	list-style: none;
+	background-color: antiquewhite;
+}
+
+.navBar > ul > li
+{
+	display: inline-block;
+	padding: 20px;
+	cursor: pointer;
+}
+
+.movie
+{
+	margin: 0 auto !important;
+	display: block;
+	aspect-ratio: 16/9;
+	width: 100%;
+	max-width: 1000px;
+	height: auto;
+	position: relative;
+}
+
+.back
+{
+	position: absolute;
+	top: 10px;
+	left: 10px;
+}
+
+.movieContainer
+{
+	/* display: flex; */
+	display: none;
+	flex-direction: row;
+	background-color: black;
+	justify-content: center;
+}
+
+.moviePlayer
+{
+	background-color: black;
+	min-height: 100vh;
+	margin: 0 auto;
+	width: 100%;
+	height: fit-content;
+	max-width: 1000px;
+	position: relative;
+	aspect-ratio: 16 / 9;
+}
+
+.seasonSelector
+{
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.nameAndPic > img
+{
+	margin: 20pt;
+}
+
+.nameAndPic > h2
+{
+	margin: 20pt;
+}
+
+
+.details > p
+{
+	margin: 20pt;
+	width: 1000px;
+}
+
+.details > input
+{
+	margin: 20pt;
+}

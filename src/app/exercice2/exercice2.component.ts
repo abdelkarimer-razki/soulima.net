@@ -13,13 +13,21 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 })
 export class Exercice2Component {
   searchQuery: string ="";
+  //movies variables
   movies: any[] = [];
   trendingMovies: any[] = [];
   topRatedMovies:any[] = [];
   newReleasedMovies:any[] = [];
-  videos:any[] = []
+  isMovies = true;
+
+  //series variables
+  series: any[] = [];
+  trendingSeries: any[] = [];
+  topRatedSeries:any[] = [];
+  newReleasedSeries:any[] = [];
+  isSeries = false;
+
   sanitizedUrls: SafeResourceUrl[] = [];
-  noMoviesFound: boolean = false;
   private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie/';
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer) { }
 
@@ -30,15 +38,16 @@ export class Exercice2Component {
     this.moviedbAPIService.searchMovies(this.searchQuery)
       .subscribe((response: any) => {
         this.movies = response.results;
-        if (response.results.length === 0)
-          this.noMoviesFound = true;
-        else
-          this.noMoviesFound = false;
-
-        if (this.searchQuery == "")
-            this.noMoviesFound = false;
       });
     }
+
+    searchSeries() {
+      this.moviedbAPIService.searchSeries(this.searchQuery)
+        .subscribe((response: any) => {
+          this.series = response.results;
+        });
+      }
+
     ngOnInit(): void {
 
       this.moviedbAPIService.getTrendingMovies()
@@ -55,16 +64,24 @@ export class Exercice2Component {
       .subscribe((response: any) => {
         this.newReleasedMovies = response.results
       })
-    }
 
-    getMovieVideo(movieid:any)
-    {
-      this.moviedbAPIService.getVideosMovie(movieid)
+
+      this.moviedbAPIService.getTrendingSeries()
       .subscribe((response: any) => {
-        this.videos = response.results
-        console.log(this.videos)
+        this.trendingSeries = response.results
+      })
+
+      this.moviedbAPIService.getTopRatedSeries()
+      .subscribe((response: any) => {
+        this.topRatedSeries = response.results
+      })
+
+      this.moviedbAPIService.getNewReleaseSeries()
+      .subscribe((response: any) => {
+        this.newReleasedSeries = response.results
       })
     }
+
 
     getSafeUrl(video: any): SafeResourceUrl {
       let url = '';
@@ -78,6 +95,10 @@ export class Exercice2Component {
 
     routerDetailMovie(id: number){
       this.router.navigate(['/movie',id]);
+    }
+
+    routerDetailSerie(id: number){
+      this.router.navigate(['/serie/'+ id + '/1/1'])
     }
   
 }

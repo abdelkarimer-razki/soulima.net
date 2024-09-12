@@ -1,1 +1,9 @@
-<p>series works!</p>
+
+
+<div class="moviePlayer">
+	<iframe id="vidsrc" class="movie"   [src]="link" frameborder="0"  allowfullscreen="true"  allow="picture-in-picture" >
+		<select class="seasonSelector">
+			<option *ngFor="season of seasons;index as i" value="{{i + 1}}">{{i + 1}}</option>
+		</select>
+	</iframe>
+</div>

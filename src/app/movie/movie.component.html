@@ -1,15 +1,3 @@
-<div class="movieContainer">
-	<div class="nameAndPic">
-		<h2>{{movie.title}}</h2>
-		<img [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" width="300px">
-	</div>
-	<div class="details">
-		<p>{{movie.overview}}</p>
-		<p>release date: {{movie.release_date}}</p>
-		<p>rating: {{movie.vote_average}}</p>
-		<input type="button" (click)="like()" value="add to favorite">
-	</div>
-</div>
 <div class="moviePlayer">
 	<iframe id="vidsrc" class="movie"   [src]="link" frameborder="0"  allowfullscreen="true"  allow="picture-in-picture" >
 	</iframe>

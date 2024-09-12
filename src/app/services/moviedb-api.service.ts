@@ -8,20 +8,15 @@ export class MoviedbAPIService {
 
   private apiKey = 'acc5f02e54fa612710d3245f53f29600';
   constructor(private http: HttpClient) { }
+
+
+  //movies functions
   searchMovies(query: string) {
     const params = new HttpParams()
       .set('api_key', this.apiKey)
       .set('query', query);
 
     return this.http.get('https://api.themoviedb.org/3/search/movie', { params });
-  }
-
-  searchSeries(query: string) {
-    const params = new HttpParams()
-      .set('api_key', this.apiKey)
-      .set('query', query);
-
-    return this.http.get('https://api.themoviedb.org/3/search/tv', { params });
   }
 
   getTrendingMovies()
@@ -62,9 +57,45 @@ export class MoviedbAPIService {
     return this.http.get(`https://api.themoviedb.org/3/movie/${movieId}`, { params });
   }
 
+
+
+  //series function
+  searchSeries(query: string) {
+    const params = new HttpParams()
+      .set('api_key', this.apiKey)
+      .set('query', query);
+
+    return this.http.get('https://api.themoviedb.org/3/search/tv', { params });
+  }
+
   getSerieDetails(movieId: number) {
     const params = new HttpParams().set('api_key', this.apiKey);
 
     return this.http.get(`https://api.themoviedb.org/3/tv/${movieId}`, { params });
+  }
+
+  getNewReleaseSeries()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/tv/on_the_air', { params });
+  }
+
+  getTopRatedSeries()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/tv/top_rated', { params });
+  }
+
+
+  getTrendingSeries()
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/trending/tv/day', { params });
   }
 }
