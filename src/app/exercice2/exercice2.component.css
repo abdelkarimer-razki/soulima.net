@@ -343,12 +343,6 @@
 	filter: saturate(0);
 }
 
-.movies:hover
-{
-	transform: scale(1.1);
-	filter: drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335));
-	filter: saturate(1);
-}
 
 .moviesContainer
 {
@@ -360,4 +354,5 @@
 	background-color: black;
 	min-height: fit-content;
 	overflow: hidden;
+	margin-bottom: 70px;
 }
