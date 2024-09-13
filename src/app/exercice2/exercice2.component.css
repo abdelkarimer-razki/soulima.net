@@ -19,6 +19,8 @@
 	transform: rotate(-23deg);
 }
 
+
+
 .scrollright
 {
 	height: 100%;
@@ -193,7 +195,6 @@
 	.play
 	{
 		font-size: 16px !important;
-
 	}
 
 	.posterInfo
@@ -271,13 +272,22 @@
 {
 	background-color: white;
 	width: fit-content;
-	font-size: 20px;
-	font-weight: 550;
-	padding: 10px;
+	font-size: 18px;
+	font-weight: 500;
+	padding: 7px;
 	border-radius: 4px;
 	margin-top: 20px;
 	cursor: pointer;
 	transition: 0.3s;
+	display: flex;
+	align-items: center;
+}
+
+.playsvg
+{
+	width: 20px;
+	height: 20px;
+	margin-right: 5px;
 }
 
 .play:hover
