@@ -12,6 +12,7 @@ import { TopMenuComponent } from './top-menu/top-menu.component';
 import { SeriesComponent } from './series/series.component';
 import { LocationStrategy,HashLocationStrategy } from '@angular/common';
 import { PathLocationStrategy } from '@angular/common';
+import { TvshowsComponent } from './tvshows/tvshows.component';
 
 
 HttpClientModule
@@ -22,7 +23,8 @@ HttpClientModule
     Exercice2Component,
     MovieComponent,
     TopMenuComponent,
-    SeriesComponent
+    SeriesComponent,
+    TvshowsComponent
   ],
   imports: [
     BrowserModule,

@@ -1,0 +1,74 @@
+<nav class="navBar">
+	<a routerLink="/" (click)="this.searchQuery = ''"><img src="../../assets/soulimaWhiteLogo.png" width="50px"  alt=""></a>
+	<a routerLink="/" class="notActive" >Movies</a>
+	<a routerLink="/tvshows" (click)="this.searchQuery = '';" >Tv shows</a>
+	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchSeries()"></a>
+</nav>
+<div class="posterContainer" *ngIf="!this.searchQuery">
+	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePoster" class="poster" alt="">
+	<div class="posterInfo" >
+		<div class="posterTitle">
+			{{moviePosterData?.name}}
+		</div>
+		<div class="ratingAndInfo">
+			<div class="rating">
+				{{moviePosterData?.vote_average |  number:'1.1-1' }}<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+			</div>
+			<div class="info">
+				<label>{{moviePosterData?.first_air_date | date:'yyyy'}}</label>
+				.
+				<label *ngFor="let genre of moviePosterData?.genres; let i = index; let last = last">
+					{{ genre.name }}<span *ngIf="!last">.</span>
+				  </label>
+			</div>
+		</div>
+		<div class="posterDescription">
+			{{moviePosterData?.overview}}
+		</div>
+		<div class="play" (click)="routerDetailSerie(moviePosterData?.id)">
+			Go to the Soulima
+		</div>
+	</div>
+	<div class="linearGradient">
+
+	</div>
+</div>
+
+<div class="moviesContainer" *ngIf="!this.searchQuery">
+	<div class="categorie">
+		<h2 class="categorieTitle">Trending</h2>
+		<div class="moviesInCategorie">
+			<img 
+			  *ngFor="let movie of trendingSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+
+	<div class="categorie" >
+		<h2 class="categorieTitle">New Releases</h2>
+		<div class="moviesInCategorie">
+			<img *ngFor="let movie of newReleasedSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)"   (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+
+	<div class="categorie" >
+		<h2 class="categorieTitle">Top Rated</h2>
+		<div class="moviesInCategorie">
+			<img *ngFor="let movie of topRatedSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+</div>
+
+<div class="movieContainer" *ngIf="this.searchQuery">
+	<div class="search" *ngIf="this.searchQuery">
+		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no tv show under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
+			<img  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+		<div class="searchResutls" >
+			<img   (mouseover)="onHover($event)" (mouseout)="onLeave($event)"  (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of series" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		</div>
+	</div>
+</div>
+
+

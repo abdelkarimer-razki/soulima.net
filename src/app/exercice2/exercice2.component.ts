@@ -22,13 +22,6 @@ export class Exercice2Component {
   moviePoster = "";
   moviePosterData:any;
 
-  //series variables
-  series: any[] = [];
-  trendingSeries: any[] = [];
-  topRatedSeries:any[] = [];
-  newReleasedSeries:any[] = [];
-  isSeries = false;
-
   sanitizedUrls: SafeResourceUrl[] = [];
   private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie/';
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
@@ -43,12 +36,6 @@ export class Exercice2Component {
       });
     }
 
-    searchSeries() {
-      this.moviedbAPIService.searchSeries(this.searchQuery)
-        .subscribe((response: any) => {
-          this.series = response.results;
-        });
-      }
 
       getMovieImage()
       {
@@ -56,7 +43,6 @@ export class Exercice2Component {
         this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
         .subscribe((response: any) => {
           this.moviePosterData = response
-          console.log(this.moviePosterData)
         })
         this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
         .subscribe((response: any) => {
@@ -80,32 +66,6 @@ export class Exercice2Component {
       .subscribe((response: any) => {
         this.newReleasedMovies = response.results
       })
-
-
-      this.moviedbAPIService.getTrendingSeries()
-      .subscribe((response: any) => {
-        this.trendingSeries = response.results
-      })
-
-      this.moviedbAPIService.getTopRatedSeries()
-      .subscribe((response: any) => {
-        this.topRatedSeries = response.results
-      })
-
-      this.moviedbAPIService.getNewReleaseSeries()
-      .subscribe((response: any) => {
-        this.newReleasedSeries = response.results
-      })
-
-      const scrollableDiv = document.getElementById('scrollableDiv');
-
-      if (scrollableDiv)
-      {
-        scrollableDiv.addEventListener('wheel', function (e) {
-          e.preventDefault();
-          scrollableDiv.scrollLeft += e.deltaY;
-        });
-      }
     }
 
     onHover(event: Event) {
@@ -136,9 +96,4 @@ export class Exercice2Component {
     routerDetailMovie(id: number){
       this.router.navigate(['/movie',id]);
     }
-
-    routerDetailSerie(id: number){
-      this.router.navigate(['/serie/'+ id + '/1/1'])
-    }
-  
 }
