@@ -59,8 +59,8 @@
 
 <div class="movieContainer" *ngIf="this.isMovies && this.searchQuery">
 	<div class="search" >
-		<h2 class="categorieTitle" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
 			<img *ngFor="let movie of trendingMovies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
@@ -97,8 +97,8 @@
 
 <div class="movieContainer" *ngIf="this.isSeries && this.searchQuery">
 	<div class="search" *ngIf="this.searchQuery">
-		<h2 class="categorieTitle" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
 			<img *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>

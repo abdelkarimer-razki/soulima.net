@@ -53,12 +53,12 @@ export class Exercice2Component {
       getMovieImage()
       {
         const posterMovieNb:any = Math.floor(Math.random() * 15);
-        this.moviedbAPIService.getMovieDetails(this.trendingMovies[7].id)
+        this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
         .subscribe((response: any) => {
           this.moviePosterData = response
           console.log(this.moviePosterData)
         })
-        this.moviedbAPIService.getMovieImages(this.trendingMovies[7].id)
+        this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
         .subscribe((response: any) => {
           this.moviePoster = response.backdrops[0].file_path
         })
