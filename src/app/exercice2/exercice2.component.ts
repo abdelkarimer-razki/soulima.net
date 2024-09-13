@@ -19,6 +19,8 @@ export class Exercice2Component {
   topRatedMovies:any[] = [];
   newReleasedMovies:any[] = [];
   isMovies = true;
+  moviePoster = "";
+  posterMovieNb = 0;
 
   //series variables
   series: any[] = [];
@@ -48,11 +50,22 @@ export class Exercice2Component {
         });
       }
 
-    ngOnInit(): void {
+      getMovieImage()
+      {
+        this.posterMovieNb = Math.floor(Math.random() * 15);
+        this.moviedbAPIService.getMovieImages(this.trendingMovies[this.posterMovieNb].id)
+        .subscribe((response: any) => {
+          console.log(this.trendingMovies[this.posterMovieNb])
+          this.moviePoster = response.backdrops[0].file_path
 
+        })
+      }
+
+    ngOnInit(): void {
       this.moviedbAPIService.getTrendingMovies()
       .subscribe((response: any) => {
         this.trendingMovies = response.results
+        this.getMovieImage()
       })
 
       this.moviedbAPIService.getTopRatedMovies()
@@ -80,6 +93,16 @@ export class Exercice2Component {
       .subscribe((response: any) => {
         this.newReleasedSeries = response.results
       })
+
+      const scrollableDiv = document.getElementById('scrollableDiv');
+
+      if (scrollableDiv)
+      {
+        scrollableDiv.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          scrollableDiv.scrollLeft += e.deltaY;
+        });
+      }
     }
 
 

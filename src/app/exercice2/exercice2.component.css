@@ -19,6 +19,21 @@
 	transform: rotate(-23deg);
 }
 
+.scrollright
+{
+	height: 100%;
+	position: sticky;
+	right: 0;
+	top: 0;
+	width: 20px;
+	background-color: white;
+}
+
+.poster
+{
+	width: 100%;
+}
+
 .search
 {
 	width: 100%;
@@ -52,7 +67,6 @@
 	flex-direction: column;
 	width: 100%;
 	position: relative;
-	margin-bottom: 20px;
 	white-space: nowrap; /* Prevent line breaks */
 }
 
@@ -106,14 +120,78 @@
 .navBar
 {
 	list-style: none;
-	background-color: black;
-	background-image: linear-gradient(rgb(18 18 18), black);
+	background-image: linear-gradient(rgb(18 18 18), rgba(0, 0, 0, 0));
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 2;
+	width: 100%;
 }
 
+.posterContainer
+{
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.posterInfo
+{
+	position: absolute;
+	bottom: 40%;
+	left: 10%;
+	z-index: 1;
+}
+
+.posterTitle
+{
+	color: white;
+	font-size: 64px;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	font-weight: 600;
+}
+
+.posterDescription
+{
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+	color: rgba(255, 255, 255, 0.874);
+	width: 600px;
+	margin-top: 10px;
+}
+
+.play
+{
+	background-color: white;
+	width: fit-content;
+	font-size: 20px;
+	font-weight: 550;
+	padding: 10px;
+	border-radius: 6px;
+	margin-top: 20px;
+	cursor: pointer;
+	transition: 0.3s;
+}
+
+.play:hover
+{
+	background-color: black;
+	color: white;
+}
+
+.linearGradient
+{
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	background-image: linear-gradient( rgba(0, 0, 0, 0),rgb(0, 0, 0));
+	width: 100%;
+	height: 100%;
+}
 
 .searchBar
 {
@@ -130,13 +208,9 @@
 	color: rgba(255, 255, 255, 0.672);
 }
 
-.movies
-{
-	transition: 0.2s;
-	aspect-ratio: 2/3;
-	width: 30%;
-	max-width: 200px;
-}
+
+
+
 
 
 .moviesSearch
@@ -158,10 +232,20 @@
 	filter: drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335))
 }
 
+.movies
+{
+	transition: 0.2s;
+	aspect-ratio: 2/3;
+	width: 30%;
+	max-width: 200px;
+	filter: saturate(0);
+}
+
 .movies:hover
 {
 	transform: scale(1.1);
 	filter: drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335));
+	filter: saturate(1);
 }
 
 .moviesContainer
