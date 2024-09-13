@@ -37,7 +37,7 @@
 	<div class="categorie" id="scrollableDiv" >
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of trendingMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 			<div class="scrollright"></div>
 	</div>
@@ -45,14 +45,14 @@
 	<div class="categorie" >
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of newReleasedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of newReleasedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 
 	<div class="categorie">
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of topRatedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of topRatedMovies| slice:0:15" class="movies" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>	
 </div>
@@ -62,10 +62,10 @@
 		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
 		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
-			<img *ngFor="let movie of trendingMovies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingMovies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 		<div class="searchResutls" >
-			<img *ngFor="let movie of movies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of movies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 </div>
@@ -76,21 +76,21 @@
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
 			<img 
-			  *ngFor="let movie of trendingSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			  *ngFor="let movie of trendingSeries| slice:0:15" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 
 	<div class="categorie" >
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of newReleasedSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img *ngFor="let movie of newReleasedSeries| slice:0:15"   (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 
 	<div class="categorie" >
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of topRatedSeries| slice:0:15" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img *ngFor="let movie of topRatedSeries| slice:0:15" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 </div>
@@ -100,10 +100,10 @@
 		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
 		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
-			<img *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 		<div class="searchResutls" >
-			<img *ngFor="let movie of series" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<img (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of series" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
 </div>
