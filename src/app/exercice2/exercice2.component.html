@@ -36,7 +36,7 @@
 </div>
 
 
-<div class="moviesContainer" *ngIf="this.isMovies && !this.searchQuery">
+<div class="moviesContainer" *ngIf="!this.searchQuery">
 	<div class="categorie" id="scrollableDiv" >
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
@@ -60,10 +60,10 @@
 	</div>	
 </div>
 
-<div class="movieContainer" *ngIf="this.isMovies && this.searchQuery">
+<div class="moviesContainer" *ngIf="this.searchQuery">
 	<div class="search" >
 		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
 			<img  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingMovies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
@@ -71,5 +71,10 @@
 			<img  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of movies" class="moviesSearch" (click)="routerDetailMovie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 		</div>
 	</div>
+</div>
+
+<div class="searchd">
+	<input  *ngIf="showSearch" class="searchBar2" [class.showSearch]="showSearch" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" [@Loading]>
+	<svg (click)="showSearch =!showSearch" class="searchIcon" enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M27.414,24.586l-5.077-5.077C23.386,17.928,24,16.035,24,14c0-5.514-4.486-10-10-10S4,8.486,4,14  s4.486,10,10,10c2.035,0,3.928-0.614,5.509-1.663l5.077,5.077c0.78,0.781,2.048,0.781,2.828,0  C28.195,26.633,28.195,25.367,27.414,24.586z M7,14c0-3.86,3.14-7,7-7s7,3.14,7,7s-3.14,7-7,7S7,17.86,7,14z" id="XMLID_223_"/></svg>
 </div>
 

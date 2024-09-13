@@ -2,14 +2,19 @@ import { Component,Renderer2  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { trigger, transition, style, animate } from '@angular/animations';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-exercice2',
   templateUrl: './exercice2.component.html',
-  styleUrls: ['./exercice2.component.css']
+  styleUrls: ['./exercice2.component.css'],
+  animations: [
+		trigger('Loading', [
+			transition(':enter', [style({ transform: 'translateY(-200%)'}), animate('300ms', style({ transform: 'translateY(0)' }))]),
+			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
+		])]
 })
 export class Exercice2Component {
   searchQuery: string ="";
@@ -20,6 +25,7 @@ export class Exercice2Component {
   newReleasedMovies:any[] = [];
   isMovies = true;
   moviePoster = "";
+  showSearch = false
   moviePosterData:any;
 
   sanitizedUrls: SafeResourceUrl[] = [];

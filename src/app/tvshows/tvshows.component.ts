@@ -2,14 +2,19 @@ import { Component,Renderer2  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { trigger, transition, style, animate } from '@angular/animations';
+
 
 @Component({
   selector: 'app-tvshows',
   templateUrl: './tvshows.component.html',
-  styleUrls: ['./tvshows.component.css']
+  styleUrls: ['./tvshows.component.css'],
+  animations: [
+		trigger('Loading', [
+			transition(':enter', [style({ transform: 'translateY(-200%)'}), animate('300ms', style({ transform: 'translateY(0)' }))]),
+			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
+		])]
 })
 export class TvshowsComponent {
   searchQuery: string ="";
@@ -17,6 +22,7 @@ export class TvshowsComponent {
   moviePosterData:any;
   series: any[] = [];
   trendingSeries: any[] = [];
+  showSearch = false
   topRatedSeries:any[] = [];
   newReleasedSeries:any[] = [];
   isSeries = true;
