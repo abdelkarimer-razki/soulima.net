@@ -32,6 +32,7 @@
 .poster
 {
 	width: 100%;
+	object-fit: cover;
 }
 
 .search
@@ -135,17 +136,78 @@
 .posterContainer
 {
 	position: relative;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	overflow: hidden;
+	width: 100%;
+}
+
+@media(max-width:1000px)
+{
+	.posterInfo
+	{
+		bottom: 20% !important;
+		left: 50% !important;
+		transform: translateX(-50%);
+		width: 90% !important;
+	}
+}
+
+@media(max-width:768px)
+{
+	.navBar
+	{
+		top: unset;
+		bottom: 0;
+		background-image: linear-gradient(rgba(0, 0, 0, 0),rgb(18 18 18)) !important;
+		justify-content: center;
+	}
+
+	.searchBarContainer
+	{
+		display: none !important;
+	}
+
+	.searchBar
+	{
+		display: none;
+	}
+	.poster
+	{
+		transform: translateX(-50%);
+		width: 200%;
+		left: 50%;
+		object-fit: cover;
+		position: relative;
+	}
+
+	.posterInfo
+	{
+		bottom: 20% !important;
+		left: 50% !important;
+		transform: translateX(-50%);
+		width: 90% !important;
+	}
+
+	.posterTitle
+	{
+		font-size: 22px !important;
+	}
+
+	.posterDescription
+	{
+		font-size: 13px;
+		width: 100% !important;
+	}
 }
 
 .posterInfo
 {
 	position: absolute;
-	bottom: 40%;
+	bottom: 30%;
 	left: 10%;
 	z-index: 1;
+	max-width: 800px;
+	width: 90%;
+
 }
 
 .rating

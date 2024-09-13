@@ -2,7 +2,7 @@
 	<a routerLink="/" (click)="this.searchQuery = ''"><img src="../../assets/soulimaWhiteLogo.png" width="50px"  alt=""></a>
 	<a [class.notActive]="!this.isMovies" (click)="this.searchQuery = '';this.isMovies=true;this.isSeries=false">Movies</a>
 	<a (click)="this.searchQuery = '';this.isMovies=false;this.isSeries=true" [class.notActive]="!this.isSeries">Tv shows</a>
-	<a><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="isMovies ?searchMovies():searchSeries()"></a>
+	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="isMovies ?searchMovies():searchSeries()"></a>
 </nav>
 <div class="posterContainer" *ngIf="this.isMovies && !this.searchQuery">
 	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePoster" class="poster" alt="">
