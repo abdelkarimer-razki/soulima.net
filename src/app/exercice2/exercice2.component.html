@@ -8,12 +8,24 @@
 	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePoster" class="poster" alt="">
 	<div class="posterInfo" >
 		<div class="posterTitle">
-			{{this.trendingMovies[this.posterMovieNb]?.title}}
+			{{moviePosterData?.title}}
+		</div>
+		<div class="ratingAndInfo">
+			<div class="rating">
+				{{moviePosterData?.vote_average |  number:'1.1-1' }}<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+			</div>
+			<div class="info">
+				<label>{{moviePosterData?.release_date | date:'yyyy'}}</label>
+				.
+				<label *ngFor="let genre of moviePosterData?.genres; let i = index; let last = last">
+					{{ genre.name }}<span *ngIf="!last">.</span>
+				  </label>
+			</div>
 		</div>
 		<div class="posterDescription">
-			{{this.trendingMovies[this.posterMovieNb]?.overview}}
+			{{moviePosterData?.overview}}
 		</div>
-		<div class="play">
+		<div class="play" (click)="routerDetailMovie(moviePosterData?.id)">
 			Go to the Soulima
 		</div>
 	</div>

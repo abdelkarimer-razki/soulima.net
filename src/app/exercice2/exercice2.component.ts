@@ -20,7 +20,7 @@ export class Exercice2Component {
   newReleasedMovies:any[] = [];
   isMovies = true;
   moviePoster = "";
-  posterMovieNb = 0;
+  moviePosterData:any;
 
   //series variables
   series: any[] = [];
@@ -52,12 +52,15 @@ export class Exercice2Component {
 
       getMovieImage()
       {
-        this.posterMovieNb = Math.floor(Math.random() * 15);
-        this.moviedbAPIService.getMovieImages(this.trendingMovies[this.posterMovieNb].id)
+        const posterMovieNb:any = Math.floor(Math.random() * 15);
+        this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
         .subscribe((response: any) => {
-          console.log(this.trendingMovies[this.posterMovieNb])
+          this.moviePosterData = response
+          console.log(this.moviePosterData)
+        })
+        this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
+        .subscribe((response: any) => {
           this.moviePoster = response.backdrops[0].file_path
-
         })
       }
 

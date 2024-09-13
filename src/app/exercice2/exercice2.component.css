@@ -148,12 +148,35 @@
 	z-index: 1;
 }
 
+.rating
+{
+	display: flex;
+	align-items: center;
+}
+
+.star
+{
+	color: #F6C906;
+	width: 15px;
+	margin-left: 5px;
+}
+
+.ratingAndInfo
+{
+	color: white;
+	display: flex;
+	align-items: center;
+	flex-direction: row;
+	justify-content: space-between;
+	font-weight: 500;
+}
+
 .posterTitle
 {
 	color: white;
 	font-size: 64px;
 	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-	font-weight: 600;
+	font-weight: 700;
 }
 
 .posterDescription
@@ -161,6 +184,7 @@
 	font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 	color: rgba(255, 255, 255, 0.874);
 	width: 600px;
+	font-weight: 500;
 	margin-top: 10px;
 }
 
@@ -171,7 +195,7 @@
 	font-size: 20px;
 	font-weight: 550;
 	padding: 10px;
-	border-radius: 6px;
+	border-radius: 4px;
 	margin-top: 20px;
 	cursor: pointer;
 	transition: 0.3s;
