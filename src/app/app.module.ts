@@ -14,6 +14,7 @@ import { LocationStrategy,HashLocationStrategy } from '@angular/common';
 import { PathLocationStrategy } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TvshowsComponent } from './tvshows/tvshows.component';
+import { HelloworldComponent } from './helloworld/helloworld.component';
 
 
 HttpClientModule
@@ -26,6 +27,7 @@ HttpClientModule
     TopMenuComponent,
     SeriesComponent,
     TvshowsComponent,
+    HelloworldComponent,
   ],
   imports: [
     BrowserModule,

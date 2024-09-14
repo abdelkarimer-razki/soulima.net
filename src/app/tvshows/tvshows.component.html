@@ -22,8 +22,11 @@
 				  </label>
 			</div>
 		</div>
-		<div class="posterDescription">
+		<div class="posterDescription" *ngIf="moviePosterData?.overview.length < 200">
 			{{moviePosterData?.overview}}
+		</div>
+		<div class="posterDescription" *ngIf="moviePosterData?.overview.length >= 200">
+			{{moviePosterData?.overview | slice:0:200}}...
 		</div>
 		<div class="play" (click)="routerDetailSerie(moviePosterData?.id)">
 			<svg class="playsvg" height="512px" id="Layer_1" style="enable-background:new 0 0 512 512;" version="1.1" viewBox="0 0 512 512" width="512px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
@@ -38,23 +41,28 @@
 <div class="moviesContainer" *ngIf="!this.searchQuery">
 	<div class="categorie">
 		<h2 class="categorieTitle">Trending</h2>
-		<div class="moviesInCategorie">
-			<img 
-			  *ngFor="let movie of trendingSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+		<div class="moviesInCategorie" >
+			<ng-container *ngFor="let movie of trendingSeries| slice:0:15">
+				<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
 		</div>
 	</div>
 
 	<div class="categorie" >
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of newReleasedSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)"   (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of newReleasedSeries| slice:0:15">
+				<img *ngIf="movie.poster_path"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)"   (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
 		</div>
 	</div>
 
 	<div class="categorie" >
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
-			<img *ngFor="let movie of topRatedSeries| slice:0:15"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of topRatedSeries| slice:0:15">
+				<img *ngIf="movie.poster_path"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
 		</div>
 	</div>
 </div>
@@ -64,10 +72,14 @@
 		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
 		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">There is no tv show under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
-			<img  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of trendingSeries" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of trendingSeries">
+				<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
 		</div>
 		<div class="searchResutls" >
-			<img   (mouseover)="onHover($event)" (mouseout)="onLeave($event)"  (touchstart)="onHover($event)" (touchend)="onLeave($event)" *ngFor="let movie of series" class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of series">
+				<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)"  (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="moviesSearch" (click)="routerDetailSerie(movie.id)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
 		</div>
 	</div>
 </div>

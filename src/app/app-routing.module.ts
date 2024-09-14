@@ -4,12 +4,14 @@ import { RouterModule, Routes } from '@angular/router';
 import { MovieComponent } from './movie/movie.component';
 import { SeriesComponent } from './series/series.component';
 import { TvshowsComponent } from './tvshows/tvshows.component';
+import { HelloworldComponent } from './helloworld/helloworld.component';
 
 const routes: Routes = [
   { path: '', component: Exercice2Component },
   {path:'movie/:id', component: MovieComponent},
   {path:'tvshows', component:TvshowsComponent},
   {path:'serie/:id/:season/:episode', component: SeriesComponent},
+  {path:'helloworld', component:HelloworldComponent},
   {path:'**', component: Exercice2Component, redirectTo:''},
 ];
 
