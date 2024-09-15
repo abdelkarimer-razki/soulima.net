@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-exercice2',
@@ -28,78 +28,111 @@ export class Exercice2Component {
   showSearch = false
   moviePosterData:any;
 
+  popUp=false;
+  popUpMovie:any;
+  popUpPoster="";
+  startTrailer=false;
+
+  popUpLink:any;
+
   sanitizedUrls: SafeResourceUrl[] = [];
   private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie/';
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
 
-  deletenoMoviesFound(){
-  }
+	searchMovies()
+	{
+		this.moviedbAPIService.searchMovies(this.searchQuery)
+		.subscribe((response: any) => {
+			this.movies = response.results;
+		});
+	}
 
-  searchMovies() {
-    this.moviedbAPIService.searchMovies(this.searchQuery)
-      .subscribe((response: any) => {
-        this.movies = response.results;
-      });
-    }
-
-
-      getMovieImage()
-      {
-        const posterMovieNb:any = Math.floor(Math.random() * 15);
-        this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
-        .subscribe((response: any) => {
-          this.moviePosterData = response
-        })
-        this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
-        .subscribe((response: any) => {
-          this.moviePoster = response.backdrops[0].file_path
-        })
-      }
-
-    ngOnInit(): void {
-      this.moviedbAPIService.getTrendingMovies()
-      .subscribe((response: any) => {
-        this.trendingMovies = response.results
-        this.getMovieImage()
-      })
-
-      this.moviedbAPIService.getTopRatedMovies()
-      .subscribe((response: any) => {
-        this.topRatedMovies = response.results
-      })
-
-      this.moviedbAPIService.getNewRelease()
-      .subscribe((response: any) => {
-        this.newReleasedMovies = response.results
-      })
-    }
-
-    onHover(event: Event) {
-      const element = event.target as HTMLElement;
-      this.renderer.setStyle(element, 'transform', 'scale(1.1)');
-      this.renderer.setStyle(element, 'filter', 'saturate(1) drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335))');
-    }
-
-    onLeave(event: Event)
-    {
-      const element = event.target as HTMLElement;
-
-      this.renderer.removeStyle(element, 'transform');
-      this.renderer.removeStyle(element, 'filter');
-    }
+	getMovieImage()
+	{
+		const posterMovieNb:any = Math.floor(Math.random() * 15);
+		this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
+		.subscribe((response: any) => {
+		this.moviePosterData = response
+		})
+		this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
+		.subscribe((response: any) => {
+		this.moviePoster = response.backdrops[0].file_path
+		})
+	}
 
 
-    getSafeUrl(video: any): SafeResourceUrl {
-      let url = '';
-      if (video.site === 'YouTube') {
-        url = `https://www.youtube.com/embed/${video.key}`;
-      } else if (video.site === 'Vimeo') {
-        url = `https://player.vimeo.com/video/${video.key}`;
-      }
-      return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-    }
+	getMovieVideos(movieId:any)
+	{
+		this.moviedbAPIService.getMovieImages(movieId)
+		.subscribe((response: any) => {
+		console.log(response)
+		this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path
+		this.moviedbAPIService.getVideosMovie(movieId)
+		.subscribe((response: any) => {
+			const trailer = response.results.find((video: any) => video.type === 'Trailer');
+			if (trailer?.key)
+			{
+				this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=0&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
+				this.startTrailer = true
+			}
+		})
+		})
+	}
 
-    routerDetailMovie(id: number){
-      this.router.navigate(['/movie',id]);
-    }
+	showPopUp(movie:any)
+	{
+		this.popUp = true;
+		this.popUpLink = "";
+		this.popUpPoster = "";
+		this.startTrailer = false
+		this.popUpMovie = movie;
+		this.moviedbAPIService.getMovieDetails(movie.id)
+		.subscribe((response: any) => {
+			this.popUpMovie = response
+		})
+		this.getMovieVideos(movie.id)
+	}
+
+	ngOnInit(): void {
+		this.moviedbAPIService.getTrendingMovies()
+		.subscribe((response: any) => {
+			this.trendingMovies = response.results
+			this.getMovieImage()
+		})
+
+		this.moviedbAPIService.getTopRatedMovies()
+		.subscribe((response: any) => {
+			this.topRatedMovies = response.results
+		})
+
+		this.moviedbAPIService.getNewRelease()
+		.subscribe((response: any) => {
+			this.newReleasedMovies = response.results
+		})
+	}
+
+	onHover(event: Event)
+	{
+		const element = event.target as HTMLElement;
+		this.renderer.setStyle(element, 'transform', 'scale(1.1)');
+		this.renderer.setStyle(element, 'filter', 'saturate(1) drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335))');
+	}
+
+	onLeave(event: Event)
+	{
+		const element = event.target as HTMLElement;
+
+		this.renderer.removeStyle(element, 'transform');
+		this.renderer.removeStyle(element, 'filter');
+	}
+
+	stopClose(event:MouseEvent)
+	{
+		event.stopPropagation();
+	}
+
+	routerDetailMovie(id: number)
+	{
+		this.router.navigate(['/movie',id]);
+	}
 }

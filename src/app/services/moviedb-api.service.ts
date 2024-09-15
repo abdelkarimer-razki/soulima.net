@@ -106,6 +106,14 @@ export class MoviedbAPIService {
     return this.http.get(`https://api.themoviedb.org/3/tv/${movieId}/images`, { params });
   }
 
+  getVideosSerie(query: string)
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get('https://api.themoviedb.org/3/tv/' + query +'/videos', { params });
+  }
+
 
   getTrendingSeries()
   {

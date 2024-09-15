@@ -27,6 +27,14 @@ export class TvshowsComponent {
   newReleasedSeries:any[] = [];
   isSeries = true;
 
+
+  popUp=false;
+  popUpMovie:any;
+  popUpPoster="";
+  startTrailer=false;
+
+  popUpLink:any;
+
   sanitizedUrls: SafeResourceUrl[] = [];
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
 
@@ -101,4 +109,40 @@ export class TvshowsComponent {
       this.router.navigate(['/serie/'+ id + '/1/1'])
     }
   
+    showPopUp(movie:any)
+    {
+      this.popUp = true;
+      this.popUpLink = "";
+      this.popUpPoster = "";
+
+      this.startTrailer = false
+      this.popUpMovie = movie;
+      this.moviedbAPIService.getSerieDetails(movie.id)
+      .subscribe((response: any) => {
+        this.popUpMovie = response
+      })
+      this.getSerieVideos(movie.id)
+    }
+
+    getSerieVideos(movieId:any)
+    {
+      this.moviedbAPIService.getSerieImages(movieId)
+      .subscribe((response: any) => {
+      this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path
+      this.moviedbAPIService.getVideosSerie(movieId)
+      .subscribe((response: any) => {
+        const trailer = response.results.find((video: any) => video.type === 'Trailer');
+        if (trailer?.key)
+        {
+          this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=0&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
+          this.startTrailer = true
+        }
+      })
+      })
+    }
+
+    stopClose(event:MouseEvent)
+    {
+      event.stopPropagation();
+    }
 }
