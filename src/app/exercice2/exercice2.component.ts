@@ -6,6 +6,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 
+
 @Component({
   selector: 'app-exercice2',
   templateUrl: './exercice2.component.html',
@@ -32,6 +33,7 @@ export class Exercice2Component {
   popUpMovie:any;
   popUpPoster="";
   startTrailer=false;
+
 
   popUpLink:any;
 
@@ -65,14 +67,14 @@ export class Exercice2Component {
 	{
 		this.moviedbAPIService.getMovieImages(movieId)
 		.subscribe((response: any) => {
-		console.log(response)
 		this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path
 		this.moviedbAPIService.getVideosMovie(movieId)
 		.subscribe((response: any) => {
 			const trailer = response.results.find((video: any) => video.type === 'Trailer');
+			console.log(trailer)
 			if (trailer?.key)
 			{
-				this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=0&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
+				this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=1&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
 				this.startTrailer = true
 			}
 		})
