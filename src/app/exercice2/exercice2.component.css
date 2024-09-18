@@ -112,7 +112,7 @@
 	top: 0px;
 	width: fit-content;
 	left: 20px;
-	font-family: Impacto ,Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+	font-family: "Anton", sans-serif;
 }
 
 .moviesInCategorie
@@ -129,7 +129,7 @@
 .navBar
 {
 	list-style: none;
-	background-image: linear-gradient(rgb(18 18 18), rgba(0, 0, 0, 0));
+	background-image: linear-gradient(rgb(18 18 18) 10%, rgba(0, 0, 0, 0) 98%);
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -159,13 +159,44 @@
 	}
 }
 
+[hidden] {
+	display: none !important;
+  }
+
+
+  .genres
+  {
+	filter: saturate(1) !important;
+	aspect-ratio: 1/1 !important;
+	object-fit: cover !important;
+	object-position: top !important;
+	max-width: 230px !important;
+	width: 33% !important;
+  }
+
+  .genresCat
+  {
+	justify-content: space-around !important;
+	width:100vw !important;
+	margin-bottom: 20px;
+  }
+
 @media(max-width:768px)
 {
+	.ratingAndInfo
+	{
+		font-size: 14px !important;
+	}
+
+	.posterDescription
+	{
+		font-size: 14px !important;
+	}
 	.navBar
 	{
 		top: unset;
 		bottom: 0;
-		background-image: linear-gradient(rgba(0, 0, 0, 0),rgb(18 18 18)) !important;
+		background-image: linear-gradient(rgba(0, 0, 0, 0) 0%, rgb(18 18 18) 95%) !important;
 		justify-content: space-around;
 	}
 
@@ -210,6 +241,7 @@
 	.posterTitle
 	{
 		font-size: 22px !important;
+		margin-bottom: 10px;
 	}
 
 	.posterDescription
@@ -405,6 +437,7 @@
 	cursor: pointer;
 	border-radius: 6px;
 	margin: 0 auto;
+	filter: saturate(0);
 }
 
 .moviesSearch:hover

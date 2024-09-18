@@ -1,4 +1,4 @@
-import { Component,Renderer2  } from '@angular/core';
+import { Component,Renderer2,OnInit, SimpleChanges,  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -6,7 +6,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 
-
+declare var YT: any; // Declaring the YouTube API
 @Component({
   selector: 'app-exercice2',
   templateUrl: './exercice2.component.html',
@@ -17,7 +17,7 @@ import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browse
 			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
 		])]
 })
-export class Exercice2Component {
+export class Exercice2Component implements OnInit {
   searchQuery: string ="";
   //movies variables
   movies: any[] = [];
@@ -34,10 +34,15 @@ export class Exercice2Component {
   popUpPoster="";
   startTrailer=false;
 
+  genraMovies:any[] = [];
+  genraName = "";
+  genraSearch = false;
 
-  popUpLink:any;
 
-  sanitizedUrls: SafeResourceUrl[] = [];
+  popUpLink:SafeResourceUrl = "";
+  player: any;
+
+
   private vidSrcApiUrl = 'https://vidsrc.xyz/embed/movie/';
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
 
@@ -48,6 +53,32 @@ export class Exercice2Component {
 			this.movies = response.results;
 		});
 	}
+
+	loadYouTubePlayer(): void {
+		// Wait for the API to be ready
+		(window as any)['onYouTubeIframeAPIReady'] = () => {
+		  this.player = new YT.Player('youtubePlayer', {
+			events: {
+			  'onReady': (event: any) => {
+			  },
+			  'onError': (error: any) => {
+			  }
+			}
+		  });
+		};
+	  }
+	
+	  mute(): void {
+		if (this.player) {
+		  this.player.mute(); // Mute the player
+		}
+	  }
+
+	
+	  unmute(): void {
+		this.player.unMute();
+	  
+	  }
 
 	getMovieImage()
 	{
@@ -71,10 +102,10 @@ export class Exercice2Component {
 		this.moviedbAPIService.getVideosMovie(movieId)
 		.subscribe((response: any) => {
 			const trailer = response.results.find((video: any) => video.type === 'Trailer');
-			console.log(trailer)
 			if (trailer?.key)
 			{
 				this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=1&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
+				this.loadYouTubePlayer();
 				this.startTrailer = true
 			}
 		})
@@ -95,7 +126,25 @@ export class Exercice2Component {
 		this.getMovieVideos(movie.id)
 	}
 
+	getMoviesByGenre(genreId:number, genraName:string)
+	{
+		this.moviedbAPIService.getMovieByGenres(genreId, 1).subscribe((response: any) => {
+			this.genraMovies = response.results;
+			this.genraName = genraName;
+			this.genraSearch = true;
+		})
+	}
+
+	clearGenre()
+	{
+		this.genraMovies = [];
+		this.genraName = "";
+		this.genraSearch = false;
+	}
+
 	ngOnInit(): void {
+		this.loadYouTubePlayer();
+
 		this.moviedbAPIService.getTrendingMovies()
 		.subscribe((response: any) => {
 			this.trendingMovies = response.results
