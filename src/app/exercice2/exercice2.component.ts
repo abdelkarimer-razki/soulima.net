@@ -141,7 +141,7 @@ export class Exercice2Component implements OnInit
 	{
 		this.popUp=false;
 		this.popUpMovie = {};
-		this.popUpPoster="";
+		this.popUpPoster=""; 
 		this.startTrailer=false;
 		this.mute = true;
 		this.popUpLink= "";
