@@ -18,3 +18,11 @@ app-root
 	margin:  0 auto;
 	display: block;
 }
+
+
+iframe
+{
+	width: 300% !important;
+	height: 100% !important;
+	margin-left: -100% !important;
+}

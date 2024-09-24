@@ -15,6 +15,7 @@ import { PathLocationStrategy } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TvshowsComponent } from './tvshows/tvshows.component';
 import { HelloworldComponent } from './helloworld/helloworld.component';
+import { YouTubePlayerModule } from '@angular/youtube-player';
 
 
 HttpClientModule
@@ -27,14 +28,15 @@ HttpClientModule
     TopMenuComponent,
     SeriesComponent,
     TvshowsComponent,
-    HelloworldComponent,
+    HelloworldComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     FormsModule,
     BrowserAnimationsModule,
-    HttpClientModule
+    HttpClientModule,
+    YouTubePlayerModule
   ],
   providers: [{provide:LocationStrategy, useClass:PathLocationStrategy}],
   bootstrap: [AppComponent]

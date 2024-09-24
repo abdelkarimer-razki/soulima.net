@@ -1,9 +1,11 @@
-import { Component,Renderer2  } from '@angular/core';
+import { Component,Renderer2,ViewChild  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { YouTubePlayer } from '@angular/youtube-player';
+
 
 
 @Component({
@@ -17,6 +19,8 @@ import { trigger, transition, style, animate } from '@angular/animations';
 		])]
 })
 export class TvshowsComponent {
+	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
+
   searchQuery: string ="";
   moviePoster = "";
   moviePosterData:any;
@@ -34,6 +38,15 @@ export class TvshowsComponent {
   startTrailer=false;
 
   popUpLink:any;
+  mute:boolean = true;
+	playerVars = {
+		disablekb: 1,
+		autoplay: 1,  // Enable autoplay
+		controls: 0,  // Show controls (optional)
+		rel: 0,       // Disable related videos at the end (optional)
+		modestbranding: 1, // Remove YouTube logo from the control bar (optional),
+		mute: 1
+	};
 
   sanitizedUrls: SafeResourceUrl[] = [];
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
@@ -46,7 +59,21 @@ export class TvshowsComponent {
         });
       }
 
+      changeAudio()
+      {
+        this.mute = !this.mute
+        if (this.mute)
+          this.player.mute()
+        else
+          this.player.unMute()
+      }
 
+      onPlayerReady(event: any)
+      {
+        const playerState = event.data;
+        if (playerState === 1)
+          this.startTrailer = true;
+      }
       getSerieImage()
       {
         const posterMovieNb:any = Math.floor(Math.random() * 15);
@@ -116,12 +143,23 @@ export class TvshowsComponent {
       this.popUpPoster = "";
 
       this.startTrailer = false
+      this.mute = true;
       this.popUpMovie = movie;
       this.moviedbAPIService.getSerieDetails(movie.id)
       .subscribe((response: any) => {
         this.popUpMovie = response
       })
       this.getSerieVideos(movie.id)
+    }
+
+    closePopUp()
+    {
+      this.popUp=false;
+      this.popUpMovie = {};
+      this.popUpPoster="";
+      this.startTrailer=false;
+      this.mute = true;
+      this.popUpLink= "";
     }
 
     getSerieVideos(movieId:any)
@@ -133,10 +171,7 @@ export class TvshowsComponent {
       .subscribe((response: any) => {
         const trailer = response.results.find((video: any) => video.type === 'Trailer');
         if (trailer?.key)
-        {
-          this.popUpLink = this.sanitizer.bypassSecurityTrustResourceUrl("https://www.youtube.com/embed/" + trailer?.key + "?autoplay=1&loop=1&controls=0&modestbranding=0&mute=0&loop=1&playlist="+ trailer?.key+"&color=white&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3");
-          this.startTrailer = true
-        }
+          this.popUpLink = trailer?.key;
       })
       })
     }

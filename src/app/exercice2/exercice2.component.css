@@ -159,6 +159,28 @@
 	}
 }
 
+.mutes
+{
+	cursor: pointer;
+	position: absolute;
+	bottom: 20px;
+	right: 20px;
+	transition: 0.3s;
+	opacity: 0.6;
+}
+
+.mutes:hover
+{
+	opacity: 1;
+}
+
+.mutes > svg
+{
+	width: 30px;
+	height: 30px;
+	color: white;
+}
+
 [hidden] {
 	display: none !important;
   }
@@ -177,7 +199,7 @@
   .genresCat
   {
 	justify-content: space-around !important;
-	width:100vw !important;
+	width:100% !important;
 	margin-bottom: 20px;
   }
 
