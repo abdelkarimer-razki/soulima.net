@@ -207,12 +207,16 @@
 {
 	.ratingAndInfo
 	{
-		font-size: 14px !important;
+		font-size: 12px !important;
 	}
 
+	.titleInPopUp
+	{
+		font-size: 24px;
+	}
 	.posterDescription
 	{
-		font-size: 14px !important;
+		font-size: 12px !important;
 	}
 	.navBar
 	{
