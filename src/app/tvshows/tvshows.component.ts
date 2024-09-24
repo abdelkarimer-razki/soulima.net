@@ -138,6 +138,8 @@ export class TvshowsComponent {
   
     showPopUp(movie:any)
     {
+		this.renderer.setStyle(document.body, 'overflow', 'hidden');
+
       this.popUp = true;
       this.popUpLink = "";
       this.popUpPoster = "";
@@ -160,6 +162,8 @@ export class TvshowsComponent {
       this.startTrailer=false;
       this.mute = true;
       this.popUpLink= "";
+		this.renderer.removeStyle(document.body, 'overflow');
+
     }
 
     getSerieVideos(movieId:any)

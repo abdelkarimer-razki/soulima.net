@@ -108,6 +108,7 @@ export class Exercice2Component implements OnInit
 
 	showPopUp(movie:any)
 	{
+		this.renderer.setStyle(document.body, 'overflow', 'hidden');
 		this.popUp = true;
 		this.popUpLink = "";
 		this.popUpPoster = "";
@@ -145,6 +146,7 @@ export class Exercice2Component implements OnInit
 		this.startTrailer=false;
 		this.mute = true;
 		this.popUpLink= "";
+		this.renderer.removeStyle(document.body, 'overflow');
 	}
 
 	ngOnInit(): void
