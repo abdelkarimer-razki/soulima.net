@@ -26,7 +26,6 @@ export class Exercice2Component implements OnInit
 	topRatedMovies:any[] = [];
 	newReleasedMovies:any[] = [];
 	isMovies = true;
-	moviePoster = "";
 	showSearch = false
 	moviePosterData:any;
 
@@ -46,7 +45,8 @@ export class Exercice2Component implements OnInit
 		controls: 0,  // Show controls (optional)
 		rel: 0,       // Disable related videos at the end (optional)
 		modestbranding: 1, // Remove YouTube logo from the control bar (optional),
-		mute: 1
+		mute: 1,
+		loop: 1
 	};
 
 	constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private renderer: Renderer2) { }
@@ -72,11 +72,6 @@ export class Exercice2Component implements OnInit
 		this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
 		.subscribe((response: any) => {
 			this.moviePosterData = response
-		})
-
-		this.moviedbAPIService.getMovieImages(this.trendingMovies[posterMovieNb].id)
-		.subscribe((response: any) => {
-			this.moviePoster = response.backdrops[0].file_path
 		})
 	}
 
@@ -154,6 +149,7 @@ export class Exercice2Component implements OnInit
 		this.moviedbAPIService.getTrendingMovies()
 		.subscribe((response: any) => {
 			this.trendingMovies = response.results
+			console.log(this.trendingMovies)
 			this.getMovieImage()
 		})
 
@@ -166,6 +162,11 @@ export class Exercice2Component implements OnInit
 		.subscribe((response: any) => {
 			this.newReleasedMovies = response.results
 		})
+	}
+
+	ngOnDestroy()
+	{
+		this.renderer.removeStyle(document.body, 'overflow');
 	}
 
 	onHover(event: Event)

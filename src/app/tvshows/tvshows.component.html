@@ -5,7 +5,7 @@
 	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchSeries()"></a>
 </nav>
 <div class="posterContainer" *ngIf="!this.searchQuery">
-	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePoster" class="poster" alt="">
+	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePosterData?.backdrop_path" class="poster" alt="">
 	<div class="posterInfo" >
 		<div class="posterTitle">
 			{{moviePosterData?.name}}

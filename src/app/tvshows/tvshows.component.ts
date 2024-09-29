@@ -22,7 +22,6 @@ export class TvshowsComponent {
 	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
 
   searchQuery: string ="";
-  moviePoster = "";
   moviePosterData:any;
   series: any[] = [];
   trendingSeries: any[] = [];
@@ -45,7 +44,8 @@ export class TvshowsComponent {
 		controls: 0,  // Show controls (optional)
 		rel: 0,       // Disable related videos at the end (optional)
 		modestbranding: 1, // Remove YouTube logo from the control bar (optional),
-		mute: 1
+		mute: 1,
+    loop: 1
 	};
 
   sanitizedUrls: SafeResourceUrl[] = [];
@@ -82,10 +82,6 @@ export class TvshowsComponent {
           this.moviePosterData = response
           console.log(this.moviePosterData)
         })
-        this.moviedbAPIService.getSerieImages(this.trendingSeries[posterMovieNb].id)
-        .subscribe((response: any) => {
-          this.moviePoster = response.backdrops[0].file_path
-        })
       }
 
     ngOnInit(): void {
@@ -94,6 +90,7 @@ export class TvshowsComponent {
         this.trendingSeries = response.results
         this.getSerieImage()
       })
+
 
       this.moviedbAPIService.getTopRatedSeries()
       .subscribe((response: any) => {
@@ -104,6 +101,11 @@ export class TvshowsComponent {
       .subscribe((response: any) => {
         this.newReleasedSeries = response.results
       })
+    }
+
+    ngOnDestroy()
+    {
+		  this.renderer.removeStyle(document.body, 'overflow');
     }
 
     onHover(event: Event) {

@@ -1,3 +1,161 @@
+.season
+{
+	display: flex;
+	flex-direction: row;
+	margin: 5px 0px;
+	transition: 0.3s;
+	cursor: pointer;
+	padding: 5px 0px;
+}
+
+.season:hover
+{
+	background-color: #181818;
+}
+
+.choseEpisode
+{
+	display: flex;
+	align-items: center;
+	border-top: 1px solid white;
+	border-left: 1px solid white;
+	border-right: 1px solid white;
+	width: fit-content;
+	padding: 10px;
+	transition: 0.3s;
+}
+
+.choseEpisode:hover
+{
+	background-color: #181818;
+}
+
+.seasonRating
+{
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+	width: fit-content;
+	margin-left: 10px;
+	font-size: 12px;
+}
+
+.seasonRatingd
+{
+	font-size: 12px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
+
+.seasonOverview
+{
+	margin-left: 10px;
+	font-size: 12px;
+	color: #888;
+}
+
+.seasonNumber
+{
+	position: relative;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.svgEpi
+{
+	width: 25px;
+	height: 25px;
+	margin-right: 10px;
+}
+
+.star
+{
+	color: #F6C906;
+	width: 10px;
+	margin-left: 3px;
+}
+
+.seasonsSelector
+{
+	background-color: rgb(0 0 0 / 96%);
+	color: white;
+	width: 400px;
+	overflow: hidden;
+	height: 400px;
+	display: flex;
+	flex-direction: column;
+	overflow-y: scroll;
+	padding: 10px;
+	position: absolute;
+	left: 0;
+	top: 45px;
+	padding: 10px;
+}
+
+::-webkit-scrollbar {
+    width: 3px; /* Width of the scrollbar */
+}
+
+/* The track (background of the scrollbar) */
+::-webkit-scrollbar-track {
+    background: #f1f1f100; /* Track color */
+    border-radius: 10px; /* Optional: rounded edges */
+}
+
+/* The handle (scrollbar thumb) */
+::-webkit-scrollbar-thumb {
+    background: #888; /* Color of the thumb */
+    border-radius: 10px; /* Optional: rounded edges */
+}
+
+/* The handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Color when hovered */
+}
+
+.myPlayer
+{
+
+}
+
+
+
+.number
+{
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	-webkit-text-stroke-width: 1px;
+	-webkit-text-stroke-color: white;
+	color: rgba(255, 255, 255, 0);
+	font-size: 80px;
+}
+
+
+.seasonPoster
+{
+	width: 70px;
+	aspect-ratio: 2/3;
+	margin-left: 20px;
+}
+
+.episodePoster
+{
+	width: 100px;
+	aspect-ratio: 16/9;
+	margin-left: 20px;
+}
+
+.seasonOverview
+{
+	font-size: 14px;
+}
+
 .navBar
 {
 	list-style: none;
@@ -11,12 +169,18 @@
 	cursor: pointer;
 }
 
+#vidsrc
+{
+	width: 100% !important;
+	margin: unset !important;
+}
+
 .movie
 {
 	margin: 0 auto !important;
 	display: block;
 	aspect-ratio: 16/9;
-	width: 100%;
+	width: 100% !important;
 	max-width: 1000px;
 	height: auto;
 	position: relative;
@@ -42,19 +206,12 @@
 {
 	background-color: black;
 	min-height: 100vh;
-	margin: 0 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
 	width: 100%;
-	height: fit-content;
-	max-width: 1000px;
 	position: relative;
-	aspect-ratio: 16 / 9;
-}
-
-.seasonSelector
-{
-	position: absolute;
-	top: 0;
-	left: 0;
 }
 
 .nameAndPic > img

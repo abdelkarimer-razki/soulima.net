@@ -3,7 +3,6 @@
 	border: 1px solid black;
 	margin: 20px 8px 20px 0px;
 	cursor: pointer;
-	border-radius: 6px;
 }
 
 .soon
@@ -362,8 +361,7 @@
 	width: fit-content;
 	font-size: 18px;
 	font-weight: 500;
-    padding: 7px 10px;
-	border-radius: 8px;
+	padding: 7px 10px;
 	margin-top: 20px;
 	cursor: pointer;
 	transition: 0.3s;
@@ -434,7 +432,6 @@
 	aspect-ratio: 2/3;
 	width: 30%;
 	max-width: 200px;
-	filter: saturate(0);
 }
 
 

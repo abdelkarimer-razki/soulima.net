@@ -1,9 +1,75 @@
 
 
-<div class="moviePlayer">
-	<iframe id="vidsrc" class="movie"   [src]="link" frameborder="0"  allowfullscreen="true"  allow="picture-in-picture" >
-		<select class="seasonSelector">
-			<option *ngFor="season of seasons;index as i" value="{{i + 1}}">{{i + 1}}</option>
+<div class="moviePlayer" >
+<!-- 
+		<select class="seasonSelector" (change)="changeSeason($event)">
+			<option *ngFor="season of seasons;index as i" value="{{i + 1}}"></option>
 		</select>
-	</iframe>
+		<select class="epiSelector" >
+			<option *ngFor="let episodes of createRange(seasons[season - 1]);index as i" (click)="episode = i + 1" value="{{i + 1}}">{{i + 1}}</option>
+		</select> -->
+	<div class="movie">
+		<div class="choseEpisode" *ngIf="!epiSelector" style="color: white;cursor: pointer;" (click)="showSelector = !showSelector">
+			<svg class="svgEpi" style="enable-background:new 0 0 50 50;" version="1.1" viewBox="0 0 50 50" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="Layer_1"><path fill="currentColor" d="M21,5H10v4H1v32h9v4h11v4h28V1H21V5z M3,39V11h7v28H3z M12,43v-2V9V7h9v36H12z M23,3h24v44H23v-2V5V3z"/></g><g/></svg>
+			Choose episode
+		</div>
+		<div class="choseEpisode" *ngIf="epiSelector" style="color: white;cursor: pointer;" (click)="back()">
+			<svg class="svgEpi" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+			Back
+		</div>
+		<div class="seasonsSelector" *ngIf="showSelector">
+			<ng-container *ngFor="let seasoned of seasons;index as i" >
+				<div class="season" (click)="choseSeason(i)" *ngIf="seasoned.episode_count != 0 && seasoned.name != 'Specials'">
+					<div class="seasonNumber">
+						<div class="number">
+							{{i + 1}}
+						</div>
+						<img [src]="'https://image.tmdb.org/t/p/original' + seasoned.poster_path" class="seasonPoster" alt="">
+					</div>
+					<div class="seasonDetails">
+						<div class="seasonRatingd">
+							<div class="seasonRating">
+								{{seasoned.vote_average}}
+								<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+							</div>
+							<div class="seasonRating">
+								{{seasoned.episode_count}}
+								Episodes
+							</div>
+						</div>
+						<div class="seasonOverview">
+							{{seasoned.overview | slice:0:200}}...
+						</div>
+					</div>
+				</div>
+			</ng-container>
+		</div>
+		<div class="seasonsSelector" *ngIf="epiSelector">
+			<ng-container *ngFor="let episode of episodes;index as i" >
+				<div class="season" (click)="changeEpisode(i)" *ngIf="episode.vote_average && episode.still_path">
+					<div class="seasonNumber">
+						<div class="number">
+							{{i + 1}}
+						</div>
+						<img [src]="'https://image.tmdb.org/t/p/original' + episode.still_path" class="episodePoster" alt="">
+					</div>
+					<div class="seasonDetails">
+	
+						<div class="seasonRating">
+							{{episode.vote_average}}
+							<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+						</div>
+						<div style="margin-left: 10px;">
+							{{episode.name}}
+						</div>
+						<div class="seasonOverview">
+							{{episode.overview | slice:0:200}}...
+						</div>
+					</div>
+				</div>
+			</ng-container>
+		</div>
+		<iframe id="vidsrc"  [src]="link" frameborder="0"  allowfullscreen="true"  allow="picture-in-picture" >
+		</iframe>
+	</div>
 </div>

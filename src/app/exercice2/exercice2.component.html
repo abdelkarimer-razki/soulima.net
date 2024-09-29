@@ -5,7 +5,7 @@
 	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></a>
 </nav>
 <div class="posterContainer" *ngIf="!this.searchQuery && !this.genraSearch">
-	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePoster" class="poster" alt="">
+	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePosterData?.backdrop_path" class="poster" alt="">
 	<div class="posterInfo" >
 		<div class="posterTitle">
 			{{moviePosterData?.title}}
@@ -63,7 +63,7 @@
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of trendingMovies| slice:0:15">
-				<img  *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 			<div class="scrollright"></div>
@@ -73,7 +73,7 @@
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of newReleasedMovies| slice:0:15">
-				<img *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="movies"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="movies"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 	</div>
@@ -82,7 +82,7 @@
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedMovies| slice:0:15">
-				<img *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 	</div>	
@@ -94,12 +94,12 @@
 		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<img *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 		<div class="searchResutls" >
 			<ng-container *ngFor="let movie of movies">
-				<img *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 	</div>
