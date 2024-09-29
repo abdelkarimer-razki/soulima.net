@@ -1,7 +1,7 @@
 .movies
 {
 	border: 1px solid black;
-	margin: 20px 8px 20px 0px;
+	margin: 20px 4px;
 	cursor: pointer;
 	/* border-radius: 6px; */
 }
@@ -91,13 +91,13 @@
 {
 	width: -moz-fit-content;
 	gap: 10px;
-	width: fit-content;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(min(30%, 200px), 1fr));
 	grid-auto-flow: dense;
 	width: 100%;
 	row-gap: 30px;
-	padding: 10px;
+	padding: 10px 20px;
+	box-sizing: border-box
 }
 
 .categorie::-webkit-scrollbar {
@@ -121,9 +121,9 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: flex-start;
-	width: fit-content;
-	margin-left: 10px;
-	margin-right: 10px;
+	width: max-content;
+	margin-left: 20px;
+	margin-right: 20px;
 }
 
 .navBar
@@ -193,13 +193,13 @@
 	object-fit: cover !important;
 	object-position: top !important;
 	max-width: 230px !important;
-	width: 33% !important;
+	width: 33vw !important;
   }
 
   .genresCat
   {
 	justify-content: space-around !important;
-	width:100% !important;
+	width:max-content !important;
 	margin-bottom: 20px;
   }
 
@@ -476,7 +476,7 @@
 {
 	transition: 0.2s;
 	aspect-ratio: 2/3;
-	width: 30%;
+	width: 30vw;
 	max-width: 200px;
 }
 
