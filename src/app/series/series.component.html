@@ -19,7 +19,7 @@
 		</div>
 		<div class="seasonsSelector" *ngIf="showSelector">
 			<ng-container *ngFor="let seasoned of seasons;index as i" >
-				<div class="season" (click)="choseSeason(i)" *ngIf="seasoned.episode_count != 0 && seasoned.name != 'Specials'">
+				<div class="season" (click)="choseSeason(i)" *ngIf="seasoned.episode_count != 0 && seasoned.name != 'Specials' && seasoned.vote_average">
 					<div class="seasonNumber">
 						<div class="number">
 							{{i + 1}}
