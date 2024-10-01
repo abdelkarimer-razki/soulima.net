@@ -16,6 +16,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TvshowsComponent } from './tvshows/tvshows.component';
 import { HelloworldComponent } from './helloworld/helloworld.component';
 import { YouTubePlayerModule } from '@angular/youtube-player';
+import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
 
 
 HttpClientModule
@@ -28,7 +29,8 @@ HttpClientModule
     TopMenuComponent,
     SeriesComponent,
     TvshowsComponent,
-    HelloworldComponent
+    HelloworldComponent,
+    LoadingScreenComponent
   ],
   imports: [
     BrowserModule,

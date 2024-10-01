@@ -5,6 +5,8 @@ import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
+import { forkJoin } from 'rxjs';
+
 
 
 
@@ -16,6 +18,9 @@ import { YouTubePlayer } from '@angular/youtube-player';
 		trigger('Loading', [
 			transition(':enter', [style({ transform: 'translateY(-200%)'}), animate('300ms', style({ transform: 'translateY(0)' }))]),
 			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
+		]),
+		trigger('fade', [
+			transition(':leave', [style({ opacity: '1'}), animate('1000ms', style({  opacity: '0' }))])
 		])]
 })
 export class TvshowsComponent {
@@ -47,6 +52,9 @@ export class TvshowsComponent {
 		mute: 1,
     loop: 1
 	};
+
+	loading = true;
+
 
   sanitizedUrls: SafeResourceUrl[] = [];
   constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
@@ -80,27 +88,45 @@ export class TvshowsComponent {
         this.moviedbAPIService.getSerieDetails(this.trendingSeries[posterMovieNb].id)
         .subscribe((response: any) => {
           this.moviePosterData = response
-          console.log(this.moviePosterData)
+          this.loading = false
+          console.log("heyyy")
         })
       }
 
     ngOnInit(): void {
-      this.moviedbAPIService.getTrendingSeries()
-      .subscribe((response: any) => {
-        this.trendingSeries = response.results
-        this.getSerieImage()
-      })
+
+      forkJoin(
+        [
+          this.moviedbAPIService.getTrendingSeries(),
+          this.moviedbAPIService.getTopRatedSeries(),
+          this.moviedbAPIService.getNewReleaseSeries()
+        ]
+      ).subscribe(
+        (responses:any[]) =>
+        {
+          this.trendingSeries = responses[0].results;
+          this.topRatedSeries = responses[1].results;
+          this.newReleasedSeries = responses[2].results;
+
+          this.getSerieImage()
+        }
+      )
+      // this.moviedbAPIService.getTrendingSeries()
+      // .subscribe((response: any) => {
+      //   this.trendingSeries = response.results
+      //   this.getSerieImage()
+      // })
 
 
-      this.moviedbAPIService.getTopRatedSeries()
-      .subscribe((response: any) => {
-        this.topRatedSeries = response.results
-      })
+      // this.moviedbAPIService.getTopRatedSeries()
+      // .subscribe((response: any) => {
+      //   this.topRatedSeries = response.results
+      // })
 
-      this.moviedbAPIService.getNewReleaseSeries()
-      .subscribe((response: any) => {
-        this.newReleasedSeries = response.results
-      })
+      // this.moviedbAPIService.getNewReleaseSeries()
+      // .subscribe((response: any) => {
+      //   this.newReleasedSeries = response.results
+      // })
     }
 
     ngOnDestroy()

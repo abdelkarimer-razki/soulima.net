@@ -35,6 +35,7 @@
 {
 	width: 100%;
 	object-fit: cover;
+	aspect-ratio: 16/9;
 }
 
 .search
@@ -199,7 +200,7 @@
   .genresCat
   {
 	justify-content: space-around !important;
-	width:max-content !important;
+	width: calc(100% - 40px) !important;
 	margin-bottom: 20px;
   }
 

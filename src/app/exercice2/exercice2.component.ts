@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
+import { forkJoin } from 'rxjs';
 
 
 @Component({
@@ -14,6 +15,9 @@ import { YouTubePlayer } from '@angular/youtube-player';
 		trigger('Loading', [
 			transition(':enter', [style({ transform: 'translateY(-200%)'}), animate('300ms', style({ transform: 'translateY(0)' }))]),
 			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
+		]),
+		trigger('fade', [
+			transition(':leave', [style({ opacity: '1'}), animate('1000ms', style({  opacity: '0' }))])
 		])]
 })
 export class Exercice2Component implements OnInit
@@ -49,6 +53,8 @@ export class Exercice2Component implements OnInit
 		loop: 1
 	};
 
+	loading = true;
+
 	constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private renderer: Renderer2) { }
 
 	searchMovies()
@@ -71,7 +77,8 @@ export class Exercice2Component implements OnInit
 		const posterMovieNb:any = Math.floor(Math.random() * 15);
 		this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
 		.subscribe((response: any) => {
-			this.moviePosterData = response
+			this.moviePosterData = response;
+			this.loading = false;
 		})
 	}
 
@@ -124,6 +131,7 @@ export class Exercice2Component implements OnInit
 			this.genraName = genraName;
 			this.genraSearch = true;
 		})
+		window.scrollTo(0,0)
 	}
 
 	clearGenre()
@@ -146,22 +154,35 @@ export class Exercice2Component implements OnInit
 
 	ngOnInit(): void
 	{
-		this.moviedbAPIService.getTrendingMovies()
-		.subscribe((response: any) => {
-			this.trendingMovies = response.results
-			console.log(this.trendingMovies)
-			this.getMovieImage()
-		})
+		forkJoin([
+			this.moviedbAPIService.getTrendingMovies(),
+			this.moviedbAPIService.getTopRatedMovies(),
+			this.moviedbAPIService.getNewRelease()
+		]).subscribe((responses:any[]) =>
+			{
+				this.trendingMovies = responses[0].results;
+				this.topRatedMovies = responses[1].results;
+				this.newReleasedMovies = responses[2].results;
+				this.getMovieImage();
+			}
+		)
 
-		this.moviedbAPIService.getTopRatedMovies()
-		.subscribe((response: any) => {
-			this.topRatedMovies = response.results
-		})
+		
+		// this.moviedbAPIService.getTrendingMovies()
+		// .subscribe((response: any) => {
+		// 	this.trendingMovies = response.results
+		// 	this.getMovieImage()
+		// })
 
-		this.moviedbAPIService.getNewRelease()
-		.subscribe((response: any) => {
-			this.newReleasedMovies = response.results
-		})
+		// this.moviedbAPIService.getTopRatedMovies()
+		// .subscribe((response: any) => {
+		// 	this.topRatedMovies = response.results
+		// })
+
+		// this.moviedbAPIService.getNewRelease()
+		// .subscribe((response: any) => {
+		// 	this.newReleasedMovies = response.results
+		// })
 	}
 
 	ngOnDestroy()

@@ -3,7 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, firstValueFrom  } from 'rxjs';
+import { forkJoin } from 'rxjs';
 
 
 
