@@ -1,4 +1,4 @@
-import { Component, OnInit,  ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ElementRef,ViewChild, AfterViewInit} from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -10,11 +10,11 @@ import { HttpClient } from '@angular/common/http';
   styleUrls: ['./movie.component.css']
 })
 export class MovieComponent implements OnInit {
-  @ViewChild('iframeElement') iframeElement!: ElementRef;
 
   id: number = 0;
   movie: any = "";
   link: SafeResourceUrl = "";
+  @ViewChild('vidsrc', { static: false }) iframe!: ElementRef;
 
   constructor(
     private route: ActivatedRoute,
@@ -24,7 +24,7 @@ export class MovieComponent implements OnInit {
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.pro/embed/movie/" + this.id + "?player=new&ds_lang=ar");
+      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.in/embed/movie/" + this.id + "?player=new&ds_lang=ar");
   });
 
   }
@@ -37,16 +37,27 @@ export class MovieComponent implements OnInit {
     this.moviedbAPIService.getMovieDetails(this.id)
       .subscribe((response: any) => {
         this.movie = response;
-        this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
+        //this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
       });
-      const iframe = document.getElementById('vidsrc') as HTMLIFrameElement;
+  }
+
+  ngAfterViewInit(): void {
+    // Listen for the iframe load event
+    if (this.iframe)
+    {
+      this.iframe.nativeElement.onload = () => {
+        try {
+          // Access the iframe's contentDocument
+          const iframeDocument = this.iframe.nativeElement.contentDocument || this.iframe.nativeElement.contentWindow.document;
   
-      if (iframe && iframe.contentWindow) {
-        iframe.contentWindow.open = function() {
-          console.log('Pop-up blocked from vidsrc iframe!');
-          return null;
-        };
-      }
+          // Get the HTML content of the iframe
+          const iframeHTML = iframeDocument.documentElement.innerHTML;
+          console.log('Iframe HTML:', iframeHTML);
+        } catch (error) {
+          console.error('Error accessing iframe content:', error);
+        }
+      };
+    }
   }
 
 
