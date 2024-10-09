@@ -92,9 +92,7 @@ export class Exercice2Component implements OnInit
 		.subscribe((response: any) => {
 			const trailer = response.results.find((video: any) => video.type === 'Trailer');
 			if (trailer?.key)
-			{
 				this.popUpLink = trailer.key;
-			}
 		})
 		})
 	}

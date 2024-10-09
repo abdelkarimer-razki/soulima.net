@@ -17,6 +17,7 @@ import { TvshowsComponent } from './tvshows/tvshows.component';
 import { HelloworldComponent } from './helloworld/helloworld.component';
 import { YouTubePlayerModule } from '@angular/youtube-player';
 import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
+import { NotifComponent } from './notif/notif.component';
 
 
 HttpClientModule
@@ -30,7 +31,8 @@ HttpClientModule
     SeriesComponent,
     TvshowsComponent,
     HelloworldComponent,
-    LoadingScreenComponent
+    LoadingScreenComponent,
+    NotifComponent
   ],
   imports: [
     BrowserModule,
