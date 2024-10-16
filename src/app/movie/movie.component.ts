@@ -14,6 +14,7 @@ export class MovieComponent implements OnInit {
   id: number = 0;
   movie: any = "";
   link: SafeResourceUrl = "";
+  embed: string = "https://vidsrc.net/embed";
   @ViewChild('vidsrc', { static: false }) iframe!: ElementRef;
 
   constructor(
@@ -24,7 +25,7 @@ export class MovieComponent implements OnInit {
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl("https://vidsrc.in/embed/movie/" + this.id + "?player=new&ds_lang=ar");
+      this.link = this.sanitizer.bypassSecurityTrustResourceUrl( this.embed + "/movie/" + this.id + "?player=new&ds_lang=ar");
   });
 
   }
