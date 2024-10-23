@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin } from 'rxjs';
+import { CookieService } from 'ngx-cookie-service';
 
 
 @Component({
@@ -29,6 +30,8 @@ export class Exercice2Component implements OnInit
 	trendingMovies: any[] = [];
 	topRatedMovies:any[] = [];
 	newReleasedMovies:any[] = [];
+	recentlyWatched:any[] = [];
+
 	isMovies = true;
 	showSearch = false
 	moviePosterData:any;
@@ -55,7 +58,12 @@ export class Exercice2Component implements OnInit
 
 	loading = true;
 
-	constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private renderer: Renderer2) { }
+	constructor(
+		private moviedbAPIService: MoviedbAPIService,
+		private router:Router,
+		private renderer: Renderer2,
+		private cookie: CookieService
+	) { }
 
 	searchMovies()
 	{
@@ -152,6 +160,9 @@ export class Exercice2Component implements OnInit
 
 	ngOnInit(): void
 	{
+		const data = localStorage.getItem("movies")
+		if (data)
+			this.recentlyWatched = JSON.parse(data);
 		forkJoin([
 			this.moviedbAPIService.getTrendingMovies(),
 			this.moviedbAPIService.getTopRatedMovies(),
@@ -164,23 +175,6 @@ export class Exercice2Component implements OnInit
 				this.getMovieImage();
 			}
 		)
-
-		
-		// this.moviedbAPIService.getTrendingMovies()
-		// .subscribe((response: any) => {
-		// 	this.trendingMovies = response.results
-		// 	this.getMovieImage()
-		// })
-
-		// this.moviedbAPIService.getTopRatedMovies()
-		// .subscribe((response: any) => {
-		// 	this.topRatedMovies = response.results
-		// })
-
-		// this.moviedbAPIService.getNewRelease()
-		// .subscribe((response: any) => {
-		// 	this.newReleasedMovies = response.results
-		// })
 	}
 
 	ngOnDestroy()

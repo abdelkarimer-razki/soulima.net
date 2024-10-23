@@ -90,7 +90,7 @@
 	width: -moz-fit-content;
 	gap: 10px;
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(min(35%, 200px), 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(min(38%, 200px), 1fr));
 	grid-auto-flow: dense;
 	width: 100%;
 	row-gap: 30px;
@@ -431,8 +431,9 @@
 {
 	transition: 0.2s;
 	aspect-ratio: 2/3;
-	width: 35vw;
+	width: 38vw;
 	max-width: 200px;
+	border-radius: 12px;
 }
 
 

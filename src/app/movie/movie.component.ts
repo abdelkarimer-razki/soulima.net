@@ -3,6 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
   selector: 'app-movie',
@@ -21,7 +22,8 @@ export class MovieComponent implements OnInit {
     private route: ActivatedRoute,
     private moviedbAPIService: MoviedbAPIService,
     private sanitizer: DomSanitizer,
-    private http: HttpClient
+    private http: HttpClient,
+    private cookie:CookieService
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
@@ -32,15 +34,53 @@ export class MovieComponent implements OnInit {
 
 // Run the function repeatedly every 1000 milliseconds (1 second)
 
-  ngOnInit(): void {
-    // this.detectNewTabOpened();
-      // setInterval(this.removeSpecificElement, 1);
-    this.moviedbAPIService.getMovieDetails(this.id)
-      .subscribe((response: any) => {
-        this.movie = response;
-        //this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
-      });
-  }
+	ngOnInit(): void {
+		// this.detectNewTabOpened();
+		// setInterval(this.removeSpecificElement, 1);
+		this.moviedbAPIService.getMovieDetails(this.id)
+		.subscribe((response: any) => {
+			this.movie = response;
+			this.getRecentlyWatched();
+			//this.checkWebsiteStatus("https://vidsrc.pro/embed/movie/" + this.id);
+		}
+
+		);
+	}
+
+	getRecentlyWatched()
+	{
+		var Movieslocal = localStorage.getItem("movies");
+		var Movies:any = [];
+		if (Movieslocal)
+			Movies = JSON.parse(Movieslocal)
+		if (this.findElement(Movies) == false)
+		{
+			if (Movies.length == 20)
+				Movies[0] = this.movie;
+			else
+				Movies.unshift(this.movie)
+		}
+		else
+		{
+			for (let i = 0; i < Movies.length; i++)
+				if (Movies[i].id == this.id)
+					Movies.splice(i, 1)
+			if (Movies.length > 0)
+				Movies.unshift(this.movie)
+			else
+				Movies.push(this.movie)
+		}
+		localStorage.setItem("movies",JSON.stringify(Movies))
+	}
+
+
+	findElement(Movies:any):boolean
+	{
+		for (let i = 0; i < Movies.length; i++)
+			if (Movies[i].id == this.id)
+				return true;
+		return false
+	}
 
   ngAfterViewInit(): void {
     // Listen for the iframe load event
