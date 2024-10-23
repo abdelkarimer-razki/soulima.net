@@ -36,5 +36,5 @@ app-root
 
 #e1
 {
-	display: none;
+	display: none !important;
 }
