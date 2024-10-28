@@ -46,6 +46,17 @@
 
 
 <div class="moviesContainer" *ngIf="!this.searchQuery">
+	<div class="categorie" *ngIf="this.recentlyWatched.length != 0">
+		<h2 class="categorieTitle">Recently watched</h2>
+		<div class="moviesInCategorie" >
+			<ng-container *ngFor="let movie of recentlyWatched| slice:0:15">
+				<div>
+					<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="showPopUp(movie)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				</div>
+			</ng-container>
+		</div>
+	</div>
+
 	<div class="categorie">
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie" >

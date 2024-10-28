@@ -33,6 +33,7 @@ export class TvshowsComponent {
   showSearch = false
   topRatedSeries:any[] = [];
   newReleasedSeries:any[] = [];
+  recentlyWatched:any[] = [];
   isSeries = true;
 
 
@@ -95,6 +96,9 @@ export class TvshowsComponent {
 
     ngOnInit(): void {
 
+      const data = localStorage.getItem("series")
+      if (data)
+        this.recentlyWatched = JSON.parse(data);
       forkJoin(
         [
           this.moviedbAPIService.getTrendingSeries(),
@@ -161,7 +165,16 @@ export class TvshowsComponent {
 
 
     routerDetailSerie(id: number){
-      this.router.navigate(['/serie/'+ id + '/1/1'])
+      var series = localStorage.getItem("series");
+      if (series)
+      {
+        var seriesParsed = JSON.parse(series);
+        for (let i = 0; i < seriesParsed.length; i++)
+          if (seriesParsed[i].id == id)
+            this.router.navigate(['/serie/'+ id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb])
+      }
+      else
+        this.router.navigate(['/serie/'+ id + '/1/1'])
     }
   
     showPopUp(movie:any)

@@ -41,7 +41,6 @@ export class SeriesComponent {
 	ngOnChanges()
 	{
 		var id = document.getElementById("video-element");
-		console.log("id test",id)
 	}
 
 	changeEpisode(episdoe:number)
@@ -51,6 +50,14 @@ export class SeriesComponent {
 		this.episode = episdoe + 1;
 		window.history.pushState({}, '', '/serie/'+this.id+'/' + this.season + '/' + this.episode);
 		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(this.embed + "/tv/" + this.id + "/"+ this.season+"/"+ this.episode+"?player=new&ds_lang=ar");
+		var Movieslocal = localStorage.getItem("series");
+		var Movies:any = [];
+		if (Movieslocal)
+		{
+			console.log("changed!")
+			Movies = JSON.parse(Movieslocal)
+			this.findElementAndSwitchEpi(Movies)
+		}
 	}
 
 	createRange(number: number): number[]
@@ -70,13 +77,70 @@ export class SeriesComponent {
 		.subscribe(
 		(response: any) => {
 			this.serie = response;
-
+			this.serie.seasonnb = this.season
+			this.serie.episodenb = this.episode
+			var Movieslocal = localStorage.getItem("series");
+			var Movies:any = [];
+			if (Movieslocal)
+			{
+				Movies = JSON.parse(Movieslocal)
+				this.findElementAndSwitchEpi(Movies)
+			}
+			this.getRecentlyWatched()
 			this.serie.seasons.forEach((element:any) => {
 			if (element.episode_count != 0 && element.name != "Specials")
 				this.seasons.push(element)
 			});
 		}
 		)
+	}
+
+	getRecentlyWatched()
+	{
+		var Movieslocal = localStorage.getItem("series");
+		var Movies:any = [];
+		if (Movieslocal)
+			Movies = JSON.parse(Movieslocal)
+		if (this.findElement(Movies) == false)
+		{
+			if (Movies.length == 20)
+				Movies[0] = this.serie;
+			else
+				Movies.unshift(this.serie)
+		}
+		else
+		{
+			for (let i = 0; i < Movies.length; i++)
+				if (Movies[i].id == this.id)
+					Movies.splice(i, 1)
+			if (Movies.length > 0)
+				Movies.unshift(this.serie)
+			else
+				Movies.push(this.serie)
+		}
+		localStorage.setItem("series",JSON.stringify(Movies))
+	}
+
+	findElementAndSwitchEpi(Movies:any)
+	{
+		for (let i = 0; i < Movies.length; i++)
+		{
+			if (Movies[i].id == this.id)
+			{
+				this.serie.seasonnb = this.season
+				this.serie.episodenb = this.episode
+				this.getRecentlyWatched()
+				break;
+			}
+		}
+	}
+
+	findElement(Movies:any):boolean
+	{
+		for (let i = 0; i < Movies.length; i++)
+			if (Movies[i].id == this.id)
+				return true;
+		return false
 	}
 
 	getEpisodeDetails()

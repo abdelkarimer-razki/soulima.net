@@ -211,6 +211,11 @@
 		font-size: 12px !important;
 	}
 
+	.moviesContainer
+	{
+		top: -100px !important;
+	}
+
 	.titleInPopUp
 	{
 		font-size: 24px;
@@ -281,7 +286,7 @@
 .posterInfo
 {
 	position: absolute;
-	bottom: 30%;
+	bottom: 40%;
 	left: 10%;
 	z-index: 1;
 	max-width: 800px;
@@ -490,7 +495,7 @@
 	justify-content: center;
 	flex-direction: row;
 	flex-wrap: wrap;
-	background-color: black;
+	/* background-color: black; */
 	min-height: fit-content;
 	overflow: hidden;
 	margin-bottom: 70px;

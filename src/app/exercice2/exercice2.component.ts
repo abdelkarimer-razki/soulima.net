@@ -1,7 +1,6 @@
 import { Component,Renderer2,OnInit, ViewChild  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin } from 'rxjs';
@@ -176,6 +175,31 @@ export class Exercice2Component implements OnInit
 			}
 		)
 	}
+
+	switchDivs(): void {
+		const div1 = document.getElementById('e1');
+		const div2 = document.getElementById('div2');
+	
+		if (div1 && div2) {
+		  const parent = div1.parentNode;
+	
+		  // Create a temporary placeholder
+		  const temp = document.createElement('div');
+		  temp.style.display = 'none'; // Hide the temporary element
+	
+		  // Insert the temp before div1
+		  parent?.insertBefore(temp, div1);
+	
+		  // Move div1 before div2
+		  parent?.insertBefore(div1, div2);
+	
+		  // Move div2 before the temp element
+		  parent?.insertBefore(div2, temp);
+	
+		  // Remove the temporary element
+		  parent?.removeChild(temp);
+		}
+	  }
 
 	ngOnDestroy()
 	{
