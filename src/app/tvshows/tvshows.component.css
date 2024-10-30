@@ -279,6 +279,7 @@
 	align-items: center;
 	flex-direction: row;
 	justify-content: space-between;
+	font-size: 14px;
 }
 
 .posterTitle
@@ -381,6 +382,15 @@
 {
 	background-color: black;
 	color: white;
+}
+
+.genra
+{
+	padding: 2px 6px;
+	border: 1px solid #ffffffa6;
+	border-radius: 29px;
+	margin: 0 5px;
+	text-align: center;
 }
 
 .linearGradient
