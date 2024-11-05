@@ -72,6 +72,14 @@ export class MoviedbAPIService {
     return this.http.get(`https://api.themoviedb.org/3/discover/movie?with_genres=${genreId}&page=${pageNumber}`, { params });
   }
 
+  getSimilairMovies(movieId:number)
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get(`https://api.themoviedb.org/3/movie/${movieId}/similar`, { params });
+  }
+
 
   //series function
   searchSeries(query: string) {
@@ -143,5 +151,13 @@ export class MoviedbAPIService {
     .set('api_key', this.apiKey)
 
     return this.http.get(`https://api.themoviedb.org/3/tv/${serieId}/season/${season}/episode/${episode}`, { params });
+  }
+
+  getSimilairSeries(serieId:number)
+  {
+    const params = new HttpParams()
+    .set('api_key', this.apiKey)
+
+    return this.http.get(`https://api.themoviedb.org/3/tv/${serieId}/similar`, { params });
   }
 }

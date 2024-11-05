@@ -26,24 +26,28 @@ import { forkJoin } from 'rxjs';
 export class TvshowsComponent {
 	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
 
-  searchQuery: string ="";
-  moviePosterData:any;
-  series: any[] = [];
-  trendingSeries: any[] = [];
-  showSearch = false
-  topRatedSeries:any[] = [];
-  newReleasedSeries:any[] = [];
-  recentlyWatched:any[] = [];
-  isSeries = true;
+	searchQuery: string ="";
+
+	//Series holder
+	moviePosterData:any;
+	series: any[] = [];
+	trendingSeries: any[] = [];
+	showSearch = false
+	topRatedSeries:any[] = [];
+	newReleasedSeries:any[] = [];
+	recentlyWatched:any[] = [];
+	foryou:any[] = [];
+ 
+	isSeries = true;
 
 
-  popUp=false;
-  popUpMovie:any;
-  popUpPoster="";
-  startTrailer=false;
+	popUp=false;
+	popUpMovie:any;
+	popUpPoster="";
+	startTrailer=false;
 
-  popUpLink:any;
-  mute:boolean = true;
+	popUpLink:any;
+	mute:boolean = true;
 	playerVars = {
 		disablekb: 1,
 		autoplay: 1,  // Enable autoplay
@@ -51,7 +55,7 @@ export class TvshowsComponent {
 		rel: 0,       // Disable related videos at the end (optional)
 		modestbranding: 1, // Remove YouTube logo from the control bar (optional),
 		mute: 1,
-    loop: 1
+	loop: 1
 	};
 
 	loading = true;
@@ -94,7 +98,7 @@ export class TvshowsComponent {
       }
 
     ngOnInit(): void {
-
+		this.getForYou()
       const data = localStorage.getItem("series")
       if (data)
         this.recentlyWatched = JSON.parse(data);
@@ -102,7 +106,7 @@ export class TvshowsComponent {
         [
           this.moviedbAPIService.getTrendingSeries(),
           this.moviedbAPIService.getTopRatedSeries(),
-          this.moviedbAPIService.getNewReleaseSeries()
+          this.moviedbAPIService.getNewReleaseSeries(),
         ]
       ).subscribe(
         (responses:any[]) =>
@@ -114,22 +118,6 @@ export class TvshowsComponent {
           this.getSerieImage()
         }
       )
-      // this.moviedbAPIService.getTrendingSeries()
-      // .subscribe((response: any) => {
-      //   this.trendingSeries = response.results
-      //   this.getSerieImage()
-      // })
-
-
-      // this.moviedbAPIService.getTopRatedSeries()
-      // .subscribe((response: any) => {
-      //   this.topRatedSeries = response.results
-      // })
-
-      // this.moviedbAPIService.getNewReleaseSeries()
-      // .subscribe((response: any) => {
-      //   this.newReleasedSeries = response.results
-      // })
     }
 
     ngOnDestroy()
@@ -221,8 +209,26 @@ export class TvshowsComponent {
       })
     }
 
-    stopClose(event:MouseEvent)
-    {
-      event.stopPropagation();
-    }
+
+	getForYou()
+	{
+		var series = localStorage.getItem("series");
+		if (series)
+		{
+			var seriesParsed = JSON.parse(series);
+			var randomMovie =  Math.floor(Math.random() * seriesParsed.length);
+			this.moviedbAPIService.getSimilairSeries(seriesParsed[randomMovie].id)
+			.subscribe(
+				(response: any) => {
+					this.foryou = response.results;
+					console.log("here", randomMovie)
+				}
+			)
+		}
+	}
+
+	stopClose(event:MouseEvent)
+	{
+		event.stopPropagation();
+	}
 }

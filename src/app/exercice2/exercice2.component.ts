@@ -30,6 +30,7 @@ export class Exercice2Component implements OnInit
 	topRatedMovies:any[] = [];
 	newReleasedMovies:any[] = [];
 	recentlyWatched:any[] = [];
+	foryou:any[] = [];
 
 	isMovies = true;
 	showSearch = false
@@ -157,8 +158,25 @@ export class Exercice2Component implements OnInit
 		this.renderer.removeStyle(document.body, 'overflow');
 	}
 
+	getForYou()
+	{
+		var movies = localStorage.getItem("movies");
+		if (movies)
+		{
+			var moviesParsed = JSON.parse(movies);
+			var randomMovie =  Math.floor(Math.random() * moviesParsed.length);
+			this.moviedbAPIService.getSimilairMovies(moviesParsed[randomMovie].id)
+			.subscribe(
+				(response: any) => {
+					this.foryou = response.results;
+				}
+			)
+		}
+	}
+
 	ngOnInit(): void
 	{
+		this.getForYou()
 		const data = localStorage.getItem("movies")
 		if (data)
 			this.recentlyWatched = JSON.parse(data);

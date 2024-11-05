@@ -44,23 +44,19 @@
 <!-- Home page suggestions -->
 
 <div class="moviesContainer" *ngIf="!this.searchQuery && !this.genraSearch">
-	<!-- <div class="categorie" id="scrollableDiv" >
-		<h2 class="categorieTitle">GENRES</h2>
-		<div class="moviesInCategorie genresCat">
-			<ng-container>
-				<img ngOptimizedImage  (click)="getMoviesByGenre(28, 'Action')"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/action.png" >
-				<img ngOptimizedImage (click)="getMoviesByGenre(35, 'Comedy')"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/comedy.png" >
-				<img ngOptimizedImage (click)="getMoviesByGenre(99, 'Documentary')"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/documentary.png" >
-				<img ngOptimizedImage  (click)="getMoviesByGenre(27, 'Horror')" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/horror.png" >
-				<img ngOptimizedImage  (click)="getMoviesByGenre(10749, 'Romance')" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/romance.png" >
-				<img ngOptimizedImage  (click)="getMoviesByGenre(878, 'Science fiction')" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies genres"  src="../../assets/movieGenres/science fiction.png" >
-			</ng-container>
-		</div>
-	</div> -->
 	<div class="categorie" id="scrollableDiv" *ngIf="recentlyWatched.length">
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of recentlyWatched| slice:0:15">
+				<img  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			</ng-container>
+		</div>
+			<div class="scrollright"></div>
+	</div>
+	<div class="categorie" id="scrollableDiv" *ngIf="foryou.length">
+		<h2 class="categorieTitle">For you</h2>
+		<div class="moviesInCategorie">
+			<ng-container *ngFor="let movie of foryou| slice:0:15">
 				<img  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
