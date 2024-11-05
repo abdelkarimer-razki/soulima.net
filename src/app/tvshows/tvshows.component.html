@@ -16,7 +16,7 @@
 			</div>
 			<div class="info">
 				<label class="genra">{{moviePosterData?.first_air_date | date:'yyyy'}}</label>
-				<label class="genra" *ngFor="let genre of moviePosterData.genres">{{ genre.name }}</label>
+				<label class="genra" *ngFor="let genre of moviePosterData?.genres">{{ genre.name }}</label>
 			</div>
 		</div>
 		<div class="posterDescription" *ngIf="moviePosterData?.overview.length < 200">

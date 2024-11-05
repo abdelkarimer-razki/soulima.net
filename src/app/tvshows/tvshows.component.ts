@@ -90,7 +90,6 @@ export class TvshowsComponent {
         .subscribe((response: any) => {
           this.moviePosterData = response
           this.loading = false
-          console.log("heyyy")
         })
       }
 
@@ -172,6 +171,7 @@ export class TvshowsComponent {
         for (let i = 0; i < seriesParsed.length; i++)
           if (seriesParsed[i].id == id)
             this.router.navigate(['/serie/'+ id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb])
+        this.router.navigate(['/serie/'+ id + '/1/1'])
       }
       else
         this.router.navigate(['/serie/'+ id + '/1/1'])
