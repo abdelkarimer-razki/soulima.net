@@ -86,7 +86,9 @@ export class Exercice2Component implements OnInit
 		this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
 		.subscribe((response: any) => {
 			this.moviePosterData = response;
-			this.loading = false;
+			setTimeout(() => {
+				this.loading = false;
+			}, 2000)
 		})
 	}
 

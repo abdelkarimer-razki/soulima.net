@@ -93,7 +93,9 @@ export class TvshowsComponent {
         this.moviedbAPIService.getSerieDetails(this.trendingSeries[posterMovieNb].id)
         .subscribe((response: any) => {
           this.moviePosterData = response
-          this.loading = false
+          setTimeout(() => {
+            this.loading = false;
+          }, 2000)
         })
       }
 
