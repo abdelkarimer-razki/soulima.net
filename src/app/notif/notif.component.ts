@@ -15,7 +15,7 @@ export class NotifComponent {
 
 	stopClose(event:MouseEvent)
 	{
-	event.stopPropagation();
+		event.stopPropagation();
 	}
 
 	downloadImage() {
