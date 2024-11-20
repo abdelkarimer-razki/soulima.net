@@ -172,7 +172,7 @@
 				</div>
 				<div class="info">
 					<label class="genra">{{popUpMovie?.release_date | date:'yyyy'}}</label>
-					<label class="genra" *ngFor="let genre of popUpMovie?.genres; let i = index; let last = last">{{genre?.name}}</label>
+					<label class="genra" *ngFor="let genre of popUpMovie?.genres">{{genre?.name}}</label>
 				</div>
 			</div>
 			<div class="posterDescription">

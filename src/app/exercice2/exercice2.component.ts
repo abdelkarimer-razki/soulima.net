@@ -6,7 +6,9 @@ import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin } from 'rxjs';
 import { CookieService } from 'ngx-cookie-service';
 
-
+interface Genre {
+	name: string;
+  }
 @Component({
   selector: 'app-exercice2',
   templateUrl: './exercice2.component.html',
@@ -64,6 +66,12 @@ export class Exercice2Component implements OnInit
 		private renderer: Renderer2,
 		private cookie: CookieService
 	) { }
+
+	sliceTo3(table:any[]):any[]
+	{
+		console.log(table.slice(0,3));
+		return table.slice(0,3);
+	}
 
 	searchMovies()
 	{
