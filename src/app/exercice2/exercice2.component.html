@@ -86,7 +86,7 @@
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedMovies| slice:0:15">
-				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="movies"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
 	</div>	

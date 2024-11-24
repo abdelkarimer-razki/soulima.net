@@ -417,9 +417,15 @@
 	padding: 8pt;
 	width: 300px;
 	outline: none;
-	background-color: black;
+	background-color: rgba(0, 0, 0, 0);
+	backdrop-filter: blur(10px);
 	border: 1px solid white;
 	color: white;
+}
+
+.searchBar::focus
+{
+	color: rgb(255, 255, 255);
 }
 
 .searchBar::placeholder
@@ -502,16 +508,17 @@
 
 .infos
 {
-	background-color: black !important;
+	background-color: rgba(0, 0, 0, 0) !important;
 	color: white !important;
 	border: 1px solid white;
+	backdrop-filter:blur(10px);
 }
 
-.infos:hover
+/* .infos:hover
 {
 	background-color: white !important;
 	color: black !important;
-}
+} */
 
 .closeSvg
 {

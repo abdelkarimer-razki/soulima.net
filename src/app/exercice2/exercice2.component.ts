@@ -69,7 +69,6 @@ export class Exercice2Component implements OnInit
 
 	sliceTo3(table:any[]):any[]
 	{
-		console.log(table.slice(0,3));
 		return table.slice(0,3);
 	}
 
