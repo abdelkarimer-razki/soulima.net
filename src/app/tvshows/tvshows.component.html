@@ -42,8 +42,8 @@
 </div>
 
 
-<div class="moviesContainer" *ngIf="!this.searchQuery">
-	<div class="categorie" *ngIf="this.recentlyWatched.length != 0">
+<article class="moviesContainer" *ngIf="!this.searchQuery">
+	<section class="categorie" *ngIf="this.recentlyWatched.length != 0">
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie" >
 			<ng-container *ngFor="let movie of recentlyWatched| slice:0:15">
@@ -52,9 +52,9 @@
 				</div>
 			</ng-container>
 		</div>
-	</div>
+	</section>
 
-	<div class="categorie" *ngIf="this.foryou.length != 0">
+	<section class="categorie" *ngIf="this.foryou.length != 0">
 		<h2 class="categorieTitle">For you</h2>
 		<div class="moviesInCategorie" >
 			<ng-container *ngFor="let movie of foryou| slice:0:15">
@@ -63,39 +63,39 @@
 				</div>
 			</ng-container>
 		</div>
-	</div>
+	</section>
 
-	<div class="categorie">
+	<section class="categorie">
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie" >
 			<ng-container *ngFor="let movie of trendingSeries| slice:0:15">
 				<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="showPopUp(movie)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
-	</div>
+	</section>
 
-	<div class="categorie" >
+	<section class="categorie" >
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of newReleasedSeries| slice:0:15">
 				<img *ngIf="movie.poster_path"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)"   (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies" (click)="showPopUp(movie)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
-	</div>
+	</section>
 
-	<div class="categorie" >
+	<section class="categorie" >
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedSeries| slice:0:15">
 				<img *ngIf="movie.poster_path"  (mouseover)="onHover($event)" (mouseout)="onLeave($event)" class="movies" (touchstart)="onHover($event)" (touchend)="onLeave($event)" (click)="showPopUp(movie)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
-	</div>
-</div>
+	</section>
+</article>
 
 
-<div class="moviesContainer" *ngIf="this.searchQuery">
-	<div class="search" *ngIf="this.searchQuery">
+<article class="moviesContainer" *ngIf="this.searchQuery">
+	<section class="search" *ngIf="this.searchQuery">
 		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="series.length">Search Results</h2>
 		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">There is no tv show under the name of "{{this.searchQuery}}" but you can watch</h2>
 		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
@@ -108,8 +108,8 @@
 				<img *ngIf="movie.poster_path" (mouseover)="onHover($event)" (mouseout)="onLeave($event)"  (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="moviesSearch" (click)="showPopUp(movie)"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
 			</ng-container>
 		</div>
-	</div>
-</div>
+	</section>
+</article>
 
 
 <div class="searchd">
