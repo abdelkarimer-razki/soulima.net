@@ -4,9 +4,9 @@
 	<a routerLink="/tvshows" (click)="this.searchQuery = '';" >Tv shows</a>
 	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchSeries()"></a>
 </nav>
-<div class="posterContainer" *ngIf="!this.searchQuery">
+<article class="posterContainer" *ngIf="!this.searchQuery">
 	<img [src]="'https://image.tmdb.org/t/p/original' +this.moviePosterData?.backdrop_path" class="poster" alt="">
-	<div class="posterInfo" >
+	<section class="posterInfo" >
 		<div class="posterTitle">
 			{{moviePosterData?.name}}
 		</div>
@@ -35,11 +35,10 @@
 				Infos
 			</div>
 		</div>
-	</div>
+	</section>
 	<div class="linearGradient">
-
 	</div>
-</div>
+</article>
 
 
 <article class="moviesContainer" *ngIf="!this.searchQuery">
