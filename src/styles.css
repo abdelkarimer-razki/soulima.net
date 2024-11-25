@@ -11,6 +11,18 @@
 	user-select: none;    
 }
 
+a
+{
+	text-decoration: none;
+	color: unset;
+}
+
+img {
+	user-select: none; /* Prevents selection */
+	-webkit-user-drag: none; /* Prevents drag behavior in WebKit browsers */
+	-webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
+}
+
 body
 {
 	background-color: black;
