@@ -24,7 +24,7 @@
 						<div class="number">
 							{{i + 1}}
 						</div>
-						<img [src]="'https://image.tmdb.org/t/p/original' + seasoned.poster_path" class="seasonPoster" alt="">
+						<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + seasoned.poster_path" class="seasonPoster" alt="">
 					</div>
 					<div class="seasonDetails">
 						<div class="seasonRatingd">
@@ -51,7 +51,7 @@
 						<div class="number">
 							{{i + 1}}
 						</div>
-						<img [src]="'https://image.tmdb.org/t/p/original' + episode.still_path" class="episodePoster" alt="">
+						<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + episode.still_path" class="episodePoster" alt="">
 					</div>
 					<div class="seasonDetails">
 	
