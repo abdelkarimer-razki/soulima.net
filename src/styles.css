@@ -9,6 +9,8 @@
 	-moz-user-select: none;    /* Firefox */
 	-ms-user-select: none;     /* Internet Explorer/Edge */
 	user-select: none;    
+	-webkit-user-drag: none; /* Prevents drag behavior in WebKit browsers */
+	-webkit-tap-highlight-color: transparent; /* Removes tap highlight on mobile */
 }
 
 a
