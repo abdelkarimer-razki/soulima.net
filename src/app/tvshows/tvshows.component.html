@@ -114,16 +114,21 @@
 <!-- Search results -->
 <article class="moviesContainer" *ngIf="this.searchQuery">
 	<section class="search">
-		<h2 class="categorieTitle results" *ngIf="series.length">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && series.length == 0" class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">There is no tv show under the name of "{{this.searchQuery}}" but you can watch:</h2>
+		<h2 class="categorieTitle results" *ngIf="series.length || isSearching">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && series.length == 0 && !isSearching" class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">There is no tv show under the name of "{{this.searchQuery}}" but you can watch:</h2>
 		
-		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0">
+		<div class="searchResutls" *ngIf="this.searchQuery && series.length == 0 && !isSearching">
 			<ng-container *ngFor="let movie of trendingSeries">
 				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
 		
-		<div class="searchResutls">
+		<!-- Search loading skeleton grid -->
+		<div class="searchResutls" *ngIf="isSearching">
+			<div class="moviesSearch shimmer" *ngFor="let card of [1, 2, 3, 4, 5, 6, 7, 8]" style="height: 100%; min-height: 225px;"></div>
+		</div>
+
+		<div class="searchResutls" *ngIf="!isSearching">
 			<ng-container *ngFor="let movie of series">
 				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
@@ -141,16 +146,23 @@
 <div class="bluredBackground" *ngIf="popUp" (click)="closePopUp()">
 	<div class="detailsPopUp" (click)="stopClose($event)">
 		<svg (click)="closePopUp()" class="closeSvg" height="512px" version="1.1" viewBox="0 0 512 512" width="512px" xmlns="http://www.w3.org/2000/svg"><path d="M437.5,386.6L306.9,256l130.6-130.6c14.1-14.1,14.1-36.8,0-50.9c-14.1-14.1-36.8-14.1-50.9,0L256,205.1L125.4,74.5  c-14.1-14.1-36.8-14.1-50.9,0c-14.1,14.1-14.1,36.8,0,50.9L205.1,256L74.5,386.6c-14.1,14.1-14.1,36.8,0,50.9  c14.1,14.1,36.8,14.1,50.9,0L256,306.9l130.6,130.6c14.1,14.1,36.8,14.1,50.9,0C451.5,423.4,451.5,400.6,437.5,386.6z" fill="currentColor"/></svg>
+		
+		<!-- Popup Backdrop / Video Block -->
 		<div style="position: relative;">
-			<div [class.noShow]="startTrailer" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
+			<!-- Pulsing backdrop shimmer skeleton -->
+			<div class="shimmer" style="width: 100%; aspect-ratio: 16/9; display: block;" *ngIf="isPopUpLoading"></div>
+			
+			<div [class.noShow]="startTrailer" *ngIf="!isPopUpLoading" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
 				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="">
 			</div>
-			<div class="play playinPopUp" (click)="routerDetailSerie(popUpMovie?.id)">
+			<div class="play playinPopUp" *ngIf="!isPopUpLoading" (click)="routerDetailSerie(popUpMovie?.id)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
 				Play Now
 			</div>
 		</div>
-		<div style="position: relative;">
+
+		<!-- YouTube Trailer Preloading and Controls -->
+		<div style="position: relative;" *ngIf="!isPopUpLoading">
 			<div [class.noShow]="!startTrailer" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
 				<youtube-player class="youtubePlayer" (stateChange)="onPlayerReady($event)" [playerVars]="playerVars" videoId="{{popUpLink}}"></youtube-player>
 			</div>
@@ -165,7 +177,22 @@
 				Play Now
 			</div>
 		</div>
-		<div class="modalContent">
+
+		<!-- Popup Content Loader (Skeletons) -->
+		<div class="modalContent" *ngIf="isPopUpLoading">
+			<div class="popupSkeletonTitle shimmer"></div>
+			<div class="popupSkeletonRatingAndInfo">
+				<div class="popupSkeletonRating shimmer"></div>
+				<div class="popupSkeletonGenre shimmer"></div>
+				<div class="popupSkeletonGenre shimmer"></div>
+			</div>
+			<div class="popupSkeletonLine shimmer" style="width: 100%;"></div>
+			<div class="popupSkeletonLine shimmer" style="width: 92%;"></div>
+			<div class="popupSkeletonLine shimmer" style="width: 78%;"></div>
+		</div>
+
+		<!-- Loaded Popup Content -->
+		<div class="modalContent" *ngIf="!isPopUpLoading">
 			<div class="titleInPopUp">
 				{{popUpMovie?.name}}
 			</div>

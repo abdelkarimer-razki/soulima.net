@@ -59,6 +59,8 @@ export class Exercice2Component implements OnInit
 	};
 
 	loading = true;
+	isSearching = false;
+	isPopUpLoading = false;
 
 	constructor(
 		private moviedbAPIService: MoviedbAPIService,
@@ -74,9 +76,21 @@ export class Exercice2Component implements OnInit
 
 	searchMovies()
 	{
+		if (!this.searchQuery) {
+			this.movies = [];
+			this.isSearching = false;
+			return;
+		}
+		this.isSearching = true;
 		this.moviedbAPIService.searchMovies(this.searchQuery)
-		.subscribe((response: any) => {
-			this.movies = response.results;
+		.subscribe({
+			next: (response: any) => {
+				this.movies = response.results;
+				this.isSearching = false;
+			},
+			error: () => {
+				this.isSearching = false;
+			}
 		});
 	}
 
@@ -104,14 +118,14 @@ export class Exercice2Component implements OnInit
 	{
 		this.moviedbAPIService.getMovieImages(movieId)
 		.subscribe((response: any) => {
-		this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path
-		this.moviedbAPIService.getVideosMovie(movieId)
-		.subscribe((response: any) => {
-			const trailer = response.results.find((video: any) => video.type === 'Trailer');
-			if (trailer?.key)
-				this.popUpLink = trailer.key;
-		})
-		})
+			this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path;
+			this.moviedbAPIService.getVideosMovie(movieId)
+			.subscribe((response: any) => {
+				const trailer = response.results.find((video: any) => video.type === 'Trailer');
+				if (trailer?.key)
+					this.popUpLink = trailer.key;
+			});
+		});
 	}
 
 	changeAudio()
@@ -129,14 +143,31 @@ export class Exercice2Component implements OnInit
 		this.popUp = true;
 		this.popUpLink = "";
 		this.popUpPoster = "";
-		this.startTrailer = false
+		this.startTrailer = false;
 		this.mute = true;
 		this.popUpMovie = movie;
-		this.moviedbAPIService.getMovieDetails(movie.id)
-		.subscribe((response: any) => {
-			this.popUpMovie = response
-		})
-		this.getMovieVideos(movie.id)
+		this.isPopUpLoading = true;
+
+		forkJoin([
+			this.moviedbAPIService.getMovieDetails(movie.id),
+			this.moviedbAPIService.getMovieImages(movie.id),
+			this.moviedbAPIService.getVideosMovie(movie.id)
+		]).subscribe({
+			next: ([details, images, videos]: [any, any, any]) => {
+				this.popUpMovie = details;
+				this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+				
+				const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+				if (trailer?.key) {
+					this.popUpLink = trailer.key;
+				}
+				this.isPopUpLoading = false;
+			},
+			error: (err) => {
+				console.error("Error loading pop-up details:", err);
+				this.isPopUpLoading = false;
+			}
+		});
 	}
 
 	getMoviesByGenre(genreId:number, genraName:string)
@@ -187,8 +218,18 @@ export class Exercice2Component implements OnInit
 	{
 		this.getForYou()
 		const data = localStorage.getItem("movies")
-		if (data)
-			this.recentlyWatched = JSON.parse(data);
+		if (data) {
+			const parsed = JSON.parse(data);
+			const unique = [];
+			const seen = new Set();
+			for (const m of parsed) {
+				if (m && m.id && !seen.has(m.id)) {
+					unique.push(m);
+					seen.add(m.id);
+				}
+			}
+			this.recentlyWatched = unique;
+		}
 		forkJoin([
 			this.moviedbAPIService.getTrendingMovies(),
 			this.moviedbAPIService.getTopRatedMovies(),

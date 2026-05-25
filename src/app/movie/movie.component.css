@@ -208,16 +208,9 @@
 	gap: 10px;
 }
 
-.downloadIcon {
-	width: 20px;
-	height: 20px;
-	color: var(--text-primary);
-	flex-shrink: 0;
-}
-
 .downloadTitle {
 	color: var(--text-primary);
-	font-size: 15px;
+	font-size: 16px;
 	font-weight: 600;
 	letter-spacing: -0.01em;
 }
@@ -226,45 +219,376 @@
 	color: var(--text-muted);
 	font-size: 13px;
 	line-height: 1.5;
+	margin: 8px 0 0 0;
 }
 
 .downloadActions {
 	display: flex;
 	gap: 10px;
 	flex-wrap: wrap;
+	margin-top: 12px;
 }
 
 .downloadBtn {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
-	background: rgba(255, 255, 255, 0.08);
-	border: 1px solid rgba(255, 255, 255, 0.2);
+	justify-content: center;
+	gap: 10px;
+	background: rgba(229, 9, 20, 0.15);
+	border: 1px solid rgba(229, 9, 20, 0.3);
 	color: var(--text-primary);
-	font-size: 13px;
+	font-size: 14px;
 	font-weight: 600;
-	padding: 9px 20px;
+	padding: 10px 24px;
 	border-radius: var(--radius-button);
 	cursor: pointer;
 	transition: var(--transition-smooth);
-	align-self: flex-start;
 	letter-spacing: 0.01em;
+	min-width: 120px;
 }
 
 .downloadBtn:hover {
-	background: rgba(255, 255, 255, 0.18);
-	border-color: rgba(255, 255, 255, 0.5);
-	box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+	background: rgba(229, 9, 20, 0.25);
+	border-color: rgba(229, 9, 20, 0.5);
+	box-shadow: 0 0 20px var(--accent-glow);
 	transform: translateY(-2px);
 }
 
-.downloadBtn:active { transform: translateY(0px); }
+.downloadBtn:active {
+	transform: translateY(0px);
+}
 
-.downloadNote {
-	font-size: 11px;
+.downloadBtn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.downloadBtn.downloading {
+	background: rgba(229, 9, 20, 0.2);
+	border-color: rgba(229, 9, 20, 0.5);
+}
+
+/* ─── Download Progress Bar ──────────────────────────────────────────────────── */
+.downloadProgress {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.progressBar {
+	width: 100%;
+	height: 4px;
+	background: rgba(255, 255, 255, 0.08);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.progressFill {
+	height: 100%;
+	background: var(--accent-color);
+	transition: width 0.3s ease;
+	box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.progressText {
+	font-size: 12px;
 	color: var(--text-muted);
+	font-weight: 500;
+}
+
+/* ─── Download Error ────────────────────────────────────────────────────────── */
+.downloadError {
+	display: flex;
+	gap: 12px;
+	padding: 12px;
+	background: rgba(229, 9, 20, 0.08);
+	border: 1px solid rgba(229, 9, 20, 0.2);
+	border-radius: var(--radius-button);
+	color: var(--text-muted);
+	margin-top: 12px;
+}
+
+.downloadError div {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.downloadError p {
+	margin: 0;
+	font-size: 12px;
+	color: var(--text-muted);
+	line-height: 1.4;
+}
+
+.fallbackText {
+	color: var(--accent-color) !important;
+	font-weight: 500;
+	font-size: 11px;
+}
+
+/* ─── Download Success ──────────────────────────────────────────────────────── */
+.downloadSuccess {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px;
+	background: rgba(34, 197, 94, 0.08);
+	border: 1px solid rgba(34, 197, 94, 0.2);
+	border-radius: var(--radius-button);
+	color: #86efac;
+	font-size: 13px;
+	font-weight: 500;
+	margin-top: 12px;
+}
+
+.downloadSuccess svg {
+	flex-shrink: 0;
+	color: #22c55e;
+}
+
+/* ─── Torrent Section ─────────────────────────────────────────────────────── */
+.torrentSection {
+	width: 100%;
+	max-width: 1000px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-card);
+	padding: 20px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	margin-top: 16px;
+}
+
+.torrentHeader {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.torrentHeaderLeft {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	color: var(--text-primary);
+}
+
+.torrentTitle {
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+
+.findTorrentBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 18px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--border-light);
+	color: var(--text-secondary);
+	border-radius: var(--radius-button);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: var(--transition-smooth);
+}
+
+.findTorrentBtn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.15);
+	border-color: rgba(255, 255, 255, 0.25);
+	color: var(--text-primary);
+	transform: translateY(-1px);
+}
+
+.findTorrentBtn:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.searchingText {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* Dot flashing animation */
+.dot-flashing {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--accent-color, #E50914);
+	animation: dotFlash 1s infinite alternate;
+}
+@keyframes dotFlash {
+	0% { opacity: 0.2; }
+	100% { opacity: 1; }
+}
+
+.torrentDesc {
+	font-size: 13px;
+	color: var(--text-muted);
+	margin: 0;
 	line-height: 1.5;
-	opacity: 0.75;
+}
+
+/* Selected torrent info */
+.selectedTorrentInfo {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.qualityBadge {
+	padding: 3px 10px;
+	background: rgba(229, 9, 20, 0.2);
+	border: 1px solid rgba(229, 9, 20, 0.4);
+	color: #ff6b6b;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+}
+
+.seedersInfo {
+	font-size: 12px;
+	color: #22c55e;
+	font-weight: 500;
+}
+
+.changeTorrentBtn, .clearTorrentBtn {
+	background: rgba(255,255,255,0.06);
+	border: 1px solid rgba(255,255,255,0.12);
+	color: var(--text-secondary);
+	border-radius: 4px;
+	padding: 4px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.changeTorrentBtn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.clearTorrentBtn:hover { background: rgba(229,9,20,0.15); color: #ff6b6b; border-color: rgba(229,9,20,0.3); }
+
+/* Torrent list */
+.torrentList {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.noTorrents {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 14px;
+	background: rgba(255,255,255,0.03);
+	border-radius: 6px;
+	color: var(--text-muted);
+	font-size: 13px;
+}
+
+.torrentItem {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	background: rgba(255,255,255,0.04);
+	border: 1px solid rgba(255,255,255,0.08);
+	border-radius: 7px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.downloadMagnetBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: var(--radius-button);
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--text-secondary);
+	transition: var(--transition-smooth);
+}
+
+.torrentItem:hover .downloadMagnetBtn {
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(255, 255, 255, 0.22);
+	color: var(--text-primary);
+}
+
+.torrentItem:hover {
+	background: rgba(255,255,255,0.08);
+	border-color: rgba(255,255,255,0.18);
+	transform: translateX(2px);
+}
+
+.torrentItem.selected {
+	background: rgba(229, 9, 20, 0.1);
+	border-color: rgba(229, 9, 20, 0.35);
+}
+
+.torrentQuality {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--text-primary);
+	min-width: 60px;
+}
+
+.torrentMeta {
+	display: flex;
+	gap: 14px;
+	font-size: 13px;
+	color: var(--text-muted);
+	flex: 1;
+}
+
+.torrentSeeds { color: #22c55e; }
+.torrentPeers { color: #f59e0b; }
+
+.checkIcon {
+	color: #22c55e;
+	flex-shrink: 0;
+}
+
+/* Download actions */
+.downloadActions {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.ytsDownloadBtn, .ytsBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 9px 20px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--border-light);
+	color: var(--text-secondary);
+	border-radius: var(--radius-button);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: var(--transition-smooth);
+}
+
+.ytsDownloadBtn:hover, .ytsBtn:hover {
+	background: rgba(255, 255, 255, 0.15);
+	border-color: rgba(255, 255, 255, 0.25);
+	color: var(--text-primary);
+	transform: translateY(-1px);
 }
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
@@ -276,17 +600,17 @@
 		margin-bottom: 12px;
 		font-size: 13px;
 	}
-	.serverSelector {
+	.serverSelector, .torrentSection {
 		padding: 14px;
 	}
 	.serverBtn {
 		font-size: 12px;
 		padding: 6px 11px;
 	}
-	.downloadSection {
-		padding: 14px;
+	.torrentItem {
+		flex-wrap: wrap;
 	}
-	.downloadBtn {
+	.ytsDownloadBtn {
 		width: 100%;
 		justify-content: center;
 	}

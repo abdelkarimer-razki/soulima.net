@@ -18,9 +18,8 @@ import { HelloworldComponent } from './helloworld/helloworld.component';
 import { YouTubePlayerModule } from '@angular/youtube-player';
 import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
 import { NotifComponent } from './notif/notif.component';
+import { CustomPlayerComponent } from './components/custom-player/custom-player.component';
 
-
-HttpClientModule
 
 @NgModule({
   declarations: [
@@ -32,7 +31,8 @@ HttpClientModule
     TvshowsComponent,
     HelloworldComponent,
     LoadingScreenComponent,
-    NotifComponent
+    NotifComponent,
+    CustomPlayerComponent
   ],
   imports: [
     BrowserModule,

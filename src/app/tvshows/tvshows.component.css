@@ -73,6 +73,9 @@
 	will-change: transform, box-shadow, filter;
 	object-fit: cover;
 	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: linear-gradient(90deg, #181818 25%, #2a2a2a 50%, #181818 75%);
+	background-size: 200% 100%;
+	animation: shimmer 1.6s infinite linear;
 }
 
 .movies:hover {
@@ -103,6 +106,9 @@
 	transition: var(--transition-smooth);
 	object-fit: cover;
 	border: 1px solid rgba(255, 255, 255, 0.05);
+	background: linear-gradient(90deg, #181818 25%, #2a2a2a 50%, #181818 75%);
+	background-size: 200% 100%;
+	animation: shimmer 1.6s infinite linear;
 }
 
 .moviesSearch:hover {
@@ -607,4 +613,33 @@
 .results {
 	margin-top: 80px;
 	margin-bottom: 16px;
+}
+
+/* Premium Popup Skeleton Loader Elements */
+.popupSkeletonTitle {
+	width: 60%;
+	height: 28px;
+	margin-bottom: 16px;
+	border-radius: 4px;
+}
+.popupSkeletonRatingAndInfo {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 24px;
+	align-items: center;
+}
+.popupSkeletonRating {
+	width: 50px;
+	height: 20px;
+	border-radius: 4px;
+}
+.popupSkeletonGenre {
+	width: 70px;
+	height: 20px;
+	border-radius: var(--radius-pill);
+}
+.popupSkeletonLine {
+	height: 14px;
+	margin-bottom: 8px;
+	border-radius: 4px;
 }

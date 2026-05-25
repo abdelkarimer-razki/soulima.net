@@ -59,6 +59,8 @@ export class TvshowsComponent {
 	};
 
 	loading = true;
+	isSearching = false;
+	isPopUpLoading = false;
 
 
   sanitizedUrls: SafeResourceUrl[] = [];
@@ -66,9 +68,21 @@ export class TvshowsComponent {
 
 
     searchSeries() {
+      if (!this.searchQuery) {
+        this.series = [];
+        this.isSearching = false;
+        return;
+      }
+      this.isSearching = true;
       this.moviedbAPIService.searchSeries(this.searchQuery)
-        .subscribe((response: any) => {
-          this.series = response.results;
+        .subscribe({
+          next: (response: any) => {
+            this.series = response.results;
+            this.isSearching = false;
+          },
+          error: () => {
+            this.isSearching = false;
+          }
         });
       }
 
@@ -102,8 +116,18 @@ export class TvshowsComponent {
     ngOnInit(): void {
 		this.getForYou()
       const data = localStorage.getItem("series")
-      if (data)
-        this.recentlyWatched = JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        const unique = [];
+        const seen = new Set();
+        for (const s of parsed) {
+          if (s && s.id && !seen.has(s.id)) {
+            unique.push(s);
+            seen.add(s.id);
+          }
+        }
+        this.recentlyWatched = unique;
+      }
       forkJoin(
         [
           this.moviedbAPIService.getTrendingSeries(),
@@ -165,11 +189,28 @@ export class TvshowsComponent {
       this.startTrailer = false
       this.mute = true;
       this.popUpMovie = movie;
-      this.moviedbAPIService.getSerieDetails(movie.id)
-      .subscribe((response: any) => {
-        this.popUpMovie = response
-      })
-      this.getSerieVideos(movie.id)
+      this.isPopUpLoading = true;
+
+      forkJoin([
+        this.moviedbAPIService.getSerieDetails(movie.id),
+        this.moviedbAPIService.getSerieImages(movie.id),
+        this.moviedbAPIService.getVideosSerie(movie.id)
+      ]).subscribe({
+        next: ([details, images, videos]: [any, any, any]) => {
+          this.popUpMovie = details;
+          this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+          
+          const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+          if (trailer?.key) {
+            this.popUpLink = trailer.key;
+          }
+          this.isPopUpLoading = false;
+        },
+        error: (err) => {
+          console.error("Error loading pop-up details:", err);
+          this.isPopUpLoading = false;
+        }
+      });
     }
 
     closePopUp()
@@ -188,14 +229,14 @@ export class TvshowsComponent {
     {
       this.moviedbAPIService.getSerieImages(movieId)
       .subscribe((response: any) => {
-      this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path
-      this.moviedbAPIService.getVideosSerie(movieId)
-      .subscribe((response: any) => {
-        const trailer = response.results.find((video: any) => video.type === 'Trailer');
-        if (trailer?.key)
-          this.popUpLink = trailer?.key;
-      })
-      })
+        this.popUpPoster = response.backdrops[2]?.file_path || response.backdrops[0]?.file_path;
+        this.moviedbAPIService.getVideosSerie(movieId)
+        .subscribe((response: any) => {
+          const trailer = response.results.find((video: any) => video.type === 'Trailer');
+          if (trailer?.key)
+            this.popUpLink = trailer?.key;
+        });
+      });
     }
 
 

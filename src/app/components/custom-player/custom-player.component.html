@@ -1,0 +1,76 @@
+<div class="playerContainer">
+  <!-- Tabs -->
+  <div class="playerTabs">
+    <button
+      class="playerTab"
+      [class.active]="activeTab === 'server'"
+      (click)="switchToServer()"
+      *ngIf="iframeSrc"
+      id="tab-server">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Server Stream
+    </button>
+    <button
+      class="playerTab torrentTab"
+      [class.active]="activeTab === 'torrent'"
+      (click)="switchToTorrent()"
+      *ngIf="torrentMagnet"
+      id="tab-torrent">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 15V3M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 19h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Torrent Stream
+      <span class="torrentBadge">HD</span>
+    </button>
+  </div>
+
+  <div class="playerContent">
+    <!-- Iframe Player -->
+    <div class="playerMode" [class.hidden]="activeTab !== 'server'" *ngIf="iframeSrc">
+      <iframe
+        [src]="iframeSrc"
+        class="iframePlayer"
+        frameborder="0"
+        referrerpolicy="origin"
+        allowfullscreen="true"
+        allow="picture-in-picture; fullscreen">
+      </iframe>
+    </div>
+
+    <!-- Torrent Player -->
+    <div class="playerMode torrentMode" [class.hidden]="activeTab !== 'torrent'">
+      <!-- Start Torrent Prompt (before started) -->
+      <div class="torrentPrompt" *ngIf="!torrentStarted">
+        <div class="torrentIcon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 15V3M7 10l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 19h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Torrent Streaming</h3>
+        <p>Stream this video directly via torrent. Playback starts as soon as the cloud server connects to peers and buffers.</p>
+        <button class="startTorrentBtn" (click)="switchToTorrent()" id="btn-start-torrent">
+          Start Torrent Stream
+        </button>
+      </div>
+
+      <!-- Cloud Torrent Player Frame -->
+      <iframe *ngIf="torrentStarted && torrentStreamUrl"
+        [src]="torrentStreamUrl"
+        class="iframePlayer"
+        frameborder="0"
+        allowfullscreen="true"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- No Source Available -->
+  <div class="noSource" *ngIf="!iframeSrc && !torrentMagnet">
+    <p>No video source available</p>
+  </div>
+</div>

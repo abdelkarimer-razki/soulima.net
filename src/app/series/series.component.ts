@@ -1,8 +1,8 @@
 import { Component, OnInit, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
+import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-series',
@@ -22,7 +22,12 @@ export class SeriesComponent {
 		{ name: 'Server 2 (Vidsrc.to)',  url: 'https://vidsrc.to/embed'  },
 		{ name: 'Server 3 (Embed.su)',   url: 'https://embed.su/embed'   },
 		{ name: 'Server 4 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
-		{ name: 'Server 5 (Vidsrc.me)',  url: 'https://vidsrc.me/embed'  }
+		{ name: 'Server 5 (Vidsrc.me)',  url: 'https://vidsrc.me/embed'  },
+		{ name: 'Server 6 (2embed.cc)',  url: 'https://2embed.cc/embed'  },
+		{ name: 'Server 7 (Vidsrc.in)',  url: 'https://vidsrc.in/embed'  },
+		{ name: 'Server 8 (Streamhide)',  url: 'https://streamhide.to/embed' },
+		{ name: 'Server 9 (Autoembed)',  url: 'https://autoembed.cc/embed' },
+		{ name: 'Server 10 (Moviedata)', url: 'https://moviedata.info/embed' }
 	];
 	selectedServerIndex = 0;
 
@@ -33,17 +38,25 @@ export class SeriesComponent {
 	episodes: any[] = [];
 	link: SafeResourceUrl = '';
 
+	// Torrent state
+	torrents: Torrent[] = [];
+	selectedTorrent: Torrent | null = null;
+	torrentMagnet: string | undefined = undefined;
+	isSearchingTorrents = false;
+	torrentSearchDone = false;
+	showTorrentList = false;
+
 	constructor(
 		private route: ActivatedRoute,
 		private moviedbAPIService: MoviedbAPIService,
+		private torrentSearchService: TorrentSearchService,
 		private sanitizer: DomSanitizer,
-		private http: HttpClient,
 		private zone: NgZone
 	) {
 		this.route.params.subscribe(params => {
-			this.id      = params['id'];
-			this.episode = params['episode'];
-			this.season  = params['season'];
+			this.id      = Number(params['id']);
+			this.episode = Number(params['episode']);
+			this.season  = Number(params['season']);
 			this.updateLink();
 		});
 	}
@@ -65,8 +78,52 @@ export class SeriesComponent {
 		this.serverStatus[index] = 'offline';
 	}
 
+	/** Search torrents for this episode */
+	searchTorrents() {
+		if (this.isSearchingTorrents) return;
+
+		const name = this.serie?.original_name || this.serie?.name || '';
+		const query = `${name} S${String(this.season).padStart(2,'0')}E${String(this.episode).padStart(2,'0')}`;
+
+		this.isSearchingTorrents = true;
+		this.showTorrentList = true;
+
+		this.torrentSearchService.searchTVTorrents(name, this.season, this.episode)
+			.subscribe({
+				next: (results) => {
+					this.torrents = results;
+					this.isSearchingTorrents = false;
+					this.torrentSearchDone = true;
+					if (results.length > 0) this.selectTorrent(results[0]);
+				},
+				error: () => {
+					this.isSearchingTorrents = false;
+					this.torrentSearchDone = true;
+					this.torrents = [];
+				}
+			});
+	}
+
+	selectTorrent(torrent: Torrent) {
+		this.selectedTorrent = torrent;
+		this.torrentMagnet = torrent.magnet;
+		this.showTorrentList = false;
+	}
+
+	clearTorrent() {
+		this.selectedTorrent = null;
+		this.torrentMagnet = undefined;
+		this.showTorrentList = false;
+		this.torrentSearchDone = false;
+		this.torrents = [];
+	}
+
+	downloadMagnet(magnet: string) {
+		window.open(magnet, '_self');
+	}
+
 	/** Open EZTV search for the series name — covers all TV shows reliably */
-	openDownload() {
+	openEztvDownload() {
 		const name  = this.serie?.name || this.serie?.original_name || '';
 		const s     = String(this.season).padStart(2, '0');
 		const query = encodeURIComponent(`${name} S${s}`);
@@ -93,9 +150,20 @@ export class SeriesComponent {
 	private checkAllServers() {
 		this.servers.forEach((server, i) => {
 			this.checkServerStatus(server.url).then(status => {
-				this.zone.run(() => { this.serverStatus[i] = status; });
+				this.zone.run(() => { 
+					this.serverStatus[i] = status;
+					this.setDefaultToFirstWorkingServer();
+				});
 			});
 		});
+	}
+
+	private setDefaultToFirstWorkingServer() {
+		const firstOnlineIndex = this.serverStatus.findIndex(status => status === 'online');
+		if (firstOnlineIndex !== -1) {
+			this.selectedServerIndex = firstOnlineIndex;
+			this.updateLink();
+		}
 	}
 
 	ngOnChanges() {
@@ -132,12 +200,9 @@ export class SeriesComponent {
 			this.serie = response;
 			this.serie.seasonnb = this.season;
 			this.serie.episodenb = this.episode;
-			var Movieslocal = localStorage.getItem('series');
-			var Movies: any = [];
-			if (Movieslocal) {
-				Movies = JSON.parse(Movieslocal);
-				this.findElementAndSwitchEpi(Movies);
-			}
+			const raw = localStorage.getItem('series');
+			const Movies: any[] = raw ? JSON.parse(raw) : [];
+			if (Movies.length) this.findElementAndSwitchEpi(Movies);
 			this.getRecentlyWatched();
 			this.serie.seasons.forEach((element: any) => {
 				if (element.episode_count != 0 && element.name != 'Specials')
@@ -148,36 +213,22 @@ export class SeriesComponent {
 	}
 
 	getRecentlyWatched() {
-		var Movieslocal = localStorage.getItem('series');
-		var Movies: any = [];
-		if (Movieslocal) Movies = JSON.parse(Movieslocal);
-		if (this.findElement(Movies) == false) {
-			if (Movies.length == 20) Movies[0] = this.serie;
-			else Movies.unshift(this.serie);
-		} else {
-			for (let i = 0; i < Movies.length; i++)
-				if (Movies[i].id == this.id) Movies.splice(i, 1);
-			if (Movies.length > 0) Movies.unshift(this.serie);
-			else Movies.push(this.serie);
-		}
-		localStorage.setItem('series', JSON.stringify(Movies));
+		const raw = localStorage.getItem('series');
+		let seriesList: any[] = raw ? JSON.parse(raw) : [];
+		// Strict deduplication by ID matching (converting both to numbers to avoid string/number mismatch)
+		seriesList = seriesList.filter((s: any) => s && Number(s.id) !== Number(this.id));
+		seriesList.unshift(this.serie);
+		seriesList = seriesList.slice(0, 20);
+		localStorage.setItem('series', JSON.stringify(seriesList));
 	}
 
 	findElementAndSwitchEpi(Movies: any) {
-		for (let i = 0; i < Movies.length; i++) {
-			if (Movies[i].id == this.id) {
-				this.serie.seasonnb = this.season;
-				this.serie.episodenb = this.episode;
-				this.getRecentlyWatched();
-				break;
-			}
+		const found = Movies.some((m: any) => m && Number(m.id) === Number(this.id));
+		if (found) {
+			this.serie.seasonnb = this.season;
+			this.serie.episodenb = this.episode;
+			this.getRecentlyWatched();
 		}
-	}
-
-	findElement(Movies: any): boolean {
-		for (let i = 0; i < Movies.length; i++)
-			if (Movies[i].id == this.id) return true;
-		return false;
 	}
 
 	getEpisodeDetails() {
