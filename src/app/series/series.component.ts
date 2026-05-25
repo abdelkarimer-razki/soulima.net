@@ -18,9 +18,16 @@ export class SeriesComponent {
 	season: number = 1;
 	episode: number = 1;
 	serie: any = "";
-	showSelector = false
-	epiSelector = false
-	embed: string = "https://vidsrc.net/embed";
+	showSelector = false;
+	epiSelector = false;
+	servers = [
+		{ name: 'Server 1 (Vidsrc.net)', url: 'https://vidsrc.net/embed' },
+		{ name: 'Server 2 (Vidsrc.to)', url: 'https://vidsrc.to/embed' },
+		{ name: 'Server 3 (Embed.su)', url: 'https://embed.su/embed' },
+		{ name: 'Server 4 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
+		{ name: 'Server 5 (Vidsrc.me)', url: 'https://vidsrc.me/embed' }
+	];
+	selectedServerIndex = 0;
 
 	seasons:any[] = [];
 	episodes:any[] = [];
@@ -33,9 +40,18 @@ export class SeriesComponent {
 			this.id = params['id'];
 			this.episode = params['episode']
 			this.season = params['season']
-			this.link = this.sanitizer.bypassSecurityTrustResourceUrl(this.embed + "/tv/" + this.id + "/"+ this.season+"/"+ this.episode+"?player=new&ds_lang=ar");
-
+			this.updateLink();
 		});
+	}
+
+	updateLink() {
+		const embedUrl = this.servers[this.selectedServerIndex].url;
+		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(`${embedUrl}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`);
+	}
+
+	selectServer(index: number) {
+		this.selectedServerIndex = index;
+		this.updateLink();
 	}
 
 	ngOnChanges()
@@ -49,7 +65,7 @@ export class SeriesComponent {
 		this.showSelector = false;
 		this.episode = episdoe + 1;
 		window.history.pushState({}, '', '/serie/'+this.id+'/' + this.season + '/' + this.episode);
-		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(this.embed + "/tv/" + this.id + "/"+ this.season+"/"+ this.episode+"?player=new&ds_lang=ar");
+		this.updateLink();
 		var Movieslocal = localStorage.getItem("series");
 		var Movies:any = [];
 		if (Movieslocal)

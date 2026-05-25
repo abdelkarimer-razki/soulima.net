@@ -1,22 +1,31 @@
 <nav class="navBar">
-	<a  (click)="this.searchQuery = '';clearGenre()" routerLink="/"><img src="../../assets/soulimaWhiteLogo.png" width="50px"  alt=""></a>
-	<a (click)="this.searchQuery = '';clearGenre()" routerLink="/" >Movies</a>
-	<a routerLink="/tvshows" class="notActive"  >Tv shows</a>
-	<a class="searchBarContainer"><input class="searchBar" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()"></a>
+	<a (click)="this.searchQuery = '';clearGenre()" routerLink="/" class="logoLink">
+		<img src="../../assets/soulimaWhiteLogo.png" width="44px" alt="Soulima Logo" class="logoImg">
+	</a>
+	<div class="navLinks">
+		<a (click)="this.searchQuery = '';clearGenre()" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navLink">Movies</a>
+		<a routerLink="/tvshows" routerLinkActive="active" class="navLink">Tv shows</a>
+	</div>
+	<div class="searchBarContainer">
+		<svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+		<input class="searchBar" type="text" placeholder="Search for movies..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()">
+	</div>
 </nav>
+
 <article class="posterContainer" *ngIf="!this.searchQuery && !this.genraSearch">
-	<img ngOptimizedImage  [src]="'https://image.tmdb.org/t/p/original' +this.moviePosterData?.backdrop_path" class="poster" alt="">
-	<section class="posterInfo" >
+	<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + this.moviePosterData?.backdrop_path" class="poster" alt="">
+	<section class="posterInfo">
 		<div class="posterTitle">
 			{{moviePosterData?.title}}
 		</div>
 		<div class="ratingAndInfo">
 			<div class="rating">
-				{{moviePosterData?.vote_average |  number:'1.1-1' }}<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+				<span>{{moviePosterData?.vote_average | number:'1.1-1'}}</span>
+				<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
 			</div>
 			<div class="info">
 				<label class="genra">{{moviePosterData?.release_date | date:'yyyy'}}</label>
-				<label class="genra" *ngFor="let genre of moviePosterData?.genres; let i = index; let last = last">{{genre.name}}</label>
+				<label class="genra" *ngFor="let genre of moviePosterData?.genres">{{genre.name}}</label>
 			</div>
 		</div>
 		<div class="posterDescription" *ngIf="moviePosterData?.overview.length < 200">
@@ -25,59 +34,54 @@
 		<div class="posterDescription" *ngIf="moviePosterData?.overview.length >= 200">
 			{{moviePosterData?.overview | slice:0:200}}...
 		</div>
-		<div style="display: flex;flex-direction: row;">
+		<div class="heroButtons">
 			<a class="play" [routerLink]="'/movie/' + moviePosterData?.id">
-				<svg class="playsvg" height="512px" id="Layer_1" style="enable-background:new 0 0 512 512;" version="1.1" viewBox="0 0 512 512" width="512px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
-				Soulim-it
+				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
+				Play
 			</a>
-			<div class="play infos" style="margin-left: 20px;" (click)="showPopUp(moviePosterData)">
-				<svg class="playsvg" height="48" viewBox="0 0 48 48" width="48" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h48v48h-48z" fill="none"/><path fill="currentColor" d="M22 34h4v-12h-4v12zm2-30c-11.05 0-20 8.95-20 20s8.95 20 20 20 20-8.95 20-20-8.95-20-20-20zm0 36c-8.82 0-16-7.18-16-16s7.18-16 16-16 16 7.18 16 16-7.18 16-16 16zm-2-22h4v-4h-4v4z"/></svg>
-				Infos
+			<div class="play infos" (click)="showPopUp(moviePosterData)">
+				<svg class="playsvg" height="24px" viewBox="0 0 48 48" width="24px" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h48v48h-48z" fill="none"/><path fill="currentColor" d="M22 34h4v-12h-4v12zm2-30c-11.05 0-20 8.95-20 20s8.95 20 20 20 20-8.95 20-20-8.95-20-20-20zm0 36c-8.82 0-16-7.18-16-16s7.18-16 16-16 16 7.18 16 16-7.18 16-16 16zm-2-22h4v-4h-4v4z"/></svg>
+				Info
 			</div>
 		</div>
 	</section>
-	<div class="linearGradient">
-
-	</div>
+	<div class="linearGradient"></div>
 </article>
 
 <!-- Home page suggestions -->
-
 <article class="moviesContainer" *ngIf="!this.searchQuery && !this.genraSearch">
-	<section class="categorie" id="scrollableDiv" *ngIf="recentlyWatched.length">
+	<section class="categorie" *ngIf="recentlyWatched.length">
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie">
-			<ng-container *ngFor="let movie of recentlyWatched| slice:0:15">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of recentlyWatched | slice:0:15">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
-			<div class="scrollright"></div>
 	</section>
-	<section class="categorie" id="scrollableDiv" *ngIf="foryou.length">
+	
+	<section class="categorie" *ngIf="foryou.length">
 		<h2 class="categorieTitle">For you</h2>
 		<div class="moviesInCategorie">
-			<ng-container *ngFor="let movie of foryou| slice:0:15">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of foryou | slice:0:15">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
-			<div class="scrollright"></div>
 	</section>
-	<section class="categorie" id="scrollableDiv" >
+	
+	<section class="categorie">
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
-			<ng-container *ngFor="let movie of trendingMovies| slice:0:15">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="movies"   [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of trendingMovies | slice:0:15">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
-			<div class="scrollright"></div>
 	</section>
-	<div id="div2" style="display: none;">
-	</div>
-	<section class="categorie" >
+	
+	<section class="categorie">
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
-			<ng-container *ngFor="let movie of newReleasedMovies| slice:0:15">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="movies"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of newReleasedMovies | slice:0:15">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
 	</section>
@@ -85,90 +89,88 @@
 	<section class="categorie">
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
-			<ng-container *ngFor="let movie of topRatedMovies| slice:0:15">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="movies"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+			<ng-container *ngFor="let movie of topRatedMovies | slice:0:15">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
 	</section>	
 </article>
 
-
 <!-- Search results -->
 <article class="moviesContainer" *ngIf="this.searchQuery && !this.genraSearch">
-	<div class="search" >
-		<h2 class="categorieTitle results" style="margin-bottom: 20px;" *ngIf="movies.length">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch</h2>
+	<div class="search">
+		<h2 class="categorieTitle results" *ngIf="movies.length">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && movies.length == 0" class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch:</h2>
+		
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<img  ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)"  class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
-		<div class="searchResutls" >
+		
+		<div class="searchResutls">
 			<ng-container *ngFor="let movie of movies">
-				<img ngOptimizedImage  *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
 	</div>
 </article>
 
-
 <!-- Genres filter results -->
 <article class="moviesContainer" *ngIf="this.genraSearch">
-	<section class="search" >
-		<h2 class="categorieTitle results" style="margin-bottom: 20px;margin-left: 10px;margin-right: 10px;">Best of {{genraName}} movies</h2>
-		<div class="searchResutls" >
+	<section class="search">
+		<h2 class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">Best of {{genraName}} movies</h2>
+		<div class="searchResutls">
 			<ng-container *ngFor="let movie of genraMovies">
-				<img ngOptimizedImage  *ngIf="movie.poster_path" (click)="showPopUp(movie)" (mouseover)="onHover($event)" (mouseout)="onLeave($event)" (touchstart)="onHover($event)" (touchend)="onLeave($event)" class="moviesSearch"  [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="" >
+				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
 			</ng-container>
 		</div>
 	</section>
 </article>
 
-
+<!-- Mobile search bar -->
 <div class="searchd">
-	<input  *ngIf="showSearch" class="searchBar2" [class.showSearch]="showSearch" type="text" placeholder="Search for movies" [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" [@Loading]>
-	<svg (click)="showSearch =!showSearch" class="searchIcon" enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M27.414,24.586l-5.077-5.077C23.386,17.928,24,16.035,24,14c0-5.514-4.486-10-10-10S4,8.486,4,14  s4.486,10,10,10c2.035,0,3.928-0.614,5.509-1.663l5.077,5.077c0.78,0.781,2.048,0.781,2.828,0  C28.195,26.633,28.195,25.367,27.414,24.586z M7,14c0-3.86,3.14-7,7-7s7,3.14,7,7s-3.14,7-7,7S7,17.86,7,14z" id="XMLID_223_"/></svg>
+	<input *ngIf="showSearch" class="searchBar2" [class.showSearch]="showSearch" type="text" placeholder="Search for movies..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" [@Loading]>
+	<svg (click)="showSearch = !showSearch" class="searchIcon" enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M27.414,24.586l-5.077-5.077C23.386,17.928,24,16.035,24,14c0-5.514-4.486-10-10-10S4,8.486,4,14  s4.486,10,10,10c2.035,0,3.928-0.614,5.509-1.663l5.077,5.077c0.78,0.781,2.048,0.781,2.828,0  C28.195,26.633,28.195,25.367,27.414,24.586z M7,14c0-3.86,3.14-7,7-7s7,3.14,7,7s-3.14,7-7,7S7,17.86,7,14z" id="XMLID_223_"/></svg>
 </div>
 
-
-
-<div class="bluredBackground"  *ngIf="popUp" (click)="closePopUp()">
+<!-- Details Modal -->
+<div class="bluredBackground" *ngIf="popUp" (click)="closePopUp()">
 	<div class="detailsPopUp" (click)="stopClose($event)">
-		<svg (click)="closePopUp()" class="closeSvg" height="512px" id="Layer_1" style="enable-background:new 0 0 512 512;" version="1.1" viewBox="0 0 512 512" width="512px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path d="M437.5,386.6L306.9,256l130.6-130.6c14.1-14.1,14.1-36.8,0-50.9c-14.1-14.1-36.8-14.1-50.9,0L256,205.1L125.4,74.5  c-14.1-14.1-36.8-14.1-50.9,0c-14.1,14.1-14.1,36.8,0,50.9L205.1,256L74.5,386.6c-14.1,14.1-14.1,36.8,0,50.9  c14.1,14.1,36.8,14.1,50.9,0L256,306.9l130.6,130.6c14.1,14.1,36.8,14.1,50.9,0C451.5,423.4,451.5,400.6,437.5,386.6z" fill="currentColor"/></svg>
+		<svg (click)="closePopUp()" class="closeSvg" height="512px" version="1.1" viewBox="0 0 512 512" width="512px" xmlns="http://www.w3.org/2000/svg"><path d="M437.5,386.6L306.9,256l130.6-130.6c14.1-14.1,14.1-36.8,0-50.9c-14.1-14.1-36.8-14.1-50.9,0L256,205.1L125.4,74.5  c-14.1-14.1-36.8-14.1-50.9,0c-14.1,14.1-14.1,36.8,0,50.9L205.1,256L74.5,386.6c-14.1,14.1-14.1,36.8,0,50.9  c14.1,14.1,36.8,14.1,50.9,0L256,306.9l130.6,130.6c14.1,14.1,36.8,14.1,50.9,0C451.5,423.4,451.5,400.6,437.5,386.6z" fill="currentColor"/></svg>
 		<div style="position: relative;">
-			<div  [class.noShow]="startTrailer" style="pointer-events: none;overflow: hidden;aspect-ratio: 16/9;width: 100%;position: relative;">
-				<img ngOptimizedImage  style="width: 100%;height: 100%;" [src]="'https://image.tmdb.org/t/p/original' +popUpPoster" alt="">
+			<div [class.noShow]="startTrailer" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
+				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="">
 			</div>
 			<div class="play playinPopUp" (click)="routerDetailMovie(popUpMovie?.id)">
-				<svg class="playsvg " height="512px" id="Layer_1" style="enable-background:new 0 0 512 512;" version="1.1" viewBox="0 0 512 512" width="512px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
-				Soulim-it
+				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
+				Play Now
 			</div>
 		</div>
 		<div style="position: relative;">
-			<div [class.noShow]="!startTrailer" style="pointer-events: none;overflow: hidden;aspect-ratio: 16/9;width: 100%;position: relative;">
-				<youtube-player class="youtubePlayer" (stateChange)="onPlayerReady($event)" [playerVars]="playerVars" videoId="{{popUpLink}}" ></youtube-player>
+			<div [class.noShow]="!startTrailer" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
+				<youtube-player class="youtubePlayer" (stateChange)="onPlayerReady($event)" [playerVars]="playerVars" videoId="{{popUpLink}}"></youtube-player>
 			</div>
-			<div class="mutes" *ngIf="!startTrailer" style="opacity: 1;cursor: default;">
-				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" width="200" height="200" style="shape-rendering: auto; display: block; background: transparent;" xmlns:xlink="http://www.w3.org/1999/xlink"><g><circle stroke-dasharray="164.93361431346415 56.97787143782138" r="35" stroke-width="10" stroke="#ffffff" fill="none" cy="50" cx="50">
-					<animateTransform keyTimes="0;1" values="0 50 50;360 50 50" dur="1s" repeatCount="indefinite" type="rotate" attributeName="transform"></animateTransform>
-				  </circle><g></g></g><!-- [ldio] generated by https://loading.io --></svg>
+			<div class="mutes" *ngIf="!startTrailer" style="opacity: 1; cursor: default;">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" width="60" height="60" style="shape-rendering: auto; display: block; background: transparent;"><g><circle stroke-dasharray="164.93361431346415 56.97787143782138" r="35" stroke-width="10" stroke="#ffffff" fill="none" cy="50" cx="50"><animateTransform keyTimes="0;1" values="0 50 50;360 50 50" dur="1s" repeatCount="indefinite" type="rotate" attributeName="transform"></animateTransform></circle></g></svg>
 			</div>
-			<div class="mutes" *ngIf="startTrailer"  (click)="changeAudio()">
-				<svg *ngIf="mute" height="512" viewBox="0 0 512 512" width="512" xmlns="http://www.w3.org/2000/svg"><line style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-miterlimit:10;stroke-width:32px" x1="416" x2="64" y1="432" y2="80"/><path fill="currentColor" d="M243.33,98.86a23.89,23.89,0,0,0-25.55,1.82l-.66.51L188.6,124.54a8,8,0,0,0-.59,11.85l54.33,54.33A8,8,0,0,0,256,185.06V120.57A24.51,24.51,0,0,0,243.33,98.86Z"/><path  fill="currentColor" d="M251.33,335.29,96.69,180.69A16,16,0,0,0,85.38,176H56a24,24,0,0,0-24,24V312a24,24,0,0,0,24,24h69.76l92,75.31A23.9,23.9,0,0,0,243.63,413,24.51,24.51,0,0,0,256,391.45V346.59A16,16,0,0,0,251.33,335.29Z"/><path  fill="currentColor" d="M352,256c0-24.56-5.81-47.87-17.75-71.27a16,16,0,1,0-28.5,14.55C315.34,218.06,320,236.62,320,256q0,4-.31,8.13a8,8,0,0,0,2.32,6.25l14.36,14.36a8,8,0,0,0,13.55-4.31A146,146,0,0,0,352,256Z"/><path  fill="currentColor" d="M416,256c0-51.18-13.08-83.89-34.18-120.06a16,16,0,0,0-27.64,16.12C373.07,184.44,384,211.83,384,256c0,23.83-3.29,42.88-9.37,60.65a8,8,0,0,0,1.9,8.26L389,337.4a8,8,0,0,0,13.13-2.79C411,311.76,416,287.26,416,256Z"/><path  fill="currentColor" d="M480,256c0-74.25-20.19-121.11-50.51-168.61a16,16,0,1,0-27,17.22C429.82,147.38,448,189.5,448,256c0,46.19-8.43,80.27-22.43,110.53a8,8,0,0,0,1.59,9l11.92,11.92A8,8,0,0,0,452,385.29C471.6,344.9,480,305,480,256Z"/></svg>
-				<svg *ngIf="!mute" height="512" viewBox="0 0 512 512" width="512" xmlns="http://www.w3.org/2000/svg"><path  fill="currentColor" d="M232,416a23.88,23.88,0,0,1-14.2-4.68,8.27,8.27,0,0,1-.66-.51L125.76,336H56a24,24,0,0,1-24-24V200a24,24,0,0,1,24-24h69.75l91.37-74.81a8.27,8.27,0,0,1,.66-.51A24,24,0,0,1,256,120V392a24,24,0,0,1-24,24ZM125.82,336Zm-.27-159.86Z"/><path  fill="currentColor" d="M320,336a16,16,0,0,1-14.29-23.19c9.49-18.87,14.3-38,14.3-56.81,0-19.38-4.66-37.94-14.25-56.73a16,16,0,0,1,28.5-14.54C346.19,208.12,352,231.44,352,256c0,23.86-6,47.81-17.7,71.19A16,16,0,0,1,320,336Z"/><path  fill="currentColor" d="M368,384a16,16,0,0,1-13.86-24C373.05,327.09,384,299.51,384,256c0-44.17-10.93-71.56-29.82-103.94a16,16,0,0,1,27.64-16.12C402.92,172.11,416,204.81,416,256c0,50.43-13.06,83.29-34.13,120A16,16,0,0,1,368,384Z"/><path  fill="currentColor" d="M416,432a16,16,0,0,1-13.39-24.74C429.85,365.47,448,323.76,448,256c0-66.5-18.18-108.62-45.49-151.39a16,16,0,1,1,27-17.22C459.81,134.89,480,181.74,480,256c0,64.75-14.66,113.63-50.6,168.74A16,16,0,0,1,416,432Z"/></svg>
+			<div class="mutes" *ngIf="startTrailer" (click)="changeAudio()">
+				<svg *ngIf="mute" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><line style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-miterlimit:10;stroke-width:32px" x1="416" x2="64" y1="432" y2="80"/><path fill="currentColor" d="M243.33,98.86a23.89,23.89,0,0,0-25.55,1.82l-.66.51L188.6,124.54a8,8,0,0,0-.59,11.85l54.33,54.33A8,8,0,0,0,256,185.06V120.57A24.51,24.51,0,0,0,243.33,98.86Z"/><path fill="currentColor" d="M251.33,335.29,96.69,180.69A16,16,0,0,0,85.38,176H56a24,24,0,0,0-24,24V312a24,24,0,0,0,24,24h69.76l92,75.31A23.9,23.9,0,0,0,243.63,413,24.51,24.51,0,0,0,256,391.45V346.59A16,16,0,0,0,251.33,335.29Z"/><path fill="currentColor" d="M352,256c0-24.56-5.81-47.87-17.75-71.27a16,16,0,1,0-28.5,14.55C315.34,218.06,320,236.62,320,256q0,4-.31,8.13a8,8,0,0,0,2.32,6.25l14.36,14.36a8,8,0,0,0,13.55-4.31A146,146,0,0,0,352,256Z"/><path fill="currentColor" d="M416,256c0-51.18-13.08-83.89-34.18-120.06a16,16,0,0,0-27.64,16.12C373.07,184.44,384,211.83,384,256c0,23.83-3.29,42.88-9.37,60.65a8,8,0,0,0,1.9,8.26L389,337.4a8,8,0,0,0,13.13-2.79C411,311.76,416,287.26,416,256Z"/><path fill="currentColor" d="M480,256c0-74.25-20.19-121.11-50.51-168.61a16,16,0,1,0-27,17.22C429.82,147.38,448,189.5,448,256c0,46.19-8.43,80.27-22.43,110.53a8,8,0,0,0,1.59,9l11.92,11.92A8,8,0,0,0,452,385.29C471.6,344.9,480,305,480,256Z"/></svg>
+				<svg *ngIf="!mute" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M232,416a23.88,23.88,0,0,1-14.2-4.68,8.27,8.27,0,0,1-.66-.51L125.76,336H56a24,24,0,0,1-24-24V200a24,24,0,0,1,24-24h69.75l91.37-74.81a8.27,8.27,0,0,1,.66-.51A24,24,0,0,1,256,120V392a24,24,0,0,1-24,24ZM125.82,336Zm-.27-159.86Z"/><path fill="currentColor" d="M320,336a16,16,0,0,1-14.29-23.19c9.49-18.87,14.3-38,14.3-56.81,0-19.38-4.66-37.94-14.25-56.73a16,16,0,0,1,28.5-14.54C346.19,208.12,352,231.44,352,256c0,23.86-6,47.81-17.7,71.19A16,16,0,0,1,320,336Z"/><path fill="currentColor" d="M368,384a16,16,0,0,1-13.86-24C373.05,327.09,384,299.51,384,256c0-44.17-10.93-71.56-29.82-103.94a16,16,0,0,1,27.64-16.12C402.92,172.11,416,204.81,416,256c0,50.43-13.06,83.29-34.13,120A16,16,0,0,1,368,384Z"/><path fill="currentColor" d="M416,432a16,16,0,0,1-13.39-24.74C429.85,365.47,448,323.76,448,256c0-66.5-18.18-108.62-45.49-151.39a16,16,0,1,1,27-17.22C459.81,134.89,480,181.74,480,256c0,64.75-14.66,113.63-50.6,168.74A16,16,0,0,1,416,432Z"/></svg>
 			</div>
 			<a class="play playinPopUp" [routerLink]="'/movie/' + popUpMovie?.id">
-				<svg class="playsvg" height="512px" id="Layer_1" style="enable-background:new 0 0 512 512;" version="1.1" viewBox="0 0 512 512" width="512px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
-				Soulim-it
+				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
+				Play Now
 			</a>
 		</div>
-		<div style="padding: 20px;">
-			<div style="color: white;font-size: 30px;font-weight: 600;margin-bottom: 10px;" class="titleInPopUp">
+		<div class="modalContent">
+			<div class="titleInPopUp">
 				{{popUpMovie?.title}}
 			</div>
 			<div class="ratingAndInfo">
 				<div class="rating">
-					{{popUpMovie?.vote_average |  number:'1.1-1' }}<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+					<span>{{popUpMovie?.vote_average | number:'1.1-1'}}</span>
+					<svg class="star" height="21px" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
 				</div>
 				<div class="info">
 					<label class="genra">{{popUpMovie?.release_date | date:'yyyy'}}</label>

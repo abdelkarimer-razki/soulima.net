@@ -127,19 +127,6 @@ export class TvshowsComponent {
 		  this.renderer.removeStyle(document.body, 'overflow');
     }
 
-    onHover(event: Event) {
-      const element = event.target as HTMLElement;
-      this.renderer.setStyle(element, 'transform', 'scale(1.1)');
-      this.renderer.setStyle(element, 'filter', 'saturate(1) drop-shadow(0px 0px 69px rgba(255, 255, 255, 0.335))');
-    }
-
-    onLeave(event: Event)
-    {
-      const element = event.target as HTMLElement;
-
-      this.renderer.removeStyle(element, 'transform');
-      this.renderer.removeStyle(element, 'filter');
-    }
 
 
     getSafeUrl(video: any): SafeResourceUrl {

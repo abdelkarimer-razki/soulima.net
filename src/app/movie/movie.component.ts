@@ -15,7 +15,14 @@ export class MovieComponent implements OnInit {
   id: number = 0;
   movie: any = "";
   link: SafeResourceUrl = "";
-  embed: string = "https://vidsrc.net/embed";
+  servers = [
+    { name: 'Server 1 (Vidsrc.net)', url: 'https://vidsrc.net/embed' },
+    { name: 'Server 2 (Vidsrc.to)', url: 'https://vidsrc.to/embed' },
+    { name: 'Server 3 (Embed.su)', url: 'https://embed.su/embed' },
+    { name: 'Server 4 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
+    { name: 'Server 5 (Vidsrc.me)', url: 'https://vidsrc.me/embed' }
+  ];
+  selectedServerIndex = 0;
   @ViewChild('vidsrc', { static: false }) iframe!: ElementRef;
 
   constructor(
@@ -27,9 +34,18 @@ export class MovieComponent implements OnInit {
   ) { 
     this.route.params.subscribe(params => {
       this.id = params['id'];
-      this.link = this.sanitizer.bypassSecurityTrustResourceUrl( this.embed + "/movie/" + this.id + "?player=new&ds_lang=ar");
-  });
+      this.updateLink();
+    });
+  }
 
+  updateLink() {
+    const embedUrl = this.servers[this.selectedServerIndex].url;
+    this.link = this.sanitizer.bypassSecurityTrustResourceUrl(`${embedUrl}/movie/${this.id}?player=new&ds_lang=ar`);
+  }
+
+  selectServer(index: number) {
+    this.selectedServerIndex = index;
+    this.updateLink();
   }
 
 // Run the function repeatedly every 1000 milliseconds (1 second)

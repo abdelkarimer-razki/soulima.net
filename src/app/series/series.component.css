@@ -1,211 +1,7 @@
-.season
-{
-	display: flex;
-	flex-direction: row;
-	margin: 5px 0px;
-	transition: 0.3s;
-	cursor: pointer;
-	padding: 10px;
-}
+/* Series Player View Component Styles */
 
-.season:hover
-{
-	background-color: #181818;
-}
-
-.choseEpisode
-{
-	display: flex;
-	align-items: center;
-	border-top: 1px solid white;
-	border-left: 1px solid white;
-	border-right: 1px solid white;
-	width: fit-content;
-	padding: 10px;
-	transition: 0.3s;
-}
-
-.choseEpisode:hover
-{
-	background-color: #181818;
-}
-
-.seasonRating
-{
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
-	align-items: center;
-	width: fit-content;
-	margin-left: 10px;
-	font-size: 12px;
-}
-
-.seasonRatingd
-{
-	font-size: 12px;
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-}
-
-.seasonOverview
-{
-	margin-left: 10px;
-	font-size: 12px;
-	color: #888;
-}
-
-.seasonNumber
-{
-	position: relative;
-
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.svgEpi
-{
-	width: 25px;
-	height: 25px;
-	margin-right: 10px;
-}
-
-.star
-{
-	color: #F6C906;
-	width: 10px;
-	margin-left: 3px;
-}
-
-.seasonsSelector
-{
-	background-color: rgb(0 0 0 / 96%);
-	color: white;
-	width: 100%;
-	overflow: hidden;
-	max-height: 100%;
-	display: flex;
-	flex-direction: column;
-	overflow-y: scroll;
-	padding: 10px;
-	position: absolute;
-	left: 0;
-	top: 46px;
-	padding: 10px;
-	box-sizing: border-box;
-}
-
-::-webkit-scrollbar {
-    width: 3px; /* Width of the scrollbar */
-}
-
-/* The track (background of the scrollbar) */
-::-webkit-scrollbar-track {
-    background: #f1f1f100; /* Track color */
-    border-radius: 10px; /* Optional: rounded edges */
-}
-
-/* The handle (scrollbar thumb) */
-::-webkit-scrollbar-thumb {
-    background: #888; /* Color of the thumb */
-    border-radius: 10px; /* Optional: rounded edges */
-}
-
-/* The handle on hover */
-::-webkit-scrollbar-thumb:hover {
-    background: #555; /* Color when hovered */
-}
-
-.myPlayer
-{
-
-}
-
-
-
-.number
-{
-	position: absolute;
-	left: 0;
-	top: 50%;
-	transform: translateY(-50%);
-	-webkit-text-stroke-width: 1px;
-	-webkit-text-stroke-color: white;
-	color: rgba(255, 255, 255, 0);
-	font-size: 80px;
-}
-
-
-.seasonPoster
-{
-	width: 70px;
-	aspect-ratio: 2/3;
-	margin-left: 20px;
-}
-
-.episodePoster
-{
-	width: 100px;
-	aspect-ratio: 16/9;
-	margin-left: 20px;
-}
-
-.seasonOverview
-{
-	font-size: 14px;
-}
-
-.navBar
-{
-	list-style: none;
-	background-color: antiquewhite;
-}
-
-.navBar > ul > li
-{
-	display: inline-block;
-	padding: 20px;
-	cursor: pointer;
-}
-
-#vidsrc
-{
-	width: 100% !important;
-	margin: unset !important;
-}
-
-.movie
-{
-	margin: 0 auto !important;
-	display: block;
-	aspect-ratio: 16/9;
-	width: 100% !important;
-	max-width: 1000px;
-	height: auto;
-	position: relative;
-}
-
-.back
-{
-	position: absolute;
-	top: 10px;
-	left: 10px;
-}
-
-.movieContainer
-{
-	/* display: flex; */
-	display: none;
-	flex-direction: row;
-	background-color: black;
-	justify-content: center;
-}
-
-.moviePlayer
-{
-	background-color: black;
+.moviePlayer {
+	background-color: var(--bg-color);
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -213,26 +9,321 @@
 	align-items: center;
 	width: 100%;
 	position: relative;
+	box-sizing: border-box;
+	padding-bottom: 60px;
 }
 
-.nameAndPic > img
-{
-	margin: 20pt;
+.movie {
+	margin: 0 auto !important;
+	display: block;
+	aspect-ratio: 16/9;
+	width: 100% !important;
+	max-width: 1000px;
+	height: auto;
+	position: relative;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+	border: 1px solid var(--border-light);
 }
 
-.nameAndPic > h2
-{
-	margin: 20pt;
+#vidsrc {
+	width: 100% !important;
+	height: 100% !important;
+	margin: unset !important;
 }
 
-
-.details > p
-{
-	margin: 20pt;
-	width: 1000px;
+/* Choose Episode Selector Trigger Tab */
+.playerControls {
+	width: 100%;
+	max-width: 1000px;
+	margin: 0 auto 12px auto;
+	display: flex;
+	justify-content: flex-start;
+	box-sizing: border-box;
 }
 
-.details > input
-{
-	margin: 20pt;
+.choseEpisode {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--border-light);
+	color: var(--text-primary) !important;
+	border-radius: var(--radius-button);
+	padding: 10px 20px;
+	font-size: 14px;
+	font-weight: 600;
+	transition: var(--transition-smooth);
+	cursor: pointer;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.choseEpisode:hover {
+	background-color: rgba(255, 255, 255, 0.15);
+	border-color: rgba(255, 255, 255, 0.25);
+	transform: translateY(-2px);
+}
+
+.svgEpi {
+	width: 18px;
+	height: 18px;
+	margin-right: 8px;
+}
+
+/* Premium Seasons Dropdown Drawer Selector */
+.seasonsSelector {
+	background-color: rgba(10, 10, 10, 0.96);
+	backdrop-filter: var(--glass-blur);
+	-webkit-backdrop-filter: var(--glass-blur);
+	color: var(--text-primary);
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow-y: auto;
+	padding: 16px;
+	position: absolute;
+	left: 0;
+	top: 0;
+	box-sizing: border-box;
+	z-index: 20;
+}
+
+/* Scrollbar Customization for Drawer */
+.seasonsSelector::-webkit-scrollbar {
+    width: 6px;
+}
+
+.seasonsSelector::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.seasonsSelector::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-pill);
+}
+
+.seasonsSelector::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Seasons / Episodes List Item Card */
+.season {
+	display: flex;
+	flex-direction: row;
+	margin: 8px 0;
+	border-radius: var(--radius-card);
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid rgba(255, 255, 255, 0.05);
+	transition: var(--transition-smooth);
+	cursor: pointer;
+	padding: 12px;
+	align-items: center;
+}
+
+.season:hover {
+	background-color: rgba(255, 255, 255, 0.07);
+	border-color: rgba(255, 255, 255, 0.15);
+	transform: translateX(4px);
+}
+
+.seasonNumber {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.number {
+	position: absolute;
+	left: -8px;
+	top: 50%;
+	transform: translateY(-50%);
+	-webkit-text-stroke-width: 1px;
+	-webkit-text-stroke-color: rgba(255, 255, 255, 0.3);
+	color: transparent;
+	font-size: 64px;
+	font-weight: 800;
+	z-index: 1;
+}
+
+.seasonPoster {
+	width: 60px;
+	aspect-ratio: 2/3;
+	margin-left: 24px;
+	border-radius: 6px;
+	object-fit: cover;
+	z-index: 2;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.episodePoster {
+	width: 96px;
+	aspect-ratio: 16/9;
+	margin-left: 24px;
+	border-radius: 6px;
+	object-fit: cover;
+	z-index: 2;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.seasonDetails {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	margin-left: 16px;
+	overflow: hidden;
+	flex-grow: 1;
+}
+
+.seasonRatingd {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: 6px;
+}
+
+.seasonRating {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	color: var(--text-secondary);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.star {
+	color: #F6C906;
+	width: 12px;
+	height: 12px;
+	margin-left: 4px;
+}
+
+.seasonOverview {
+	font-size: 13px;
+	color: var(--text-muted);
+	line-height: 1.5;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+/* Unused elements clean placeholder */
+.navBar {
+	display: none;
+}
+
+/* Back Button TV Series player view */
+.backBtn {
+	display: flex;
+	align-items: center;
+	align-self: flex-start;
+	max-width: 1000px;
+	margin: 0 auto 20px auto;
+	width: 100%;
+	color: var(--text-secondary);
+	font-size: 15px;
+	font-weight: 500;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid var(--border-light);
+	padding: 8px 16px;
+	border-radius: var(--radius-button);
+	cursor: pointer;
+	transition: var(--transition-smooth);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.backBtn:hover {
+	color: var(--text-primary);
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(255, 255, 255, 0.25);
+	transform: translateY(-2px);
+}
+
+.backIcon {
+	margin-right: 8px;
+}
+
+/* Server Selector Container for Series */
+.serverSelector {
+	width: 100%;
+	max-width: 1000px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-card);
+	padding: 20px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	margin: 24px auto 0 auto;
+}
+
+.serverTitle {
+	color: var(--text-primary);
+	font-size: 16px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.serverButtons {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.serverBtn {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--border-light);
+	color: var(--text-secondary);
+	padding: 8px 16px;
+	border-radius: var(--radius-pill);
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: var(--transition-smooth);
+}
+
+.serverBtn:hover {
+	background: rgba(255, 255, 255, 0.15);
+	border-color: rgba(255, 255, 255, 0.25);
+	color: var(--text-primary);
+	transform: translateY(-1px);
+}
+
+.serverBtn.active {
+	background: var(--text-primary);
+	color: #000;
+	border-color: var(--text-primary);
+	font-weight: 600;
+	box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.serverWarning {
+	font-size: 12px;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+	.moviePlayer {
+		padding: 20px 12px 100px 12px;
+	}
+	.backBtn {
+		margin-bottom: 12px;
+	}
+	.serverSelector {
+		padding: 16px;
+		margin-top: 16px;
+	}
+	.serverBtn {
+		font-size: 12px;
+		padding: 6px 12px;
+	}
 }
