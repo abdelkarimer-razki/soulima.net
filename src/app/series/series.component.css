@@ -1,39 +1,50 @@
-/* Series Player View Component Styles */
+/* ─── Series Player Page ─────────────────────────────────────────────────── */
 
+/* Outer page wrapper — mirrors movie.component.css .playerContainer */
 .moviePlayer {
 	background-color: var(--bg-color);
 	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
 	align-items: center;
-	width: 100%;
-	position: relative;
+	padding: 80px 24px 60px 24px;
 	box-sizing: border-box;
-	padding-bottom: 60px;
+	width: 100%;
 }
 
-.movie {
-	margin: 0 auto !important;
-	display: block;
-	aspect-ratio: 16/9;
-	width: 100% !important;
+/* ─── Back Button ──────────────────────────────────────────────────────────── */
+.backBtn {
+	display: flex;
+	align-items: center;
+	align-self: flex-start;
 	max-width: 1000px;
-	height: auto;
-	position: relative;
-	border-radius: var(--radius-card);
-	overflow: hidden;
-	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7);
+	margin: 0 auto 20px auto;
+	width: 100%;
+	color: var(--text-secondary);
+	font-size: 14px;
+	font-weight: 500;
+	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid var(--border-light);
+	padding: 8px 16px;
+	border-radius: var(--radius-button);
+	cursor: pointer;
+	transition: var(--transition-smooth);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-#vidsrc {
-	width: 100% !important;
-	height: 100% !important;
-	margin: unset !important;
+.backBtn:hover {
+	color: var(--text-primary);
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(255, 255, 255, 0.25);
+	transform: translateY(-2px);
 }
 
-/* Choose Episode Selector Trigger Tab */
+.backIcon {
+	margin-right: 8px;
+	flex-shrink: 0;
+}
+
+/* ─── Episode Controls Bar ──────────────────────────────────────────────── */
 .playerControls {
 	width: 100%;
 	max-width: 1000px;
@@ -51,7 +62,7 @@
 	border: 1px solid var(--border-light);
 	color: var(--text-primary) !important;
 	border-radius: var(--radius-button);
-	padding: 10px 20px;
+	padding: 8px 16px;
 	font-size: 14px;
 	font-weight: 600;
 	transition: var(--transition-smooth);
@@ -66,12 +77,36 @@
 }
 
 .svgEpi {
-	width: 18px;
-	height: 18px;
+	width: 16px;
+	height: 16px;
 	margin-right: 8px;
 }
 
-/* Premium Seasons Dropdown Drawer Selector */
+/* ─── Iframe Container ──────────────────────────────────────────────────── */
+.movie {
+	margin: 0 auto;
+	display: block;
+	aspect-ratio: 16/9;
+	width: 100%;
+	max-width: 1000px;
+	height: auto;
+	position: relative;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+	border: 1px solid var(--border-light);
+	margin-bottom: 0;
+}
+
+#vidsrc {
+	width: 100% !important;
+	height: 100% !important;
+	margin: unset !important;
+	display: block;
+	border: none;
+}
+
+/* ─── Season / Episode Selector Drawer ────────────────────────────────── */
 .seasonsSelector {
 	background-color: rgba(10, 10, 10, 0.96);
 	backdrop-filter: var(--glass-blur);
@@ -90,25 +125,17 @@
 	z-index: 20;
 }
 
-/* Scrollbar Customization for Drawer */
-.seasonsSelector::-webkit-scrollbar {
-    width: 6px;
-}
-
-.seasonsSelector::-webkit-scrollbar-track {
-    background: transparent;
-}
-
+.seasonsSelector::-webkit-scrollbar { width: 6px; }
+.seasonsSelector::-webkit-scrollbar-track { background: transparent; }
 .seasonsSelector::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-pill);
+	background: rgba(255, 255, 255, 0.15);
+	border-radius: var(--radius-pill);
 }
-
 .seasonsSelector::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+	background: rgba(255, 255, 255, 0.3);
 }
 
-/* Seasons / Episodes List Item Card */
+/* ─── Season / Episode Card ─────────────────────────────────────────── */
 .season {
 	display: flex;
 	flex-direction: row;
@@ -212,43 +239,10 @@
 	overflow: hidden;
 }
 
-/* Unused elements clean placeholder */
-.navBar {
-	display: none;
-}
+/* ─── Navbar (unused in this view — hidden) ─────────────────────────── */
+.navBar { display: none; }
 
-/* Back Button TV Series player view */
-.backBtn {
-	display: flex;
-	align-items: center;
-	align-self: flex-start;
-	max-width: 1000px;
-	margin: 0 auto 20px auto;
-	width: 100%;
-	color: var(--text-secondary);
-	font-size: 15px;
-	font-weight: 500;
-	background: rgba(255, 255, 255, 0.05);
-	border: 1px solid var(--border-light);
-	padding: 8px 16px;
-	border-radius: var(--radius-button);
-	cursor: pointer;
-	transition: var(--transition-smooth);
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.backBtn:hover {
-	color: var(--text-primary);
-	background: rgba(255, 255, 255, 0.12);
-	border-color: rgba(255, 255, 255, 0.25);
-	transform: translateY(-2px);
-}
-
-.backIcon {
-	margin-right: 8px;
-}
-
-/* Server Selector Container for Series */
+/* ─── Server Selector ───────────────────────────────────────────────── */
 .serverSelector {
 	width: 100%;
 	max-width: 1000px;
@@ -261,12 +255,12 @@
 	flex-direction: column;
 	gap: 12px;
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-	margin: 24px auto 0 auto;
+	margin: 20px auto 0 auto;
 }
 
 .serverTitle {
 	color: var(--text-primary);
-	font-size: 16px;
+	font-size: 15px;
 	font-weight: 600;
 	letter-spacing: -0.01em;
 }
@@ -275,16 +269,18 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: 8px;
 }
 
 .serverBtn {
+	display: flex;
+	align-items: center;
 	background: rgba(255, 255, 255, 0.06);
 	border: 1px solid var(--border-light);
 	color: var(--text-secondary);
-	padding: 8px 16px;
+	padding: 7px 14px;
 	border-radius: var(--radius-pill);
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 500;
 	cursor: pointer;
 	transition: var(--transition-smooth);
@@ -305,25 +301,165 @@
 	box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
+/* ─── Server Status Dot ─────────────────────────────────────────────── */
+.statusDot {
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	margin-right: 7px;
+	flex-shrink: 0;
+	transition: background 0.4s ease, box-shadow 0.4s ease;
+	background: #555;
+}
+.statusDot.checking {
+	background: #888;
+	animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.statusDot.online {
+	background: #22c55e;
+	box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+}
+.statusDot.offline {
+	background: #ef4444;
+	box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
+}
+@keyframes pulse-dot {
+	0%, 100% { opacity: 0.4; }
+	50%       { opacity: 1;   }
+}
+
+/* "Not working?" report link per server */
+.reportBtn {
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	font-size: 11px;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: var(--radius-button);
+	transition: color 0.2s ease;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	white-space: nowrap;
+}
+.reportBtn:hover { color: #ef4444; }
+
+.serverFooter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
 .serverWarning {
 	font-size: 12px;
 	color: var(--text-muted);
-	margin-top: 4px;
 }
 
+/* ─── Download Section ──────────────────────────────────────────────── */
+.downloadSection {
+	width: 100%;
+	max-width: 1000px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-card);
+	padding: 20px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	margin: 16px auto 0 auto;
+}
+
+.downloadHeader {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.downloadIcon {
+	width: 20px;
+	height: 20px;
+	color: var(--text-primary);
+	flex-shrink: 0;
+}
+
+.downloadTitle {
+	color: var(--text-primary);
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.downloadDesc {
+	color: var(--text-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.downloadActions {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.downloadBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: var(--text-primary);
+	font-size: 13px;
+	font-weight: 600;
+	padding: 9px 20px;
+	border-radius: var(--radius-button);
+	cursor: pointer;
+	transition: var(--transition-smooth);
+	align-self: flex-start;
+	letter-spacing: 0.01em;
+}
+
+.downloadBtn:hover {
+	background: rgba(255, 255, 255, 0.18);
+	border-color: rgba(255, 255, 255, 0.5);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+	transform: translateY(-2px);
+}
+
+.downloadBtn:active { transform: translateY(0px); }
+
+.downloadNote {
+	font-size: 11px;
+	color: var(--text-muted);
+	line-height: 1.5;
+	opacity: 0.75;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
 	.moviePlayer {
 		padding: 20px 12px 100px 12px;
 	}
 	.backBtn {
 		margin-bottom: 12px;
+		font-size: 13px;
 	}
 	.serverSelector {
-		padding: 16px;
-		margin-top: 16px;
+		padding: 14px;
+		margin-top: 14px;
 	}
 	.serverBtn {
 		font-size: 12px;
-		padding: 6px 12px;
+		padding: 6px 11px;
+	}
+	.downloadSection {
+		padding: 14px;
+	}
+	.downloadBtn {
+		width: 100%;
+		justify-content: center;
 	}
 }

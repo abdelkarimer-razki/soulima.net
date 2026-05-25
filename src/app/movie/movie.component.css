@@ -1,4 +1,4 @@
-/* Movie Player Page Styles */
+/* ─── Movie Player Page ──────────────────────────────────────────────────── */
 
 .playerContainer {
 	background-color: var(--bg-color);
@@ -6,12 +6,12 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 80px 24px 40px 24px;
+	padding: 80px 24px 60px 24px;
 	box-sizing: border-box;
 	width: 100%;
 }
 
-/* Back Button */
+/* ─── Back Button ──────────────────────────────────────────────────────────── */
 .backBtn {
 	display: flex;
 	align-items: center;
@@ -20,7 +20,7 @@
 	margin: 0 auto 20px auto;
 	width: 100%;
 	color: var(--text-secondary);
-	font-size: 15px;
+	font-size: 14px;
 	font-weight: 500;
 	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid var(--border-light);
@@ -40,9 +40,10 @@
 
 .backIcon {
 	margin-right: 8px;
+	flex-shrink: 0;
 }
 
-/* Movie Player Frame */
+/* ─── Movie Player Frame ──────────────────────────────────────────────────── */
 .moviePlayer {
 	width: 100%;
 	max-width: 1000px;
@@ -53,7 +54,7 @@
 	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 	border: 1px solid var(--border-light);
 	position: relative;
-	margin-bottom: 24px;
+	margin-bottom: 20px;
 }
 
 .movie {
@@ -63,7 +64,7 @@
 	border: none;
 }
 
-/* Server Selector Row */
+/* ─── Server Selector ─────────────────────────────────────────────────────── */
 .serverSelector {
 	width: 100%;
 	max-width: 1000px;
@@ -80,7 +81,7 @@
 
 .serverTitle {
 	color: var(--text-primary);
-	font-size: 16px;
+	font-size: 15px;
 	font-weight: 600;
 	letter-spacing: -0.01em;
 }
@@ -89,16 +90,18 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: 8px;
 }
 
 .serverBtn {
+	display: flex;
+	align-items: center;
 	background: rgba(255, 255, 255, 0.06);
 	border: 1px solid var(--border-light);
 	color: var(--text-secondary);
-	padding: 8px 16px;
+	padding: 7px 14px;
 	border-radius: var(--radius-pill);
-	font-size: 14px;
+	font-size: 13px;
 	font-weight: 500;
 	cursor: pointer;
 	transition: var(--transition-smooth);
@@ -119,25 +122,164 @@
 	box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
+/* ─── Server Status Dot ─────────────────────────────────────────────────── */
+.statusDot {
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	margin-right: 7px;
+	flex-shrink: 0;
+	transition: background 0.4s ease, box-shadow 0.4s ease;
+	background: #555;
+}
+.statusDot.checking {
+	background: #888;
+	animation: pulse-dot 1.2s ease-in-out infinite;
+}
+.statusDot.online {
+	background: #22c55e;
+	box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+}
+.statusDot.offline {
+	background: #ef4444;
+	box-shadow: 0 0 6px rgba(239, 68, 68, 0.7);
+}
+@keyframes pulse-dot {
+	0%, 100% { opacity: 0.4; }
+	50%       { opacity: 1;   }
+}
+
+/* "Not working?" manual report button */
+.reportBtn {
+	background: none;
+	border: none;
+	color: var(--text-muted);
+	font-size: 11px;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: var(--radius-button);
+	transition: color 0.2s ease;
+	text-decoration: underline;
+	text-underline-offset: 2px;
+	white-space: nowrap;
+}
+.reportBtn:hover { color: #ef4444; }
+
+.serverFooter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
 .serverWarning {
 	font-size: 12px;
 	color: var(--text-muted);
-	margin-top: 4px;
 }
 
-/* Responsiveness */
+/* ─── Download Section ───────────────────────────────────────────────────── */
+.downloadSection {
+	width: 100%;
+	max-width: 1000px;
+	background: rgba(255, 255, 255, 0.02);
+	border: 1px solid var(--border-light);
+	border-radius: var(--radius-card);
+	padding: 20px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+	margin-top: 16px;
+}
+
+.downloadHeader {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.downloadIcon {
+	width: 20px;
+	height: 20px;
+	color: var(--text-primary);
+	flex-shrink: 0;
+}
+
+.downloadTitle {
+	color: var(--text-primary);
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.downloadDesc {
+	color: var(--text-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.downloadActions {
+	display: flex;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.downloadBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	color: var(--text-primary);
+	font-size: 13px;
+	font-weight: 600;
+	padding: 9px 20px;
+	border-radius: var(--radius-button);
+	cursor: pointer;
+	transition: var(--transition-smooth);
+	align-self: flex-start;
+	letter-spacing: 0.01em;
+}
+
+.downloadBtn:hover {
+	background: rgba(255, 255, 255, 0.18);
+	border-color: rgba(255, 255, 255, 0.5);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+	transform: translateY(-2px);
+}
+
+.downloadBtn:active { transform: translateY(0px); }
+
+.downloadNote {
+	font-size: 11px;
+	color: var(--text-muted);
+	line-height: 1.5;
+	opacity: 0.75;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
 	.playerContainer {
 		padding: 20px 12px 100px 12px;
 	}
 	.backBtn {
 		margin-bottom: 12px;
+		font-size: 13px;
 	}
 	.serverSelector {
-		padding: 16px;
+		padding: 14px;
 	}
 	.serverBtn {
 		font-size: 12px;
-		padding: 6px 12px;
+		padding: 6px 11px;
+	}
+	.downloadSection {
+		padding: 14px;
+	}
+	.downloadBtn {
+		width: 100%;
+		justify-content: center;
 	}
 }
