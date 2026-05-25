@@ -1,24 +1,17 @@
 
 
 <div class="moviePlayer" >
-	<a routerLink="/tvshows" class="backBtn">
-		<svg class="backIcon" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
-		Back to TV Shows
-	</a>
-<!-- 
-		<select class="seasonSelector" (change)="changeSeason($event)">
-			<option *ngFor="season of seasons;index as i" value="{{i + 1}}"></option>
-		</select>
-		<select class="epiSelector" >
-			<option *ngFor="let episodes of createRange(seasons[season - 1]);index as i" (click)="episode = i + 1" value="{{i + 1}}">{{i + 1}}</option>
-		</select> -->
 	<div class="playerControls">
+		<a routerLink="/tvshows" class="backBtn">
+			<svg class="backIcon" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+			Back to TV Shows
+		</a>
 		<div class="choseEpisode" *ngIf="!epiSelector" style="color: white;cursor: pointer;" (click)="showSelector = !showSelector">
 			<svg class="svgEpi" style="enable-background:new 0 0 50 50;" version="1.1" viewBox="0 0 50 50" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="Layer_1"><path fill="currentColor" d="M21,5H10v4H1v32h9v4h11v4h28V1H21V5z M3,39V11h7v28H3z M12,43v-2V9V7h9v36H12z M23,3h24v44H23v-2V5V3z"/></g><g/></svg>
 			Choose episode
 		</div>
 		<div class="choseEpisode" *ngIf="epiSelector" style="color: white;cursor: pointer;" (click)="back()">
-			<svg class="svgEpi" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+			<svg class="svgEpi" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
 			Back
 		</div>
 	</div>
