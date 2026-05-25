@@ -18,12 +18,12 @@
 
 <!-- Actual Billboard -->
 <article class="posterContainer" *ngIf="!loading && !this.searchQuery && !this.genraSearch">
-	<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + this.moviePosterData?.backdrop_path" class="poster" alt="">
+	<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + this.moviePosterData?.backdrop_path" class="poster" alt="{{moviePosterData?.title}} Featured Movie Billboard Poster">
 	<section class="posterInfo">
-		<div class="posterTitle" *ngIf="!moviePosterLogo">
+		<h1 class="posterTitle" *ngIf="!moviePosterLogo">
 			{{moviePosterData?.title}}
-		</div>
-		<img *ngIf="moviePosterLogo" [src]="'https://image.tmdb.org/t/p/w500' + moviePosterLogo" class="posterLogo" alt="Movie Logo">
+		</h1>
+		<img *ngIf="moviePosterLogo" [src]="'https://image.tmdb.org/t/p/w500' + moviePosterLogo" class="posterLogo" alt="{{moviePosterData?.title}} Logo">
 		<div class="ratingAndInfo">
 			<div class="rating">
 				<span>{{moviePosterData?.vote_average | number:'1.1-1'}}</span>
@@ -70,7 +70,7 @@
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of recentlyWatched | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>
@@ -79,7 +79,7 @@
 		<h2 class="categorieTitle">For you</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of foryou | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>
@@ -88,7 +88,7 @@
 		<h2 class="categorieTitle">Trending</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of trendingMovies | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>
@@ -97,7 +97,7 @@
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of newReleasedMovies | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>
@@ -106,7 +106,7 @@
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedMovies | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>	
@@ -120,7 +120,7 @@
 		
 		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0 && !isSearching">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 		
@@ -128,10 +128,10 @@
 		<div class="searchResutls" *ngIf="isSearching">
 			<div class="moviesSearch shimmer" *ngFor="let card of [1, 2, 3, 4, 5, 6, 7, 8]" style="height: 100%; min-height: 225px;"></div>
 		</div>
-
+ 
 		<div class="searchResutls" *ngIf="!isSearching">
 			<ng-container *ngFor="let movie of movies">
-				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path && movie.vote_average" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</div>
@@ -143,7 +143,7 @@
 		<h2 class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">Best of {{genraName}} movies</h2>
 		<div class="searchResutls">
 			<ng-container *ngFor="let movie of genraMovies">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="">
+				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 			</ng-container>
 		</div>
 	</section>
@@ -166,7 +166,7 @@
 			<div class="shimmer" style="width: 100%; aspect-ratio: 16/9; display: block;" *ngIf="isPopUpLoading"></div>
 			
 			<div [class.noShow]="startTrailer" *ngIf="!isPopUpLoading" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
-				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="">
+				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="{{popUpMovie?.title || popUpMovie?.name}} details backdrop">
 			</div>
 			<div class="play playinPopUp" *ngIf="!isPopUpLoading" (click)="routerDetailMovie(popUpMovie?.id)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>

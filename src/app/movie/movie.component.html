@@ -6,6 +6,9 @@
 		</a>
 	</div>
 
+	<!-- Page Heading for SEO and UX -->
+	<h1 class="movieTitleHeader">Watch {{ movie?.title || movie?.original_title }} Free</h1>
+
 	<!-- Bare iframe player for high-performance server streaming -->
 	<iframe id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" class="moviePlayer">
 	</iframe>

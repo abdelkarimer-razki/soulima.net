@@ -2,7 +2,8 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
+import { SeoService } from '../services/seo.service';
 
 @Component({
   selector: 'app-movie',
@@ -45,7 +46,10 @@ export class MovieComponent implements OnInit {
     private moviedbAPIService: MoviedbAPIService,
     private torrentSearchService: TorrentSearchService,
     private sanitizer: DomSanitizer,
-    private zone: NgZone
+    private zone: NgZone,
+    private titleService: Title,
+    private metaService: Meta,
+    private seoService: SeoService
   ) {
     this.route.params.subscribe(params => {
       this.id = Number(params['id']);
@@ -161,6 +165,39 @@ export class MovieComponent implements OnInit {
   ngOnInit(): void {
     this.moviedbAPIService.getMovieDetails(this.id).subscribe((response: any) => {
       this.movie = response;
+
+      // Update dynamic SEO titles and metadata using centralized SeoService
+      const movieTitle = this.movie?.title || this.movie?.original_title || "Movie";
+      const movieYear = this.movie?.release_date ? ` (${this.movie.release_date.split('-')[0]})` : "";
+      const movieDesc = this.movie?.overview || `Stream '${movieTitle}'${movieYear} in HD for free on Soulima. Watch with multiple fast server mirrors and high-speed magnet download links.`;
+      const movieImg = this.movie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.movie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
+      const movieUrl = `https://soulima.net/#/movie/${this.id}`;
+
+      this.seoService.updateMeta({
+        title: `Watch ${movieTitle}${movieYear} Free - Soulima`,
+        description: movieDesc,
+        keywords: `${movieTitle}, watch ${movieTitle}, watch ${movieTitle} free, streaming ${movieTitle}, Soulima movies`,
+        image: movieImg,
+        url: movieUrl,
+        type: 'video.movie',
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "Movie",
+          "name": movieTitle,
+          "image": movieImg,
+          "description": movieDesc,
+          "dateCreated": this.movie?.release_date || "",
+          "url": movieUrl,
+          "aggregateRating": this.movie?.vote_average ? {
+            "@type": "AggregateRating",
+            "ratingValue": this.movie.vote_average,
+            "bestRating": "10",
+            "worstRating": "1",
+            "ratingCount": this.movie.vote_count || 10
+          } : undefined
+        }
+      });
+
       this.getRecentlyWatched();
       this.updateLink();
     });

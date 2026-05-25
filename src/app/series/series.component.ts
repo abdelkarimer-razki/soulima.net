@@ -2,7 +2,8 @@ import { Component, OnInit, NgZone } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
+import { SeoService } from '../services/seo.service';
 
 @Component({
   selector: 'app-series',
@@ -51,7 +52,10 @@ export class SeriesComponent {
 		private moviedbAPIService: MoviedbAPIService,
 		private torrentSearchService: TorrentSearchService,
 		private sanitizer: DomSanitizer,
-		private zone: NgZone
+		private zone: NgZone,
+		private titleService: Title,
+		private metaService: Meta,
+		private seoService: SeoService
 	) {
 		this.route.params.subscribe(params => {
 			this.id      = Number(params['id']);
@@ -200,6 +204,41 @@ export class SeriesComponent {
 			this.serie = response;
 			this.serie.seasonnb = this.season;
 			this.serie.episodenb = this.episode;
+
+			// Update dynamic TV show episode title, meta description, and Open Graph tags using centralized SeoService
+			const serieName = this.serie?.name || this.serie?.original_name || "TV Show";
+			const episodeTitle = `Watch ${serieName} - Season ${this.season} Episode ${this.episode} Free - Soulima`;
+			const episodeDesc = `Stream ${serieName} Season ${this.season} Episode ${this.episode} in high quality for free on Soulima. Access multiple mirrors and magnet links.`;
+			const episodeImg = this.serie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.serie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
+			const episodeUrl = `https://soulima.net/#/serie/${this.id}/${this.season}/${this.episode}`;
+
+			this.seoService.updateMeta({
+				title: episodeTitle,
+				description: episodeDesc,
+				keywords: `${serieName}, watch ${serieName}, ${serieName} season ${this.season}, ${serieName} episode ${this.episode}, Soulima tv shows`,
+				image: episodeImg,
+				url: episodeUrl,
+				type: 'video.episode',
+				schema: {
+					"@context": "https://schema.org",
+					"@type": "TVEpisode",
+					"name": `${serieName} - Season ${this.season} Episode ${this.episode}`,
+					"episodeNumber": this.episode,
+					"partOfSeason": {
+						"@type": "TVSeason",
+						"seasonNumber": this.season
+					},
+					"partOfSeries": {
+						"@type": "TVSeries",
+						"name": serieName,
+						"image": episodeImg
+					},
+					"image": episodeImg,
+					"description": episodeDesc,
+					"url": episodeUrl
+				}
+			});
+
 			const raw = localStorage.getItem('series');
 			const Movies: any[] = raw ? JSON.parse(raw) : [];
 			if (Movies.length) this.findElementAndSwitchEpi(Movies);

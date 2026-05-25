@@ -2,10 +2,11 @@ import { Component,Renderer2,ViewChild  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin } from 'rxjs';
+import { SeoService } from '../services/seo.service';
 
 
 
@@ -65,7 +66,16 @@ export class TvshowsComponent {
 
 
   sanitizedUrls: SafeResourceUrl[] = [];
-  constructor(private moviedbAPIService: MoviedbAPIService,private router:Router,private http: HttpClient,private sanitizer: DomSanitizer,private renderer: Renderer2) { }
+  constructor(
+    private moviedbAPIService: MoviedbAPIService,
+    private router:Router,
+    private http: HttpClient,
+    private sanitizer: DomSanitizer,
+    private renderer: Renderer2,
+    private titleService: Title,
+    private metaService: Meta,
+    private seoService: SeoService
+  ) { }
 
 
     searchSeries() {
@@ -130,6 +140,19 @@ export class TvshowsComponent {
       }
 
     ngOnInit(): void {
+      this.seoService.updateMeta({
+        title: "Soulima TV Shows | Free Streaming of TV Series & Seasons",
+        description: "Watch trending TV series, full seasons, and new releases for free in high quality on Soulima. Enjoy unlimited show streaming.",
+        keywords: "سوليما, Soulima, مشاهدة مسلسلات, مسلسلات أونلاين, مسلسلات مجانية, streaming tv shows, free series, TV series, online streaming, Arabic series, Moroccan tv shows",
+        url: "https://soulima.net/#/tvshows",
+        schema: {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "url": "https://soulima.net/#/tvshows",
+          "name": "Soulima TV Shows",
+          "description": "Watch trending TV series, full seasons, and new releases for free in high quality on Soulima. Enjoy unlimited show streaming."
+        }
+      });
 		this.getForYou()
       const data = localStorage.getItem("series")
       if (data) {

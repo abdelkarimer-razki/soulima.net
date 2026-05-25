@@ -1,10 +1,12 @@
 import { Component,Renderer2,OnInit, ViewChild  } from '@angular/core';
+import { Title, Meta } from '@angular/platform-browser';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin } from 'rxjs';
 import { CookieService } from 'ngx-cookie-service';
+import { SeoService } from '../services/seo.service';
 
 interface Genre {
 	name: string;
@@ -33,7 +35,7 @@ export class Exercice2Component implements OnInit
 	newReleasedMovies:any[] = [];
 	recentlyWatched:any[] = [];
 	foryou:any[] = [];
-
+ 
 	isMovies = true;
 	showSearch = false
 	moviePosterData:any;
@@ -67,7 +69,10 @@ export class Exercice2Component implements OnInit
 		private moviedbAPIService: MoviedbAPIService,
 		private router:Router,
 		private renderer: Renderer2,
-		private cookie: CookieService
+		private cookie: CookieService,
+		private titleService: Title,
+		private metaService: Meta,
+		private seoService: SeoService
 	) { }
 
 	sliceTo3(table:any[]):any[]
@@ -232,6 +237,23 @@ export class Exercice2Component implements OnInit
 
 	ngOnInit(): void
 	{
+		this.seoService.updateMeta({
+			title: "Soulima Movies | Free Streaming of Movies & Cinema Hits",
+			description: "Watch your favorite movies for free on Soulima. Explore trending cinema hits, classic movies, and new releases in high definition.",
+			keywords: "سوليما, Soulima, مشاهدة أفلام, أفلام عربية, أفلام مجانية, streaming movies, movies, free streaming, TV shows, online streaming, watch movies online, Moroccan streaming",
+			schema: {
+				"@context": "https://schema.org",
+				"@type": "WebSite",
+				"url": "https://soulima.net/",
+				"name": "Soulima Movies",
+				"description": "Watch your favorite movies for free on Soulima. Explore trending cinema hits, classic movies, and new releases in high definition.",
+				"potentialAction": {
+					"@type": "SearchAction",
+					"target": "https://soulima.net/?search={search_term_string}",
+					"query-input": "required name=search_term_string"
+				}
+			}
+		});
 		this.getForYou()
 		const data = localStorage.getItem("movies")
 		if (data) {

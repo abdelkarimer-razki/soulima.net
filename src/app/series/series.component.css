@@ -90,6 +90,20 @@
 	margin-right: 8px;
 }
 
+.movieTitleHeader {
+	color: var(--text-primary);
+	font-family: "Work Sans", sans-serif;
+	font-weight: 700;
+	font-size: 24px;
+	margin: 16px auto 16px auto;
+	max-width: 1000px;
+	width: 100%;
+	text-align: left;
+	letter-spacing: -0.02em;
+	box-sizing: border-box;
+	line-height: 1.25;
+}
+
 /* ─── Iframe Container ──────────────────────────────────────────────────── */
 .movie {
 	margin: 0 auto;
@@ -614,7 +628,6 @@
 	transform: translateY(-1px);
 }
 
-/* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
 	.moviePlayer {
 		padding: 20px 12px 100px 12px;
@@ -622,6 +635,12 @@
 	.backBtn {
 		margin-bottom: 12px;
 		font-size: 13px;
+	}
+	.movieTitleHeader {
+		font-size: 18px !important;
+		margin: 12px auto !important;
+		text-align: center !important;
+		padding: 0 12px !important;
 	}
 	.serverSelector {
 		padding: 14px;
