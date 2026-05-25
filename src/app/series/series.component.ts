@@ -181,13 +181,14 @@ export class SeriesComponent {
 		window.history.pushState({}, '', '/serie/' + this.id + '/' + this.season + '/' + this.episode);
 		this.updateLink();
 		this.checkAllServers();
-		var Movieslocal = localStorage.getItem('series');
-		var Movies: any = [];
-		if (Movieslocal) {
-			console.log('changed!');
-			Movies = JSON.parse(Movieslocal);
-			this.findElementAndSwitchEpi(Movies);
-		}
+		// Fetch updated episode still for the new episode and save to recently watched
+		this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
+			.subscribe((epi: any) => {
+				this.serie.seasonnb = this.season;
+				this.serie.episodenb = this.episode;
+				this.serie.current_still_path = epi?.still_path || null;
+				this.getRecentlyWatched();
+			});
 	}
 
 	createRange(number: number): number[] {
@@ -199,7 +200,6 @@ export class SeriesComponent {
 	}
 
 	ngOnInit(): void {
-		this.getEpisodeDetails();
 		this.moviedbAPIService.getSerieDetails(this.id).subscribe((response: any) => {
 			this.serie = response;
 			this.serie.seasonnb = this.season;
@@ -239,10 +239,16 @@ export class SeriesComponent {
 				}
 			});
 
-			const raw = localStorage.getItem('series');
-			const Movies: any[] = raw ? JSON.parse(raw) : [];
-			if (Movies.length) this.findElementAndSwitchEpi(Movies);
-			this.getRecentlyWatched();
+			// Fetch episode still_path to use as thumbnail in recently watched
+			this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
+				.subscribe((epi: any) => {
+					this.serie.current_still_path = epi?.still_path || null;
+					const raw = localStorage.getItem('series');
+					const Movies: any[] = raw ? JSON.parse(raw) : [];
+					if (Movies.length) this.findElementAndSwitchEpi(Movies);
+					this.getRecentlyWatched();
+				});
+
 			this.serie.seasons.forEach((element: any) => {
 				if (element.episode_count != 0 && element.name != 'Specials')
 					this.seasons.push(element);

@@ -66,11 +66,21 @@
 
 <!-- Actual Home page suggestions (Loaded) -->
 <article class="moviesContainer" *ngIf="!loading && !this.searchQuery">
-	<section class="categorie" *ngIf="this.recentlyWatched.length">
+	<section class="categorie recentlyWatchedSection" *ngIf="this.recentlyWatched.length">
 		<h2 class="categorieTitle">Recently watched</h2>
-		<div class="moviesInCategorie">
+		<div class="recentlyWatchedRow">
 			<ng-container *ngFor="let movie of recentlyWatched | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.name || movie.original_name}} poster">
+				<div class="recentCard" *ngIf="movie.poster_path" (click)="showPopUp(movie)">
+					<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/w300' + (movie.current_still_path || movie.poster_path)" class="recentBgImg" alt="{{movie.name || movie.original_name}} episode poster">
+					<div class="recentCardOverlay">
+						<div class="recentEpiBadge" *ngIf="movie.seasonnb && movie.episodenb">
+							<span class="recentBadgeSeason">S{{movie.seasonnb}}</span>
+							<span class="recentBadgeDot"></span>
+							<span class="recentBadgeEpisode">E{{movie.episodenb}}</span>
+						</div>
+						<span class="recentCardTitle">{{movie.name || movie.original_name}}</span>
+					</div>
+				</div>
 			</ng-container>
 		</div>
 	</section>
