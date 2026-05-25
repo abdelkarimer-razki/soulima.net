@@ -37,6 +37,7 @@ export class Exercice2Component implements OnInit
 	isMovies = true;
 	showSearch = false
 	moviePosterData:any;
+	moviePosterLogo = "";
 
 	popUp = false;
 	popUpMovie:any;
@@ -104,13 +105,28 @@ export class Exercice2Component implements OnInit
 	getMovieImage()
 	{
 		const posterMovieNb:any = Math.floor(Math.random() * 15);
-		this.moviedbAPIService.getMovieDetails(this.trendingMovies[posterMovieNb].id)
-		.subscribe((response: any) => {
-			this.moviePosterData = response;
-			setTimeout(() => {
+		const movieId = this.trendingMovies[posterMovieNb].id;
+
+		forkJoin([
+			this.moviedbAPIService.getMovieDetails(movieId),
+			this.moviedbAPIService.getMovieImages(movieId)
+		]).subscribe({
+			next: ([details, images]: [any, any]) => {
+				this.moviePosterData = details;
+				
+				// Find an English logo, or default to first available logo, or empty string
+				const logo = images.logos.find((l: any) => l.iso_639_1 === 'en') || images.logos[0];
+				this.moviePosterLogo = logo ? logo.file_path : "";
+
+				setTimeout(() => {
+					this.loading = false;
+				}, 2000);
+			},
+			error: (err) => {
+				console.error("Error loading movie billboard image/logo:", err);
 				this.loading = false;
-			}, 2000)
-		})
+			}
+		});
 	}
 
 

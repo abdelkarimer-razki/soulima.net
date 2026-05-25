@@ -262,6 +262,17 @@
 	margin-bottom: 16px;
 }
 
+.posterLogo {
+	max-width: 360px;
+	max-height: 140px;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	margin-bottom: 20px;
+	filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.7));
+	align-self: flex-start;
+}
+
 .ratingAndInfo {
 	display: flex;
 	flex-direction: row;
@@ -496,6 +507,12 @@
 	.posterTitle {
 		font-size: 38px;
 	}
+	.posterLogo {
+		max-width: 280px;
+		max-height: 100px;
+		align-self: center;
+		margin-bottom: 14px;
+	}
 	.posterDescription {
 		font-size: 14px;
 	}
@@ -585,6 +602,12 @@
 	.posterContainer {
 		height: 70vh;
 		margin-top: 0;
+	}
+
+	.posterLogo {
+		max-width: 200px;
+		max-height: 70px;
+		margin-bottom: 10px;
 	}
 
 	.poster {

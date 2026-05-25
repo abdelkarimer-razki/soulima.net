@@ -20,9 +20,10 @@
 <article class="posterContainer" *ngIf="!loading && !this.searchQuery">
 	<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + this.moviePosterData?.backdrop_path" class="poster" alt="">
 	<section class="posterInfo">
-		<div class="posterTitle">
+		<div class="posterTitle" *ngIf="!moviePosterLogo">
 			{{moviePosterData?.name}}
 		</div>
+		<img *ngIf="moviePosterLogo" [src]="'https://image.tmdb.org/t/p/w500' + moviePosterLogo" class="posterLogo" alt="TV Show Logo">
 		<div class="ratingAndInfo">
 			<div class="rating">
 				<span>{{moviePosterData?.vote_average | number:'1.1-1'}}</span>
