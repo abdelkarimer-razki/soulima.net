@@ -1,20 +1,20 @@
 
 :root {
-	--bg-color: #050505;
-	--bg-card: #121212;
+	--bg-color: #141414;
+	--bg-card: #181818;
 	--text-primary: #ffffff;
-	--text-secondary: rgba(255, 255, 255, 0.7);
-	--text-muted: rgba(255, 255, 255, 0.4);
-	--accent-color: #ffffff;
-	--accent-glow: rgba(255, 255, 255, 0.15);
-	--border-light: rgba(255, 255, 255, 0.08);
-	--border-medium: rgba(255, 255, 255, 0.15);
-	--radius-button: 8px;
-	--radius-card: 12px;
-	--radius-pill: 30px;
-	--transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-	--glass-bg: rgba(10, 10, 10, 0.75);
-	--glass-blur: blur(20px);
+	--text-secondary: #e5e5e5;
+	--text-muted: #808080;
+	--accent-color: #E50914;
+	--accent-glow: rgba(229, 9, 20, 0.4);
+	--border-light: rgba(255, 255, 255, 0.1);
+	--border-medium: rgba(255, 255, 255, 0.2);
+	--radius-button: 4px;
+	--radius-card: 6px;
+	--radius-pill: 4px;
+	--transition-smooth: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+	--glass-bg: rgba(20, 20, 20, 0.85);
+	--glass-blur: blur(12px);
 }
 
 *
@@ -74,4 +74,20 @@ app-root
 #e1
 {
 	display: none !important;
+}
+
+/* Premium Skeleton Shimmer Animations */
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+.shimmer {
+	background: linear-gradient(90deg, #181818 25%, #2a2a2a 50%, #181818 75%);
+	background-size: 200% 100%;
+	animation: shimmer 1.6s infinite linear;
 }
