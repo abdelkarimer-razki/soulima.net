@@ -91,3 +91,30 @@ app-root
 	background-size: 200% 100%;
 	animation: shimmer 1.6s infinite linear;
 }
+
+/* Sleek, Premium Cinema Scrollbar Styling */
+::-webkit-scrollbar {
+	width: 8px; /* Vertical scrollbar width */
+	height: 8px; /* Horizontal scrollbar height */
+}
+
+::-webkit-scrollbar-track {
+	background: #141414; /* Match global dark background */
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.16); /* Translucent thumb */
+	border-radius: 4px;
+	border: 2px solid #141414; /* Creates padding space around the thumb */
+	transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(229, 9, 20, 0.75); /* Theme accent red hover glow */
+}
+
+/* For Firefox */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.16) #141414;
+}

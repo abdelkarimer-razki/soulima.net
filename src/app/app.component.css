@@ -165,15 +165,21 @@
 }
 
 /* Responsiveness */
+@media (max-width: 768px) {
+	.share-invite-banner.show {
+		bottom: 80px; /* Sit beautifully above the bottom mobile navbar */
+	}
+}
+
 @media (max-width: 480px) {
 	.share-invite-banner {
 		right: 16px;
 		left: 16px;
 		width: auto;
-		bottom: -280px;
+		bottom: -320px;
 	}
 	
 	.share-invite-banner.show {
-		bottom: 16px;
+		bottom: 80px; /* Sit beautifully above the bottom mobile navbar */
 	}
 }

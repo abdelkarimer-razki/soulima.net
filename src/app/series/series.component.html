@@ -1,105 +1,155 @@
 
 
-<div class="moviePlayer" >
-	<div class="playerControls">
-		<a routerLink="/tvshows" class="backBtn">
-			<svg class="backIcon" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
-			Back to TV Shows
-		</a>
-		<div class="choseEpisode" *ngIf="!epiSelector" style="color: white;cursor: pointer;" (click)="showSelector = !showSelector">
-			<svg class="svgEpi" style="enable-background:new 0 0 50 50;" version="1.1" viewBox="0 0 50 50" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="Layer_1"><path fill="currentColor" d="M21,5H10v4H1v32h9v4h11v4h28V1H21V5z M3,39V11h7v28H3z M12,43v-2V9V7h9v36H12z M23,3h24v44H23v-2V5V3z"/></g><g/></svg>
-			Choose episode
-		</div>
-		<div class="choseEpisode" *ngIf="epiSelector" style="color: white;cursor: pointer;" (click)="back()">
-			<svg class="svgEpi" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
-			Back
-		</div>
-	</div>
-	<!-- Page Heading for SEO and UX -->
-	<h1 class="movieTitleHeader">Watch {{ serie?.name || 'Episode' }} - Season {{ season }} Episode {{ episode }} Free</h1>
-
-	<div class="movie">
-		<div class="seasonsSelector" *ngIf="showSelector">
-			<ng-container *ngFor="let seasoned of seasons;index as i" >
-				<div class="season" (click)="choseSeason(i)" *ngIf="seasoned.episode_count != 0 && seasoned.name != 'Specials' && seasoned.vote_average">
-					<div class="seasonNumber">
-						<div class="number">
-							{{i + 1}}
-						</div>
-						<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + seasoned.poster_path" class="seasonPoster" alt="">
-					</div>
-					<div class="seasonDetails">
-						<div class="seasonRatingd">
-							<div class="seasonRating">
-								{{seasoned.vote_average}}
-								<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
-							</div>
-							<div class="seasonRating">
-								{{seasoned.episode_count}}
-								Episodes
-							</div>
-						</div>
-						<div class="seasonOverview">
-							{{seasoned.overview | slice:0:200}}...
-						</div>
-					</div>
-				</div>
-			</ng-container>
-		</div>
-		<div class="seasonsSelector" *ngIf="epiSelector">
-			<ng-container *ngFor="let episode of episodes;index as i" >
-				<div class="season" (click)="changeEpisode(i)" *ngIf="episode.vote_average && episode.still_path">
-					<div class="seasonNumber">
-						<div class="number">
-							{{i + 1}}
-						</div>
-						<img ngOptimizedImage [src]="'https://image.tmdb.org/t/p/original' + episode.still_path" class="episodePoster" alt="">
-					</div>
-					<div class="seasonDetails">
-	
-						<div class="seasonRating">
-							{{episode.vote_average}}
-							<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns" xmlns:xlink="http://www.w3.org/1999/xlink"><desc/><defs/><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
-						</div>
-						<div style="margin-left: 10px;">
-							{{episode.name}}
-						</div>
-						<div class="seasonOverview">
-							{{episode.overview | slice:0:200}}...
-						</div>
-					</div>
-				</div>
-			</ng-container>
-		</div>
-		<iframe id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture">
-		</iframe>
-	</div>
-
-	<div class="serverSelector">
-		<span class="serverTitle">Select Server Provider:</span>
-		<div class="serverLoader" *ngIf="isCheckingServers()">
+<div class="moviePlayer">
+	<!-- Netflix-like Video Player Container -->
+	<div class="moviePlayerWrapper" (mousemove)="showPlayerControls()" (click)="showPlayerControls()" [class.controlsActive]="showControls" [class.selectorActive]="showSelector || epiSelector">
+		
+		<!-- Buffering / Server Checker Centered Loader -->
+		<div class="playerLoaderOverlay" *ngIf="isCheckingServers()">
 			<div class="circleSpinner"></div>
 			<span class="loaderText">Checking working servers...</span>
 		</div>
-		<div class="serverButtons" *ngIf="!isCheckingServers()">
-			<ng-container *ngFor="let server of servers; let i = index">
-				<button *ngIf="serverStatus[i] === 'online'"
-					class="serverBtn"
-					[class.active]="selectedServerIndex === i"
-					(click)="selectServer(i)">
-					<span class="statusDot online"></span>
-					{{ server.name }}
+
+		<!-- Transparent Overlay Layer -->
+		<div class="playerOverlay">
+			<!-- Top Controls Bar -->
+			<div class="overlayTopBar">
+				<!-- Netflix back button style -->
+				<a routerLink="/tvshows" class="overlayBackBtn">
+					<svg class="backIcon" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+					<span>Back</span>
+				</a>
+
+				<div class="overlayTitle">
+					<h1 class="overlayMovieTitle">Watch {{ serie?.name }}</h1>
+					<span class="overlayMovieInfo" *ngIf="season && episode">Season {{ season }} &bull; Episode {{ episode }}</span>
+				</div>
+
+				<div class="overlayRightActions">
+					<!-- Episode Selector / Toggle Trigger -->
+					<button class="overlayActionBtn" (click)="toggleSelector(); $event.stopPropagation()">
+						<svg class="svgEpi" style="margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" stroke-width="2"/><line x1="3" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="2"/></svg>
+						<span>{{ (showSelector || epiSelector) ? 'Close' : 'Episodes' }}</span>
+					</button>
+					<!-- Back to Seasons list — only for multi-season shows in episode view -->
+					<button class="overlayActionBtn" *ngIf="epiSelector && seasons.length > 1" (click)="back(); $event.stopPropagation()">
+						<svg class="svgEpi" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+						<span>Seasons</span>
+					</button>
+
+					<!-- Server Selector Dropdown -->
+					<div class="serverDropdownWrapper" (click)="$event.stopPropagation()">
+						<button class="overlayActionBtn" (click)="toggleServerDropdown($event)">
+							<svg class="serverIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+							<span>Servers</span>
+						</button>
+						
+						<!-- Dropdown Menu -->
+						<div class="serverDropdownMenu" [class.show]="showServerDropdown">
+							<div class="dropdownHeader">Choose Server Provider:</div>
+							<div class="dropdownList">
+								<ng-container *ngFor="let server of servers; let i = index">
+									<button *ngIf="serverStatus[i] === 'online'" 
+											class="dropdownItem" 
+											[class.active]="selectedServerIndex === i"
+											(click)="selectServer(i); toggleServerDropdown()">
+										<span class="statusDot online"></span>
+										<span class="serverNameText">{{ server.name }}</span>
+										<span class="activeCheck" *ngIf="selectedServerIndex === i">✓</span>
+									</button>
+								</ng-container>
+							</div>
+							<div class="dropdownDivider"></div>
+							<div class="dropdownFooter">
+								<span class="serverWarning">⚠️ Switch servers if the episode doesn't load.</span>
+								<button class="dropdownReportBtn" (click)="reportUnavailable(selectedServerIndex); toggleServerDropdown()">Media unavailable? Mark as ✕</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Seasons & Episodes Selector Drawer Overlay -->
+		<div class="seasonsSelector" *ngIf="showSelector">
+			<div class="selectorHeader">
+				<span class="selectorTitle">Choose Season</span>
+				<button class="selectorCloseBtn" (click)="showSelector = false; $event.stopPropagation()">✕</button>
+			</div>
+			<div class="selectorScrollArea">
+				<ng-container *ngFor="let seasoned of seasons;index as i" >
+					<div class="season" (click)="choseSeason(i)" *ngIf="seasoned">
+						<div class="seasonNumber">
+							<div class="number">
+								{{seasoned.season_number}}
+							</div>
+							<img ngOptimizedImage [src]="seasoned.poster_path ? 'https://image.tmdb.org/t/p/original' + seasoned.poster_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png')" class="seasonPoster" alt="">
+						</div>
+						<div class="seasonDetails">
+							<div class="seasonRatingd">
+								<div class="seasonRating" *ngIf="seasoned.vote_average">
+									{{seasoned.vote_average}}
+									<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+								</div>
+								<div class="seasonRating">
+									{{seasoned.episode_count}}
+									Episodes
+								</div>
+							</div>
+							<div class="seasonOverview" *ngIf="seasoned.overview">
+								{{seasoned.overview | slice:0:200}}...
+							</div>
+						</div>
+					</div>
+				</ng-container>
+			</div>
+		</div>
+
+		<div class="seasonsSelector" *ngIf="epiSelector">
+			<div class="selectorHeader">
+				<button class="selectorBackBtn" *ngIf="seasons.length > 1" (click)="back(); $event.stopPropagation()">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+					Seasons
 				</button>
-			</ng-container>
+				<span class="selectorTitle" *ngIf="seasons.length > 1">Season {{ season }} — Episodes</span>
+				<span class="selectorTitle" *ngIf="seasons.length === 1">Episodes</span>
+				<button class="selectorCloseBtn" (click)="epiSelector = false; $event.stopPropagation()">✕</button>
+			</div>
+			<div class="selectorScrollArea">
+				<ng-container *ngFor="let episode of episodes;index as i" >
+					<div class="season" (click)="changeEpisode(episode.episode_number)" *ngIf="episode">
+						<div class="seasonNumber">
+							<div class="number">
+								{{episode.episode_number}}
+							</div>
+							<img ngOptimizedImage [src]="episode.still_path ? 'https://image.tmdb.org/t/p/original' + episode.still_path : (serie.backdrop_path ? 'https://image.tmdb.org/t/p/original' + serie.backdrop_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png'))" class="episodePoster" alt="">
+						</div>
+						<div class="seasonDetails">
+							<div class="seasonRatingd">
+								<div class="seasonRating" *ngIf="episode.vote_average">
+									{{episode.vote_average}}
+									<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+								</div>
+								<div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">
+									{{episode.name}}
+								</div>
+							</div>
+							<div class="seasonOverview" *ngIf="episode.overview">
+								{{episode.overview | slice:0:200}}...
+							</div>
+						</div>
+					</div>
+				</ng-container>
+			</div>
 		</div>
-		<div class="serverFooter">
-			<span class="serverWarning">⚠️ Switch servers if the episode doesn't load.</span>
-			<button class="reportBtn" (click)="reportUnavailable(selectedServerIndex)">Media unavailable on this server? Mark as ✕</button>
-		</div>
+
+		<!-- Streaming Player Iframe (Only injected after servers checking finishes) -->
+		<iframe *ngIf="!isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture">
+		</iframe>
 	</div>
 
-	<!-- Torrent Download Section -->
-	<div class="torrentSection">
+	<!-- Torrent Download Section (Currently disabled) -->
+	<div class="torrentSection" *ngIf="false">
 		<div class="torrentHeader">
 			<div class="torrentHeaderLeft">
 				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

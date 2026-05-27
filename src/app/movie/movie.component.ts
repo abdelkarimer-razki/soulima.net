@@ -29,6 +29,9 @@ export class MovieComponent implements OnInit {
     { name: 'Server 10 (Moviedata)',  url: 'https://moviedata.info/embed' }
   ];
   selectedServerIndex = 0;
+  showControls = true;
+  showServerDropdown = false;
+  private controlsTimeout: any = null;
 
   /** 'checking' | 'online' | 'offline' for each server */
   serverStatus: string[] = this.servers.map(() => 'checking');
@@ -67,6 +70,24 @@ export class MovieComponent implements OnInit {
   selectServer(index: number) {
     this.selectedServerIndex = index;
     this.updateLink();
+  }
+
+  showPlayerControls() {
+    this.showControls = true;
+    if (this.controlsTimeout) {
+      clearTimeout(this.controlsTimeout);
+    }
+    this.controlsTimeout = setTimeout(() => {
+      this.showControls = false;
+      this.showServerDropdown = false;
+    }, 3500);
+  }
+
+  toggleServerDropdown(event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.showServerDropdown = !this.showServerDropdown;
   }
 
   reportUnavailable(index: number) {
@@ -207,6 +228,7 @@ export class MovieComponent implements OnInit {
       this.updateLink();
     });
     this.checkAllServers();
+    this.showPlayerControls();
   }
 
   getRecentlyWatched() {

@@ -31,6 +31,9 @@ export class SeriesComponent {
 		{ name: 'Server 10 (Moviedata)', url: 'https://moviedata.info/embed' }
 	];
 	selectedServerIndex = 0;
+	showControls = true;
+	showServerDropdown = false;
+	private controlsTimeout: any = null;
 
 	/** 'checking' | 'online' | 'offline' for each server */
 	serverStatus: string[] = this.servers.map(() => 'checking');
@@ -75,6 +78,24 @@ export class SeriesComponent {
 	selectServer(index: number) {
 		this.selectedServerIndex = index;
 		this.updateLink();
+	}
+
+	showPlayerControls() {
+		this.showControls = true;
+		if (this.controlsTimeout) {
+			clearTimeout(this.controlsTimeout);
+		}
+		this.controlsTimeout = setTimeout(() => {
+			this.showControls = false;
+			this.showServerDropdown = false;
+		}, 3500);
+	}
+
+	toggleServerDropdown(event?: Event) {
+		if (event) {
+			event.stopPropagation();
+		}
+		this.showServerDropdown = !this.showServerDropdown;
 	}
 
 	/** Let the user manually flag media-unavailable (cross-origin iframes prevent auto-detection) */
@@ -179,13 +200,14 @@ export class SeriesComponent {
 		var id = document.getElementById('video-element');
 	}
 
-	changeEpisode(episdoe: number) {
+	changeEpisode(episodeNumber: number) {
 		this.epiSelector = false;
 		this.showSelector = false;
-		this.episode = episdoe + 1;
+		this.episode = episodeNumber;
 		window.history.pushState({}, '', '/serie/' + this.id + '/' + this.season + '/' + this.episode);
 		this.updateLink();
 		this.checkAllServers();
+		this.showPlayerControls();
 		// Fetch updated episode still for the new episode and save to recently watched
 		this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 			.subscribe((epi: any) => {
@@ -254,12 +276,24 @@ export class SeriesComponent {
 					this.getRecentlyWatched();
 				});
 
+			this.seasons = [];
 			this.serie.seasons.forEach((element: any) => {
 				if (element.episode_count != 0 && element.name != 'Specials')
 					this.seasons.push(element);
 			});
+
+			// Pre-load episodes for the currently active season (from URL params)
+			// so the episode list opens instantly without a loading delay.
+			// Use a helper that does NOT mutate this.season.
+			const activeSeasonData = this.seasons.find(
+				(s: any) => s.season_number === this.season
+			) || this.seasons[0];
+			if (activeSeasonData) {
+				this.preloadEpisodesForSeason(activeSeasonData);
+			}
 		});
 		this.checkAllServers();
+		this.showPlayerControls();
 	}
 
 	getRecentlyWatched() {
@@ -290,13 +324,54 @@ export class SeriesComponent {
 		this.showSelector = true;
 	}
 
-	async choseSeason(seasonNb: number) {
-		this.season = seasonNb + 1;
-		this.epiSelector = true;
-		this.showSelector = false;
+	toggleSelector() {
+		// Close if any panel is open
+		if (this.epiSelector || this.showSelector) {
+			this.epiSelector = false;
+			this.showSelector = false;
+			return;
+		}
+		// Single-season: jump straight to the episode list
+		if (this.seasons.length === 1) {
+			if (this.episodes.length > 0) {
+				this.epiSelector = true;
+			} else {
+				this.choseSeason(0, true);
+			}
+		} else {
+			// Multi-season: always show the seasons picker first so user can choose
+			this.showSelector = true;
+		}
+	}
+
+	/** Fetch episodes for a given season object without mutating this.season.
+	 *  Used for background pre-loading so the player's active season is never overwritten. */
+	private async preloadEpisodesForSeason(seasonData: any) {
+		const episodePromises: Promise<any>[] = [];
+		for (let i = 0; i < seasonData.episode_count; i++) {
+			episodePromises.push(
+				this.moviedbAPIService.getEpisodeDetails(this.serie.id, seasonData.season_number, i + 1).toPromise()
+			);
+		}
+		try {
+			this.episodes = await Promise.all(episodePromises);
+		} catch (error) {
+			console.error('Error pre-loading episodes:', error);
+		}
+	}
+
+	async choseSeason(seasonNb: number, activateSelector = true) {
+		// Use the actual TMDB season_number so non-contiguous seasons work correctly
+		const seasonData = this.seasons[seasonNb];
+		if (!seasonData) return;
+		this.season = seasonData.season_number;
+		if (activateSelector) {
+			this.epiSelector = true;
+			this.showSelector = false;
+		}
 		const episodePromises = [];
 
-		for (let i = 0; i < this.seasons[seasonNb].episode_count; i++) {
+		for (let i = 0; i < seasonData.episode_count; i++) {
 			episodePromises.push(
 				this.moviedbAPIService.getEpisodeDetails(this.serie.id, this.season, i + 1).toPromise()
 			);
