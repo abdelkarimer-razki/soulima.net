@@ -221,41 +221,84 @@ export class TvshowsComponent {
   
     showPopUp(movie:any)
     {
-		this.renderer.setStyle(document.body, 'overflow', 'hidden');
+      this.renderer.setStyle(document.body, 'overflow', 'hidden');
 
       this.popUp = true;
       this.popUpLink = "";
       this.popUpPoster = "";
       this.popUpLogo = "";
 
-      this.startTrailer = false
+      this.startTrailer = false;
       this.mute = true;
       this.popUpMovie = movie;
       this.isPopUpLoading = true;
 
-      forkJoin([
-        this.moviedbAPIService.getSerieDetails(movie.id),
-        this.moviedbAPIService.getSerieImages(movie.id),
-        this.moviedbAPIService.getVideosSerie(movie.id)
-      ]).subscribe({
-        next: ([details, images, videos]: [any, any, any]) => {
-          this.popUpMovie = details;
-          this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
-          
-          const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
-          this.popUpLogo = logo ? logo.file_path : "";
+      if (movie.seasonnb && movie.episodenb) {
+        forkJoin([
+          this.moviedbAPIService.getSerieDetails(movie.id),
+          this.moviedbAPIService.getSerieImages(movie.id),
+          this.moviedbAPIService.getVideosSerie(movie.id),
+          this.moviedbAPIService.getEpisodeDetails(movie.id, movie.seasonnb, movie.episodenb),
+          this.moviedbAPIService.getEpisodeVideos(movie.id, movie.seasonnb, movie.episodenb)
+        ]).subscribe({
+          next: ([details, images, videos, episodeDetails, episodeVideos]: [any, any, any, any, any]) => {
+            this.popUpMovie = {
+              ...details,
+              episode_title: episodeDetails.name,
+              season_number: episodeDetails.season_number,
+              episode_number: episodeDetails.episode_number,
+              overview: episodeDetails.overview || details.overview,
+              vote_average: episodeDetails.vote_average || details.vote_average,
+              first_air_date: episodeDetails.air_date || details.first_air_date,
+              isEpisodePopup: true
+            };
+            
+            // Set the episode still image as the poster backdrop
+            this.popUpPoster = episodeDetails.still_path || images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+            
+            const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+            this.popUpLogo = logo ? logo.file_path : "";
 
-          const trailer = videos.results.find((video: any) => video.type === 'Trailer');
-          if (trailer?.key) {
-            this.popUpLink = trailer.key;
+            // Check if episode has a trailer, fallback to series trailer if not
+            const epiTrailer = episodeVideos.results?.find((video: any) => video.type === 'Trailer');
+            const showTrailer = videos.results?.find((video: any) => video.type === 'Trailer');
+            const trailer = epiTrailer || showTrailer;
+            if (trailer?.key) {
+              this.popUpLink = trailer.key;
+            }
+            
+            this.isPopUpLoading = false;
+          },
+          error: (err) => {
+            console.error("Error loading episode pop-up details:", err);
+            this.isPopUpLoading = false;
           }
-          this.isPopUpLoading = false;
-        },
-        error: (err) => {
-          console.error("Error loading pop-up details:", err);
-          this.isPopUpLoading = false;
-        }
-      });
+        });
+      } else {
+        forkJoin([
+          this.moviedbAPIService.getSerieDetails(movie.id),
+          this.moviedbAPIService.getSerieImages(movie.id),
+          this.moviedbAPIService.getVideosSerie(movie.id)
+        ]).subscribe({
+          next: ([details, images, videos]: [any, any, any]) => {
+            this.popUpMovie = details;
+            this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+            
+            const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+            this.popUpLogo = logo ? logo.file_path : "";
+
+            const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+            if (trailer?.key) {
+              this.popUpLink = trailer.key;
+            }
+            this.isPopUpLoading = false;
+          },
+          error: (err) => {
+            console.error("Error loading pop-up details:", err);
+            this.isPopUpLoading = false;
+          }
+        });
+      }
     }
 
     closePopUp()

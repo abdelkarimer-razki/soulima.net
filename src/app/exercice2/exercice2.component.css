@@ -163,6 +163,22 @@
 	font-weight: 500;
 	transition: color 0.3s ease;
 	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.navIcon {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+	stroke-width: 2px;
+	fill: none;
+	transition: transform 0.25s ease;
+}
+
+.navLink:hover .navIcon {
+	transform: scale(1.1);
 }
 
 .navLink:hover {

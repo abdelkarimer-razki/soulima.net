@@ -289,6 +289,22 @@
 	font-weight: 500;
 	transition: color 0.3s ease;
 	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.navIcon {
+	width: 16px;
+	height: 16px;
+	stroke: currentColor;
+	stroke-width: 2px;
+	fill: none;
+	transition: transform 0.25s ease;
+}
+
+.navLink:hover .navIcon {
+	transform: scale(1.1);
 }
 
 .navLink:hover {
@@ -614,6 +630,19 @@
 	font-weight: 700;
 	margin-bottom: 12px;
 	line-height: 1.2;
+}
+
+.episodeSubTitle {
+	color: rgba(255, 255, 255, 0.75);
+	font-size: 16px;
+	font-weight: 500;
+	margin-top: -4px;
+	margin-bottom: 18px;
+	letter-spacing: 0.5px;
+	display: block;
+	font-family: 'Inter', sans-serif;
+	border-left: 3px solid #e50914; /* nice movie accent red border! */
+	padding-left: 8px;
 }
 
 .popupLogo {

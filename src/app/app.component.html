@@ -1,2 +1,31 @@
 <router-outlet></router-outlet>
+
+<!-- Premium Floating Share Invite Banner -->
+<div class="share-invite-banner" [class.show]="showShareBanner" *ngIf="!isDismissed">
+  <button class="close-btn" (click)="dismissBanner()">&times;</button>
+  <div class="banner-body">
+    <div class="heart-icon-wrapper">
+      <svg class="heart-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    </div>
+    <div class="text-content">
+      <h3 class="banner-title">Help Us Stay Ad-Free!</h3>
+      <p class="banner-desc">Please share <strong>Soulima.net</strong> with your friends & family. Your support keeps us running and completely free of ads!</p>
+    </div>
+  </div>
+  <div class="banner-actions">
+    <button class="share-action-btn copy-btn" [class.copied]="copied" (click)="copyLink()">
+      <span *ngIf="!copied" style="display: flex; align-items: center; gap: 8px;">
+        <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Link
+      </span>
+      <span *ngIf="copied">Copied! ✓</span>
+    </button>
+    <button class="share-action-btn native-share-btn" (click)="shareWebsite()">
+      <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+      Share Site
+    </button>
+  </div>
+</div>
 <!-- <app-notif *ngIf="!noPopUp"></app-notif> -->
