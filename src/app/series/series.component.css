@@ -874,49 +874,80 @@
 	margin-bottom: 4px;
 }
 
+/* ════════════════════════════════════════════════════════════
+   MOBILE  ≤ 768px
+   ════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
+
+	/* ── Page wrapper: no top padding, player starts at the very top ── */
 	.moviePlayer {
-		padding: 10px 8px 80px 8px;
+		padding: 0 0 70px 0;
+		align-items: stretch;
 	}
+
+	/* ── Player fills full screen width, 16:9 on narrow screens ── */
 	.moviePlayerWrapper {
-		margin-bottom: 12px;
+		max-width: 100%;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		margin-bottom: 0;
+		box-shadow: none;
 	}
+
+	/* When selector is open: use a tall fixed height so there's room to scroll */
 	.moviePlayerWrapper.selectorActive {
 		aspect-ratio: unset !important;
-		height: 420px !important;
+		height: 100svh !important;
 	}
+
+	/* ── Overlay top bar: tighter padding ── */
 	.overlayTopBar {
 		padding: 10px 12px;
+		gap: 6px;
 	}
+
+	/* ── Back link: smaller ── */
 	.overlayBackBtn {
 		font-size: 12px;
 		padding: 2px 4px;
 		gap: 4px;
 	}
 	.overlayBackBtn svg {
-		width: 16px;
-		height: 16px;
+		width: 15px;
+		height: 15px;
 	}
+
+	/* ── Title: hide on very small screens to avoid cramping ── */
 	.overlayTitle {
-		gap: 0px;
+		display: none;
 	}
-	.overlayMovieTitle {
-		font-size: 13px;
-	}
-	.overlayMovieInfo {
-		font-size: 10.5px;
+
+	/* ── Right-side action buttons: compact icon-only pills ── */
+	.overlayRightActions {
+		gap: 6px;
 	}
 	.overlayActionBtn {
-		padding: 6px 10px;
+		padding: 7px 10px;
 		font-size: 11px;
 		gap: 4px;
+		border-radius: 8px;
+	}
+	.overlayActionBtn span {
+		display: none;			/* icon only on mobile */
 	}
 	.overlayActionBtn svg {
-		width: 14px;
-		height: 14px;
+		width: 18px;
+		height: 18px;
+		margin: 0 !important;
 	}
+
+	/* ── Server dropdown: full-width from right edge ── */
 	.serverDropdownMenu {
-		width: 260px;
+		right: 0;
+		left: auto;
+		width: 88vw;
+		max-width: 320px;
 		padding: 10px;
 		top: calc(100% + 4px);
 	}
@@ -925,30 +956,116 @@
 		padding-bottom: 6px;
 		margin-bottom: 6px;
 	}
-	.dropdownItem {
-		padding: 6px 8px;
-		font-size: 12px;
+	.dropdownList {
+		max-height: 140px;
 	}
-	.activeCheck {
+	.dropdownItem {
+		padding: 8px 10px;
+		font-size: 12.5px;
+	}
+	.dropdownFooter { gap: 4px; }
+	.serverWarning { font-size: 10px; }
+	.dropdownReportBtn { font-size: 9.5px; }
+
+	/* ── Selector drawer: tighter header & cards ── */
+	.selectorHeader {
+		padding: 10px 12px;
+	}
+	.selectorTitle {
 		font-size: 11px;
 	}
-	.dropdownFooter {
-		gap: 4px;
+	.selectorBackBtn {
+		padding: 5px 8px;
+		font-size: 11px;
 	}
-	.serverWarning {
-		font-size: 10px;
+	.selectorCloseBtn {
+		width: 26px;
+		height: 26px;
+		font-size: 12px;
 	}
-	.dropdownReportBtn {
-		font-size: 9.5px;
+	.selectorScrollArea {
+		padding: 6px 10px 12px 10px;
 	}
+
+	/* ── Season / episode cards: compact layout ── */
+	.season {
+		padding: 8px 10px;
+		gap: 0;
+	}
+	.number {
+		font-size: 48px;
+		left: -6px;
+	}
+	.seasonPoster {
+		width: 44px;
+		margin-left: 18px;
+	}
+	.episodePoster {
+		width: 80px;
+		margin-left: 18px;
+	}
+	.seasonDetails {
+		margin-left: 10px;
+	}
+	.seasonOverview {
+		font-size: 11.5px;
+		-webkit-line-clamp: 1;
+	}
+	.seasonRating {
+		font-size: 12px;
+	}
+	.seasonRatingd {
+		gap: 10px;
+		margin-bottom: 3px;
+	}
+
+	/* ── Loader overlay ── */
+	.loaderText {
+		font-size: 12px;
+	}
+
+	/* ── Torrent section ── */
 	.torrentSection {
 		padding: 14px;
+		margin: 12px 0 0 0;
 	}
-	.torrentItem {
-		flex-wrap: wrap;
-	}
+	.torrentItem { flex-wrap: wrap; }
 	.ytsDownloadBtn {
 		width: 100%;
 		justify-content: center;
 	}
+}
+
+/* Extra small phones ≤ 430px */
+@media (max-width: 430px) {
+	.overlayActionBtn {
+		padding: 6px 8px;
+	}
+	.serverDropdownMenu {
+		width: 95vw;
+	}
+	.episodePoster {
+		width: 68px;
+	}
+	.seasonPoster {
+		width: 38px;
+	}
+}
+
+/* ─── Page Entry Animations ─── */
+
+.moviePlayer {
+	animation: fadeIn 0.45s ease both;
+}
+
+.playerControls {
+	animation: fadeSlideUp 0.5s 0.05s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.playerFrame {
+	animation: scaleIn 0.55s 0.1s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.seriesInfo, .serieDetails, .castSection {
+	animation: fadeSlideUp 0.55s 0.2s cubic-bezier(0.25, 1, 0.5, 1) both;
 }

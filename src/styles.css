@@ -47,6 +47,11 @@ body
 {
 	background-color: var(--bg-color);
 	color: var(--text-primary);
+	scroll-behavior: smooth;
+}
+
+html {
+	scroll-behavior: smooth;
 }
 
 app-root
@@ -54,6 +59,19 @@ app-root
 	max-width: 2560px;
 	margin:  0 auto;
 	display: block;
+}
+
+/* ─── Route transition wrapper ─── */
+/* Angular animates entering/leaving route components simultaneously;
+   they need to sit in the same slot via relative positioning. */
+.route-wrapper {
+	position: relative;
+	overflow-x: hidden;
+	min-height: 100vh;
+}
+
+.route-wrapper > * {
+	width: 100%;
 }
 
 
@@ -74,6 +92,46 @@ app-root
 #e1
 {
 	display: none !important;
+}
+
+/* ─── Global entry animation keyframes ─── */
+
+/* Fade + slide up */
+@keyframes fadeSlideUp {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Gentle fade-in */
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+
+/* Scale-in — cards / thumbnails */
+@keyframes scaleIn {
+	from {
+		opacity: 0;
+		transform: scale(0.94);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Utility classes */
+.anim-fade-up {
+	animation: fadeSlideUp 0.45s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+.anim-fade-in {
+	animation: fadeIn 0.35s ease both;
 }
 
 /* Premium Skeleton Shimmer Animations */

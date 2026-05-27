@@ -1,4 +1,6 @@
-<router-outlet></router-outlet>
+<div class="route-wrapper" [@routeAnimations]="getRouteAnimationData(outlet)">
+  <router-outlet #outlet="outlet"></router-outlet>
+</div>
 
 <!-- Premium Floating Share Invite Banner -->
 <div class="share-invite-banner" [class.show]="showShareBanner" *ngIf="!isDismissed">
