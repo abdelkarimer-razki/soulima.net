@@ -616,6 +616,17 @@
 	line-height: 1.2;
 }
 
+.popupLogo {
+	max-width: 240px;
+	max-height: 80px;
+	width: auto;
+	height: auto;
+	object-fit: contain;
+	margin-bottom: 8px;
+	filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+	display: block;
+}
+
 .noShow {
 	display: none !important;
 }

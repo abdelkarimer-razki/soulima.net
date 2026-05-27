@@ -144,6 +144,7 @@ export class MovieComponent implements OnInit {
   }
 
   private checkAllServers() {
+    this.serverStatus = this.servers.map(() => 'checking');
     this.servers.forEach((server, i) => {
       this.checkServerStatus(server.url).then(status => {
         this.zone.run(() => {
@@ -160,6 +161,10 @@ export class MovieComponent implements OnInit {
       this.selectedServerIndex = firstOnlineIndex;
       this.updateLink();
     }
+  }
+
+  isCheckingServers(): boolean {
+    return this.serverStatus.includes('checking');
   }
 
   ngOnInit(): void {

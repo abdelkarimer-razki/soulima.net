@@ -16,17 +16,17 @@
 	<!-- Server Selector -->
 	<div class="serverSelector">
 		<span class="serverTitle">Select Server Provider:</span>
-		<div class="serverButtons">
+		<div class="serverLoader" *ngIf="isCheckingServers()">
+			<div class="circleSpinner"></div>
+			<span class="loaderText">Checking working servers...</span>
+		</div>
+		<div class="serverButtons" *ngIf="!isCheckingServers()">
 			<ng-container *ngFor="let server of servers; let i = index">
-				<button *ngIf="serverStatus[i] !== 'offline'"
+				<button *ngIf="serverStatus[i] === 'online'"
 					class="serverBtn"
 					[class.active]="selectedServerIndex === i"
 					(click)="selectServer(i)">
-					<span class="statusDot"
-						[class.online]="serverStatus[i] === 'online'"
-						[class.offline]="serverStatus[i] === 'offline'"
-						[class.checking]="serverStatus[i] === 'checking'">
-					</span>
+					<span class="statusDot online"></span>
 					{{ server.name }}
 				</button>
 			</ng-container>

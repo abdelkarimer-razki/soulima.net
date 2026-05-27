@@ -46,6 +46,7 @@ export class TvshowsComponent {
 	popUp=false;
 	popUpMovie:any;
 	popUpPoster="";
+	popUpLogo="";
 	startTrailer=false;
 
 	popUpLink:any;
@@ -61,6 +62,7 @@ export class TvshowsComponent {
 	};
 
 	loading = true;
+	showLoadingScreen = true;
 	isSearching = false;
 	isPopUpLoading = false;
 
@@ -224,6 +226,7 @@ export class TvshowsComponent {
       this.popUp = true;
       this.popUpLink = "";
       this.popUpPoster = "";
+      this.popUpLogo = "";
 
       this.startTrailer = false
       this.mute = true;
@@ -239,6 +242,9 @@ export class TvshowsComponent {
           this.popUpMovie = details;
           this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
           
+          const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+          this.popUpLogo = logo ? logo.file_path : "";
+
           const trailer = videos.results.find((video: any) => video.type === 'Trailer');
           if (trailer?.key) {
             this.popUpLink = trailer.key;
@@ -257,6 +263,7 @@ export class TvshowsComponent {
       this.popUp=false;
       this.popUpMovie = {};
       this.popUpPoster="";
+      this.popUpLogo="";
       this.startTrailer=false;
       this.mute = true;
       this.popUpLink= "";
@@ -299,5 +306,9 @@ export class TvshowsComponent {
 	stopClose(event:MouseEvent)
 	{
 		event.stopPropagation();
+	}
+
+	onLoadingScreenDismissed() {
+		this.showLoadingScreen = false;
 	}
 }

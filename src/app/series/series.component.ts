@@ -152,6 +152,7 @@ export class SeriesComponent {
 	}
 
 	private checkAllServers() {
+		this.serverStatus = this.servers.map(() => 'checking');
 		this.servers.forEach((server, i) => {
 			this.checkServerStatus(server.url).then(status => {
 				this.zone.run(() => { 
@@ -168,6 +169,10 @@ export class SeriesComponent {
 			this.selectedServerIndex = firstOnlineIndex;
 			this.updateLink();
 		}
+	}
+
+	isCheckingServers(): boolean {
+		return this.serverStatus.includes('checking');
 	}
 
 	ngOnChanges() {

@@ -205,7 +205,8 @@
 		<!-- Loaded Popup Content -->
 		<div class="modalContent" *ngIf="!isPopUpLoading">
 			<div class="titleInPopUp">
-				{{popUpMovie?.name}}
+				<img *ngIf="popUpLogo" [src]="'https://image.tmdb.org/t/p/w500' + popUpLogo" class="popupLogo" alt="{{popUpMovie?.name}} Logo">
+				<span *ngIf="!popUpLogo">{{popUpMovie?.name}}</span>
 			</div>
 			<div class="ratingAndInfo">
 				<div class="rating">
@@ -224,4 +225,4 @@
 	</div>
 </div>
 
-<app-loading-screen *ngIf="loading"></app-loading-screen>
+<app-loading-screen *ngIf="showLoadingScreen" [isLoaded]="!loading" (dismiss)="onLoadingScreenDismissed()"></app-loading-screen>
