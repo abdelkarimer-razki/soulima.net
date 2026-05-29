@@ -8,11 +8,11 @@ import { HelloworldComponent } from './helloworld/helloworld.component';
 
 const routes: Routes = [
   { path: '', component: Exercice2Component, data: { animation: 'Home' } },
-  {path:'movie/:id', component: MovieComponent, data: { animation: 'Movie' }},
-  {path:'tvshows', component:TvshowsComponent, data: { animation: 'TvShows' }},
-  {path:'serie/:id/:season/:episode', component: SeriesComponent, data: { animation: 'Series' }},
-  {path:'helloworld', component:HelloworldComponent, data: { animation: 'HelloWorld' }},
-  {path:'**', component: Exercice2Component, redirectTo:''},
+  { path: 'movie/:id', component: MovieComponent, data: { animation: 'Movie' } },
+  { path: 'tvshows', component: TvshowsComponent, data: { animation: 'TvShows' } },
+  { path: 'serie/:id/:season/:episode', component: SeriesComponent, data: { animation: 'Series' } },
+  { path: 'helloworld', component: HelloworldComponent, data: { animation: 'HelloWorld' } },
+  { path: '**', component: Exercice2Component, redirectTo: '' },
 ];
 
 @NgModule({
@@ -20,3 +20,4 @@ const routes: Routes = [
   exports: [RouterModule]
 })
 export class AppRoutingModule { }
+

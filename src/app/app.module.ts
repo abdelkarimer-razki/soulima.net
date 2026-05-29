@@ -46,3 +46,4 @@ import { CustomPlayerComponent } from './components/custom-player/custom-player.
   bootstrap: [AppComponent]
 })
 export class AppModule { }
+

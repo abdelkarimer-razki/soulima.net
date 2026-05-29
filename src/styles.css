@@ -5,8 +5,8 @@
 	--text-primary: #ffffff;
 	--text-secondary: #e5e5e5;
 	--text-muted: #808080;
-	--accent-color: #E50914;
-	--accent-glow: rgba(229, 9, 20, 0.4);
+	--accent-color: #ffffff;
+	--accent-glow: rgba(255, 255, 255, 0.2);
 	--border-light: rgba(255, 255, 255, 0.1);
 	--border-medium: rgba(255, 255, 255, 0.2);
 	--radius-button: 4px;
@@ -168,11 +168,330 @@ app-root
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: rgba(229, 9, 20, 0.75); /* Theme accent red hover glow */
+	background: rgba(255, 255, 255, 0.4); /* Theme accent white hover glow */
 }
 
 /* For Firefox */
 * {
 	scrollbar-width: thin;
 	scrollbar-color: rgba(255, 255, 255, 0.16) #141414;
+}
+
+/* ─── Netflix "Top 10" Overlapping Rank Numbers (Desktop / Web Version) ─── */
+.rankedRow {
+	padding: 10px 60px 40px 60px;
+	overflow-y: hidden;
+}
+
+.movieRankWrapper {
+	position: relative;
+	display: flex;
+	align-items: flex-end;
+	width: 250px;
+	height: 310px;
+	flex-shrink: 0;
+	margin-right: 24px;
+	overflow: visible;
+}
+
+.rankNumber {
+	font-size: 210px;
+	font-weight: 900;
+	line-height: 0.72;
+	color: #000000;
+	-webkit-text-stroke: 5px rgba(255, 255, 255, 0.35);
+	position: absolute;
+	left: -20px;
+	bottom: -10px;
+	z-index: 1;
+	pointer-events: none;
+	letter-spacing: -12px;
+	user-select: none;
+	font-family: 'Inter', sans-serif;
+}
+
+.moviesRanked {
+	position: relative !important;
+	z-index: 2 !important;
+	margin-left: 75px !important;
+	width: 165px !important;
+	height: 248px !important;
+	flex-shrink: 0 !important;
+	transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.moviesRanked:hover {
+	transform: scale(1.06) !important;
+	z-index: 3 !important;
+}
+
+/* ==========================================================================
+   NETFLIX MOBILE APP LAYOUT & UX IMPROVEMENTS (MEDIA OVERRIDES)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+	/* ─── Bottom Tab Bar Navigation (Native PWA style) ─── */
+	.navBar {
+		display: flex !important;
+		position: fixed !important;
+		top: unset !important;
+		bottom: 0 !important;
+		left: 0 !important;
+		width: 100% !important;
+		height: 64px !important;
+		padding: 0 !important;
+		background: rgba(18, 18, 18, 0.88) !important;
+		backdrop-filter: blur(24px) !important;
+		-webkit-backdrop-filter: blur(24px) !important;
+		border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+		border-bottom: none !important;
+		justify-content: space-around !important;
+		z-index: 1000 !important;
+		box-sizing: border-box !important;
+	}
+
+	.logoLink {
+		display: none !important;
+	}
+
+	.navLinks {
+		width: 100% !important;
+		margin: 0 !important;
+		display: flex !important;
+		justify-content: space-around !important;
+		flex-direction: row !important;
+		gap: 0 !important;
+	}
+
+	.navLink {
+		flex: 1 !important;
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		justify-content: center !important;
+		gap: 4px !important;
+		color: rgba(255, 255, 255, 0.5) !important;
+		font-size: 10px !important;
+		font-weight: 500 !important;
+		padding: 6px 0 !important;
+		background: transparent !important;
+		border: none !important;
+		border-radius: 0 !important;
+		box-shadow: none !important;
+		transition: color 0.2s ease !important;
+	}
+
+	.navLink.active {
+		color: #ffffff !important;
+	}
+
+	.navLink.active .navIcon {
+		color: var(--accent-color) !important; /* Netflix Active Red */
+	}
+
+	.navIcon {
+		width: 20px !important;
+		height: 20px !important;
+		stroke-width: 2.2px !important;
+	}
+
+	.searchBarContainer {
+		display: none !important;
+	}
+
+	/* ─── Top Floating Header Bar (Translucent Netflix Style) ─── */
+	.searchd {
+		display: flex !important;
+		align-items: center !important;
+		justify-content: space-between !important;
+		position: fixed !important;
+		top: 0 !important;
+		left: 0 !important;
+		width: 100% !important;
+		height: 60px !important;
+		padding: 0 16px !important;
+		background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 70%, transparent 100%) !important;
+		backdrop-filter: blur(8px) !important;
+		-webkit-backdrop-filter: blur(8px) !important;
+		z-index: 1000 !important;
+		box-sizing: border-box !important;
+		transition: all 0.3s ease !important;
+	}
+
+	.searchd.searching {
+		background: rgba(15, 15, 15, 0.98) !important;
+		backdrop-filter: blur(20px) !important;
+		-webkit-backdrop-filter: blur(20px) !important;
+	}
+
+	.mobileHeaderLeft {
+		display: flex;
+		align-items: center;
+	}
+
+	.mobileLogo {
+		object-fit: contain;
+		filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+	}
+
+	.searchIcon {
+		position: static !important; /* Overwrite absolute positioning */
+		width: 22px !important;
+		height: 22px !important;
+		margin-left: auto !important;
+		color: #ffffff !important;
+		display: block !important;
+	}
+
+	.searchBar2 {
+		width: calc(100% - 44px) !important;
+		height: 36px !important;
+		background: rgba(255, 255, 255, 0.12) !important;
+		border: 1px solid rgba(255, 255, 255, 0.15) !important;
+		border-radius: 6px !important;
+		font-size: 14px !important;
+		padding: 0 12px !important;
+		box-sizing: border-box !important;
+	}
+
+	/* ─── Premium Mobile Vertical Billboard ─── */
+	.posterContainer {
+		height: 68vh !important;
+		margin-top: 0 !important;
+		position: relative !important;
+		overflow: hidden !important;
+	}
+
+	.poster {
+		width: 100% !important;
+		height: 100% !important;
+		left: 0 !important;
+		object-fit: cover !important;
+		object-position: center top !important;
+		position: relative !important;
+		transform: none !important;
+	}
+
+	.posterInfo {
+		position: absolute !important;
+		bottom: 12% !important;
+		left: 0 !important;
+		transform: none !important;
+		padding: 0 20px !important;
+		box-sizing: border-box !important;
+		width: 100% !important;
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		text-align: center !important;
+		z-index: 10 !important;
+	}
+
+	.posterTitle {
+		font-size: 32px !important;
+		text-shadow: 0 2px 10px rgba(0,0,0,0.8) !important;
+	}
+
+	.posterLogo {
+		max-width: 220px !important;
+		max-height: 80px !important;
+	}
+
+	.ratingAndInfo {
+		display: flex !important;
+		justify-content: center !important;
+		gap: 8px !important;
+		font-size: 12px !important;
+		margin-bottom: 16px !important;
+		text-shadow: 0 1px 5px rgba(0,0,0,0.8) !important;
+	}
+
+	.posterDescription {
+		display: none !important; /* Hide description on mobile billboard like Netflix */
+	}
+
+	.heroButtons {
+		display: flex !important;
+		justify-content: center !important;
+		gap: 16px !important;
+		width: 100% !important;
+	}
+
+	.heroButtons .play {
+		flex: 1 !important;
+		max-width: 140px !important;
+		background: #ffffff !important;
+		color: #000000 !important;
+		border-radius: 4px !important;
+		font-weight: 700 !important;
+		font-size: 14px !important;
+		height: 38px !important;
+		display: flex !important;
+		justify-content: center !important;
+		align-items: center !important;
+		box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+	}
+
+	.heroButtons .play.infos {
+		background: rgba(255, 255, 255, 0.25) !important;
+		color: #ffffff !important;
+		backdrop-filter: blur(8px) !important;
+		border: 1px solid rgba(255, 255, 255, 0.15) !important;
+	}
+
+	.heroButtons .playsvg {
+		width: 18px !important;
+		height: 18px !important;
+	}
+
+	/* ─── Netflix "Top 10" Overlapping Rank Numbers ─── */
+	.rankedRow {
+		padding: 20px 16px 20px 24px !important;
+	}
+
+	.movieRankWrapper {
+		position: relative !important;
+		display: flex !important;
+		align-items: flex-end !important;
+		width: 155px !important;
+		height: 175px !important;
+		flex-shrink: 0 !important;
+		margin-right: 16px !important;
+		overflow: visible !important;
+	}
+
+	.rankNumber {
+		font-size: 125px !important;
+		font-weight: 900 !important;
+		line-height: 0.8 !important;
+		color: #000000 !important;
+		-webkit-text-stroke: 4px rgba(255, 255, 255, 0.5) !important;
+		position: absolute !important;
+		left: -12px !important;
+		bottom: -15px !important;
+		z-index: 1 !important;
+		pointer-events: none !important;
+		letter-spacing: -8px !important;
+		user-select: none !important;
+	}
+
+	.moviesRanked {
+		position: relative !important;
+		z-index: 2 !important;
+		margin-left: 50px !important;
+		width: 105px !important;
+		height: 155px !important;
+		flex-shrink: 0 !important;
+	}
+
+	/* Adjust basic portrait posters for non-ranked mobile view */
+	.movies {
+		width: 105px !important;
+		aspect-ratio: 2/3 !important;
+		border-radius: 4px !important;
+	}
+	
+	.moviesContainer {
+		padding-bottom: 96px !important;
+	}
 }

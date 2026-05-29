@@ -128,12 +128,12 @@
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: rgba(229, 9, 20, 0.1);
-  border: 2px solid rgba(229, 9, 20, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #E50914;
+  color: #ffffff;
   margin-bottom: 8px;
 }
 
@@ -247,10 +247,10 @@
 
 .progressBar {
   height: 100%;
-  background: var(--accent-color, #E50914);
+  background: var(--accent-color, #ffffff);
   border-radius: 2px;
   transition: width 0.3s ease;
-  box-shadow: 0 0 8px rgba(229,9,20,0.6);
+  box-shadow: 0 0 8px rgba(255,255,255,0.4);
 }
 
 /* ── Error State ──────────────────────── */
@@ -263,7 +263,7 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.95);
   gap: 14px;
-  color: #E50914;
+  color: #ffffff;
   z-index: 10;
 }
 
@@ -310,7 +310,7 @@
   padding: 8px 14px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 6px;
-  border-left: 2px solid var(--accent-color, #E50914);
+  border-left: 2px solid var(--accent-color, #ffffff);
   min-width: 100px;
 }
 

@@ -641,7 +641,7 @@
 	letter-spacing: 0.5px;
 	display: block;
 	font-family: 'Inter', sans-serif;
-	border-left: 3px solid #e50914; /* nice movie accent red border! */
+	border-left: 3px solid #ffffff; /* nice movie accent white border! */
 	padding-left: 8px;
 }
 
@@ -765,21 +765,10 @@
 		color: var(--text-muted);
 	}
 
-	.posterContainer {
-		height: 70vh;
-		margin-top: 0;
-	}
-
 	.posterLogo {
 		max-width: 200px;
 		max-height: 70px;
 		margin-bottom: 10px;
-	}
-
-	.poster {
-		width: 150%;
-		left: -25%;
-		position: relative;
 	}
 
 	.movies {

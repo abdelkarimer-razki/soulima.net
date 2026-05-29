@@ -56,14 +56,14 @@
 
 /* Pulsating glowing heart icon wrapper */
 .heart-icon-wrapper {
-	background: linear-gradient(135deg, rgba(229, 9, 20, 0.2), rgba(229, 9, 20, 0.05));
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
 	border-radius: 12px;
 	padding: 10px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	border: 1px solid rgba(229, 9, 20, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.15);
 	animation: heart-glow 2.5s infinite ease-in-out;
 }
 
@@ -137,14 +137,14 @@
 }
 
 .native-share-btn {
-	background-color: #e50914;
-	color: #ffffff;
+	background-color: #ffffff;
+	color: #000000;
 }
 
 .native-share-btn:hover {
-	background-color: #f6121d;
+	background-color: #e5e5e5;
 	transform: translateY(-1px);
-	box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+	box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .action-icon {
@@ -156,11 +156,11 @@
 @keyframes heart-glow {
 	0%, 100% {
 		transform: scale(1);
-		box-shadow: 0 0 0 rgba(229, 9, 20, 0);
+		box-shadow: 0 0 0 rgba(255, 255, 255, 0);
 	}
 	50% {
 		transform: scale(1.06);
-		box-shadow: 0 0 15px rgba(229, 9, 20, 0.35);
+		box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
 	}
 }
 

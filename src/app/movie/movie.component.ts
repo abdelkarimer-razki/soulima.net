@@ -100,11 +100,12 @@ export class MovieComponent implements OnInit {
 
     const title = this.movie?.original_title || this.movie?.title || '';
     const year = this.movie?.release_date?.split('-')[0];
+    const imdbId = this.movie?.imdb_id;
 
     this.isSearchingTorrents = true;
     this.showTorrentList = true;
 
-    this.torrentSearchService.searchMovieTorrents(title, year ? Number(year) : undefined)
+    this.torrentSearchService.searchMovieTorrents(title, year ? Number(year) : undefined, imdbId)
       .subscribe({
         next: (results) => {
           this.torrents = results;

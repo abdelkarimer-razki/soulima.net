@@ -43,8 +43,8 @@ export class TorrentSearchService {
   /**
    * Search for movie torrents on YTS, falling back to Apibay if YTS returns no matches
    */
-  searchMovieTorrents(title: string, year?: number): Observable<Torrent[]> {
-    const cacheKey = `movie_${title}_${year || ''}`;
+  searchMovieTorrents(title: string, year?: number, imdbId?: string): Observable<Torrent[]> {
+    const cacheKey = `movie_${imdbId || title}_${year || ''}`;
     
     // Check cache first
     if (this.torrentCache.has(cacheKey)) {
@@ -54,9 +54,12 @@ export class TorrentSearchService {
     // Clean title for search
     const cleanTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').trim();
 
+    // Prioritize IMDB ID query for 100% accurate results
+    const queryTerm = imdbId ? imdbId : (cleanTitle + (year ? ` ${year}` : ''));
+
     return this.http.get<any>(`${this.YTS_API}/list.json`, {
       params: {
-        query_term: cleanTitle + (year ? ` ${year}` : ''),
+        query_term: queryTerm,
         limit: 5,
         sort_by: 'seeds'
       }
@@ -88,8 +91,8 @@ export class TorrentSearchService {
         return torrents;
       }),
       catchError(() => {
-        // Fallback to Apibay search
-        return this.searchMovieApibay(cleanTitle, year).pipe(
+        // Fallback to Apibay search using IMDB ID or title
+        return this.searchMovieApibay(cleanTitle, year, imdbId).pipe(
           map(results => {
             this.torrentCache.set(cacheKey, results);
             return results;
@@ -102,8 +105,8 @@ export class TorrentSearchService {
   /**
    * Fallback Movie Search on Apibay (using CORS proxy)
    */
-  private searchMovieApibay(title: string, year?: number): Observable<Torrent[]> {
-    const query = year ? `${title} ${year}` : title;
+  private searchMovieApibay(title: string, year?: number, imdbId?: string): Observable<Torrent[]> {
+    const query = imdbId ? imdbId : (year ? `${title} ${year}` : title);
     const targetUrl = `https://apibay.org/q.php?q=${encodeURIComponent(query)}`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 

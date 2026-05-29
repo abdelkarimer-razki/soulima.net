@@ -626,21 +626,10 @@
 		color: var(--text-muted);
 	}
 
-	.posterContainer {
-		height: 70vh;
-		margin-top: 0;
-	}
-
 	.posterLogo {
 		max-width: 200px;
 		max-height: 70px;
 		margin-bottom: 10px;
-	}
-
-	.poster {
-		width: 150%;
-		left: -25%;
-		position: relative;
 	}
 
 	.movies {

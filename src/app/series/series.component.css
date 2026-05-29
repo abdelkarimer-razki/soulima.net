@@ -213,9 +213,9 @@
 }
 
 .selectorCloseBtn:hover {
-	background: rgba(229, 9, 20, 0.2);
-	border-color: rgba(229, 9, 20, 0.4);
-	color: #ff6b6b;
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(255, 255, 255, 0.25);
+	color: #ffffff;
 }
 
 .selectorBackBtn {
@@ -555,14 +555,14 @@
 }
 
 .dropdownItem.active {
-	background: rgba(229, 9, 20, 0.15);
-	color: #e50914;
+	background: rgba(255, 255, 255, 0.12);
+	color: #ffffff;
 	font-weight: 600;
 }
 
 .activeCheck {
 	margin-left: auto;
-	color: #e50914;
+	color: #ffffff;
 	font-weight: bold;
 	font-size: 12px;
 }
@@ -700,7 +700,7 @@
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
-	background: var(--accent-color, #E50914);
+	background: var(--accent-color, #ffffff);
 	animation: dotFlash 1s infinite alternate;
 }
 @keyframes dotFlash {
@@ -724,9 +724,9 @@
 
 .qualityBadge {
 	padding: 3px 10px;
-	background: rgba(229, 9, 20, 0.2);
-	border: 1px solid rgba(229, 9, 20, 0.4);
-	color: #ff6b6b;
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	color: #ffffff;
 	border-radius: 4px;
 	font-size: 12px;
 	font-weight: 700;
@@ -751,7 +751,7 @@
 }
 
 .changeTorrentBtn:hover { background: rgba(255,255,255,0.12); color: #fff; }
-.clearTorrentBtn:hover { background: rgba(229,9,20,0.15); color: #ff6b6b; border-color: rgba(229,9,20,0.3); }
+.clearTorrentBtn:hover { background: rgba(255,255,255,0.12); color: #ffffff; border-color: rgba(255,255,255,0.3); }
 
 /* Torrent list */
 .torrentList {
@@ -811,8 +811,8 @@
 }
 
 .torrentItem.selected {
-	background: rgba(229, 9, 20, 0.1);
-	border-color: rgba(229, 9, 20, 0.35);
+	background: rgba(255, 255, 255, 0.08);
+	border-color: rgba(255, 255, 255, 0.3);
 }
 
 .torrentQuality {
