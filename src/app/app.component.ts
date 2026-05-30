@@ -48,8 +48,17 @@ export class AppComponent {
 		if (/android/i.test(userAgent))
 			this.noPopUp = false;
 
-		// Check if the user has already permanently dismissed the share banner
-		if (localStorage.getItem('soulima_share_dismissed') === 'true') {
+		const oldDismissed = localStorage.getItem('soulima_share_dismissed') === 'true';
+		const dismissedAt = localStorage.getItem('soulima_share_dismissed_at');
+		const now = Date.now();
+		const cooldown = 24 * 60 * 60 * 1000; // 24 hours cooldown
+
+		if (oldDismissed && !dismissedAt) {
+			// Seamlessly migrate old permanent dismiss to a 24h cooldown from now
+			localStorage.setItem('soulima_share_dismissed_at', now.toString());
+			localStorage.removeItem('soulima_share_dismissed');
+			this.isDismissed = true;
+		} else if (dismissedAt && (now - Number(dismissedAt) < cooldown)) {
 			this.isDismissed = true;
 		} else {
 			// Delays the entrance of the floating share banner to 6 seconds after page loads
@@ -92,7 +101,8 @@ export class AppComponent {
 		this.copied = true;
 		setTimeout(() => {
 			this.copied = false;
-		}, 2000);
+			this.dismissBanner();
+		}, 1500);
 	}
 
 	shareWebsite() {
@@ -105,6 +115,8 @@ export class AppComponent {
 				title,
 				text,
 				url
+			}).then(() => {
+				this.dismissBanner();
 			}).catch(err => {
 				console.log('Native share failed or cancelled', err);
 			});
@@ -113,12 +125,13 @@ export class AppComponent {
 			const shareUrl = encodeURIComponent(url);
 			const shareText = encodeURIComponent(text);
 			window.open(`https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`, '_blank');
+			this.dismissBanner();
 		}
 	}
 
 	dismissBanner() {
 		this.showShareBanner = false;
-		localStorage.setItem('soulima_share_dismissed', 'true');
+		localStorage.setItem('soulima_share_dismissed_at', Date.now().toString());
 		// Wait for the slide-down animation to complete before removing from DOM
 		setTimeout(() => {
 			this.isDismissed = true;
