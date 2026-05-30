@@ -210,13 +210,14 @@ export class TvshowsComponent {
       if (series)
       {
         var seriesParsed = JSON.parse(series);
-        for (let i = 0; i < seriesParsed.length; i++)
-          if (seriesParsed[i].id == id)
-            this.router.navigate(['/serie/'+ id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb])
-        this.router.navigate(['/serie/'+ id + '/1/1'])
+        for (let i = 0; i < seriesParsed.length; i++) {
+          if (seriesParsed[i].id == id) {
+            this.router.navigate(['/serie/'+ id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb]);
+            return;
+          }
+        }
       }
-      else
-        this.router.navigate(['/serie/'+ id + '/1/1'])
+      this.router.navigate(['/serie/'+ id + '/1/1']);
     }
   
     showPopUp(movie:any)
