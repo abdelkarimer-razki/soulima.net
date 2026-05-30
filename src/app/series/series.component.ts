@@ -319,6 +319,57 @@ export class SeriesComponent {
 		this.moviedbAPIService.getEpisodeDetails(1396, 1, 1).subscribe((response: any) => {});
 	}
 
+	getCurrentSeasonData() {
+		return this.seasons.find(s => s.season_number === this.season);
+	}
+
+	hasPreviousEpisode(): boolean {
+		if (this.episode > 1) {
+			return true;
+		}
+		const seasonIndex = this.seasons.findIndex(s => s.season_number === this.season);
+		return seasonIndex > 0;
+	}
+
+	hasNextEpisode(): boolean {
+		const currentSeason = this.getCurrentSeasonData();
+		if (!currentSeason) return false;
+		
+		if (this.episode < currentSeason.episode_count) {
+			return true;
+		}
+		const seasonIndex = this.seasons.findIndex(s => s.season_number === this.season);
+		return seasonIndex !== -1 && seasonIndex < this.seasons.length - 1;
+	}
+
+	async prevEpisode() {
+		if (this.episode > 1) {
+			this.changeEpisode(this.episode - 1);
+		} else {
+			const seasonIndex = this.seasons.findIndex(s => s.season_number === this.season);
+			if (seasonIndex > 0) {
+				const prevSeasonData = this.seasons[seasonIndex - 1];
+				await this.choseSeason(seasonIndex - 1, false);
+				this.changeEpisode(prevSeasonData.episode_count);
+			}
+		}
+	}
+
+	async nextEpisode() {
+		const currentSeason = this.getCurrentSeasonData();
+		if (!currentSeason) return;
+
+		if (this.episode < currentSeason.episode_count) {
+			this.changeEpisode(this.episode + 1);
+		} else {
+			const seasonIndex = this.seasons.findIndex(s => s.season_number === this.season);
+			if (seasonIndex !== -1 && seasonIndex < this.seasons.length - 1) {
+				await this.choseSeason(seasonIndex + 1, false);
+				this.changeEpisode(1);
+			}
+		}
+	}
+
 	back() {
 		this.epiSelector = false;
 		this.showSelector = true;

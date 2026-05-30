@@ -10,6 +10,10 @@
 			<span class="loaderText">Checking working servers...</span>
 		</div>
 
+		<!-- Streaming Player Iframe (Only injected after servers checking finishes) -->
+		<iframe *ngIf="!isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture">
+		</iframe>
+
 		<!-- Transparent Overlay Layer -->
 		<div class="playerOverlay">
 			<!-- Top Controls Bar -->
@@ -66,6 +70,22 @@
 							</div>
 						</div>
 					</div>
+				</div>
+			</div>
+
+			<!-- Bottom Controls Bar -->
+			<div class="overlayBottomBar">
+				<div class="bottomLeftActions">
+					<button class="overlayActionBtn" *ngIf="hasPreviousEpisode()" (click)="prevEpisode(); $event.stopPropagation()">
+						<svg class="svgNav" style="margin-right: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+						<span>Previous Episode</span>
+					</button>
+				</div>
+				<div class="bottomRightActions">
+					<button class="overlayActionBtn" *ngIf="hasNextEpisode()" (click)="nextEpisode(); $event.stopPropagation()">
+						<span>Next Episode</span>
+						<svg class="svgNav" style="margin-left: 6px; width: 16px; height: 16px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+					</button>
 				</div>
 			</div>
 		</div>
@@ -142,10 +162,6 @@
 				</ng-container>
 			</div>
 		</div>
-
-		<!-- Streaming Player Iframe (Only injected after servers checking finishes) -->
-		<iframe *ngIf="!isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture">
-		</iframe>
 	</div>
 
 </div>
