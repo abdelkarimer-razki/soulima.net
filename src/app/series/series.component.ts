@@ -21,14 +21,20 @@ export class SeriesComponent {
 	servers = [
 		{ name: 'Server 1 (Vidsrc.net)', url: 'https://vidsrc.net/embed' },
 		{ name: 'Server 2 (Vidsrc.to)',  url: 'https://vidsrc.to/embed'  },
-		{ name: 'Server 3 (Embed.su)',   url: 'https://embed.su/embed'   },
-		{ name: 'Server 4 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
-		{ name: 'Server 5 (Vidsrc.me)',  url: 'https://vidsrc.me/embed'  },
-		{ name: 'Server 6 (2embed.cc)',  url: 'https://2embed.cc/embed'  },
-		{ name: 'Server 7 (Vidsrc.in)',  url: 'https://vidsrc.in/embed'  },
-		{ name: 'Server 8 (Streamhide)',  url: 'https://streamhide.to/embed' },
-		{ name: 'Server 9 (Autoembed)',  url: 'https://autoembed.cc/embed' },
-		{ name: 'Server 10 (Moviedata)', url: 'https://moviedata.info/embed' }
+		{ name: 'Server 3 (Vidlink.pro)', url: 'https://vidlink.pro'      },
+		{ name: 'Server 4 (Embed.su)',   url: 'https://embed.su/embed'   },
+		{ name: 'Server 5 (Vidsrc.cc)',  url: 'https://vidsrc.cc/v2/embed' },
+		{ name: 'Server 6 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
+		{ name: 'Server 7 (Vidsrc.me)',  url: 'https://vidsrc.me/embed'  },
+		{ name: 'Server 8 (Vidsrc.rip)', url: 'https://vidsrc.rip/embed' },
+		{ name: 'Server 9 (Vidsrc.xyz)', url: 'https://vidsrc.xyz/embed' },
+		{ name: 'Server 10 (Vidsrc.pm)', url: 'https://vidsrc.pm/embed'  },
+		{ name: 'Server 11 (Vidsrc.icu)', url: 'https://vidsrc.icu/embed' },
+		{ name: 'Server 12 (Vidsrc.in)', url: 'https://vidsrc.in/embed'  },
+		{ name: 'Server 13 (2embed.cc)', url: 'https://2embed.cc/embed'  },
+		{ name: 'Server 14 (Streamhide)', url: 'https://streamhide.to/embed' },
+		{ name: 'Server 15 (Autoembed)', url: 'https://autoembed.cc/embed' },
+		{ name: 'Server 16 (Moviedata)', url: 'https://moviedata.info/embed' }
 	];
 	selectedServerIndex = 0;
 	showControls = true;
