@@ -17,22 +17,16 @@ export class MovieComponent implements OnInit {
   link: SafeResourceUrl = '';
 
   servers = [
-    { name: 'Server 1 (Vidsrc.net)', url: 'https://vidsrc.net/embed' },
-    { name: 'Server 2 (Vidsrc.to)',  url: 'https://vidsrc.to/embed'  },
-    { name: 'Server 3 (Vidlink.pro)', url: 'https://vidlink.pro'      },
-    { name: 'Server 4 (Embed.su)',   url: 'https://embed.su/embed'   },
-    { name: 'Server 5 (Vidsrc.cc)',  url: 'https://vidsrc.cc/v2/embed' },
-    { name: 'Server 6 (Vidsrc.pro)', url: 'https://vidsrc.pro/embed' },
-    { name: 'Server 7 (Vidsrc.me)',  url: 'https://vidsrc.me/embed'  },
-    { name: 'Server 8 (Vidsrc.rip)', url: 'https://vidsrc.rip/embed' },
-    { name: 'Server 9 (Vidsrc.xyz)', url: 'https://vidsrc.xyz/embed' },
-    { name: 'Server 10 (Vidsrc.pm)', url: 'https://vidsrc.pm/embed'  },
-    { name: 'Server 11 (Vidsrc.icu)', url: 'https://vidsrc.icu/embed' },
-    { name: 'Server 12 (Vidsrc.in)', url: 'https://vidsrc.in/embed'  },
-    { name: 'Server 13 (2embed.cc)', url: 'https://2embed.cc/embed'  },
-    { name: 'Server 14 (Streamhide)', url: 'https://streamhide.to/embed' },
-    { name: 'Server 15 (Autoembed)', url: 'https://autoembed.cc/embed' },
-    { name: 'Server 16 (Moviedata)', url: 'https://moviedata.info/embed' }
+    { name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
+    { name: 'Server 2 (Vidlink.pro)',   url: 'https://vidlink.pro',                     format: 'standard' },
+    { name: 'Server 3 (Embed.su)',      url: 'https://embed.su/embed',                  format: 'standard' },
+    { name: 'Server 4 (SmashyStream)',  url: 'https://player.smashy.stream',            format: 'smashy' },
+    { name: 'Server 5 (Multiembed)',    url: 'https://multiembed.mov',                  format: 'multiembed' },
+    { name: 'Server 6 (Autoembed)',     url: 'https://autoembed.cc/embed',              format: 'standard' },
+    { name: 'Server 7 (2embed.cc)',     url: 'https://2embed.cc/embed',                 format: 'standard' },
+    { name: 'Server 8 (Vidsrc.pro)',    url: 'https://vidsrc.pro/embed',                format: 'standard' },
+    { name: 'Server 9 (Vidsrc.me)',     url: 'https://vidsrc.me/embed',                 format: 'standard' },
+    { name: 'Server 10 (Moviedata)',    url: 'https://moviedata.info/embed',            format: 'standard' }
   ];
   selectedServerIndex = 0;
   showControls = true;
@@ -67,10 +61,16 @@ export class MovieComponent implements OnInit {
   }
 
   updateLink() {
-    const embedUrl = this.servers[this.selectedServerIndex].url;
-    this.link = this.sanitizer.bypassSecurityTrustResourceUrl(
-      `${embedUrl}/movie/${this.id}?player=new&ds_lang=ar`
-    );
+    const server = this.servers[this.selectedServerIndex];
+    let constructedUrl = '';
+    if (server.format === 'smashy') {
+      constructedUrl = `${server.url}/movie/${this.id}`;
+    } else if (server.format === 'multiembed') {
+      constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1`;
+    } else {
+      constructedUrl = `${server.url}/movie/${this.id}?player=new&ds_lang=ar`;
+    }
+    this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
   }
 
   selectServer(index: number) {
@@ -158,11 +158,21 @@ export class MovieComponent implements OnInit {
     window.open(`https://yts.mx/browse-movies/${query}`, '_blank');
   }
 
-  private async checkServerStatus(url: string): Promise<string> {
+  private async checkServerStatus(server: any): Promise<string> {
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 6000);
+    
+    let checkUrl = '';
+    if (server.format === 'smashy') {
+      checkUrl = `${server.url}/movie/${this.id}`;
+    } else if (server.format === 'multiembed') {
+      checkUrl = `${server.url}/?video_id=${this.id}&tmdb=1`;
+    } else {
+      checkUrl = `${server.url}/movie/${this.id}`;
+    }
+
     try {
-      await fetch(`${url}/movie/${this.id}`, { mode: 'no-cors', signal: controller.signal });
+      await fetch(checkUrl, { mode: 'no-cors', signal: controller.signal });
       clearTimeout(tid);
       return 'online';
     } catch {
@@ -174,7 +184,7 @@ export class MovieComponent implements OnInit {
   private checkAllServers() {
     this.serverStatus = this.servers.map(() => 'checking');
     this.servers.forEach((server, i) => {
-      this.checkServerStatus(server.url).then(status => {
+      this.checkServerStatus(server).then(status => {
         this.zone.run(() => {
           this.serverStatus[i] = status;
           this.setDefaultToFirstWorkingServer();
