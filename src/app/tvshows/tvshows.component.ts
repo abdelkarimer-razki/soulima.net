@@ -173,6 +173,28 @@ export class TvshowsComponent implements OnInit {
       this.searchSeries();
     }
 
+    getDetailUrl(item: any): string {
+      if (!item) return '';
+      const isTv = !!(item.name || item.first_air_date || item.isTvShow || item.media_type === 'tv');
+      if (isTv) {
+        const series = localStorage.getItem("series");
+        if (series) {
+          const seriesParsed = JSON.parse(series);
+          const matched = seriesParsed.find((s: any) => s && s.id === item.id);
+          if (matched) {
+            return `/serie/${item.id}/${matched.seasonnb}/${matched.episodenb}`;
+          }
+        }
+        return `/serie/${item.id}/1/1`;
+      }
+      return `/movie/${item.id}`;
+    }
+
+    onCardClick(event: MouseEvent, item: any) {
+      event.preventDefault();
+      this.showPopUp(item);
+    }
+
     updateSuggestions() {
       this.ghostText = '';
       this.autocompleteTitle = '';

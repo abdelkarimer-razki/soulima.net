@@ -52,6 +52,7 @@
 		<h1 class="posterTitle" *ngIf="!moviePosterLogo">
 			{{moviePosterData?.title}}
 		</h1>
+		<h1 class="sr-only" *ngIf="moviePosterLogo">{{moviePosterData?.title}}</h1>
 		<img *ngIf="moviePosterLogo" [src]="'https://image.tmdb.org/t/p/w500' + moviePosterLogo" class="posterLogo" alt="{{moviePosterData?.title}} Logo">
 		<div class="ratingAndInfo">
 			<div class="rating">
@@ -99,7 +100,9 @@
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of recentlyWatched | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</ng-container>
 		</div>
 	</section>
@@ -108,7 +111,9 @@
 		<h2 class="categorieTitle">For you</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of foryou | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</ng-container>
 		</div>
 	</section>
@@ -118,7 +123,9 @@
 		<div class="moviesInCategorie rankedRow">
 			<div class="movieRankWrapper" *ngFor="let movie of trendingMovies | slice:0:10; let idx = index">
 				<span class="rankNumber" *ngIf="movie.poster_path">{{ idx + 1 }}</span>
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies moviesRanked" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="movies moviesRanked" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</div>
 		</div>
 	</section>
@@ -127,7 +134,9 @@
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of newReleasedMovies | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</ng-container>
 		</div>
 	</section>
@@ -136,7 +145,9 @@
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedMovies | slice:0:15">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</ng-container>
 		</div>
 	</section>	
@@ -154,7 +165,9 @@
 		
 		<div class="searchResutls" *ngIf="this.searchQuery && searchedMovies.length == 0 && searchedSeries.length == 0 && !isSearching">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
+				</a>
 			</ng-container>
 		</div>
 		
@@ -165,12 +178,12 @@
  
 		<ng-container *ngIf="!isSearching">
 			<div class="searchResutls" *ngIf="movies.length > 0">
-				<div class="search-card" *ngFor="let movie of movies" (click)="showPopUp(movie)">
+				<a *ngFor="let movie of movies" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" class="search-card" style="display: block; text-decoration: none; color: inherit;">
 					<img ngOptimizedImage *ngIf="movie.poster_path" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
 					<span class="media-type-badge" [class.badge-movie]="!(movie.name || movie.first_air_date || movie.media_type === 'tv')" [class.badge-tv]="movie.name || movie.first_air_date || movie.media_type === 'tv'">
 						{{(movie.name || movie.first_air_date || movie.media_type === 'tv') ? 'TV Show' : 'Movie'}}
 					</span>
-				</div>
+				</a>
 			</div>
 		</ng-container>
 	</div>
@@ -182,7 +195,9 @@
 		<h2 class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">Best of {{genraName}} movies</h2>
 		<div class="searchResutls">
 			<ng-container *ngFor="let movie of genraMovies">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+					<img ngOptimizedImage class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				</a>
 			</ng-container>
 		</div>
 	</section>
@@ -260,10 +275,10 @@
 			<div [class.noShow]="startTrailer" *ngIf="!isPopUpLoading" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
 				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="{{popUpMovie?.title || popUpMovie?.name}} details backdrop">
 			</div>
-			<div class="play playinPopUp" *ngIf="!isPopUpLoading" (click)="routerDetailMovie(popUpMovie)">
+			<a class="play playinPopUp" *ngIf="!isPopUpLoading" [routerLink]="getDetailUrl(popUpMovie)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
 				Play Now
-			</div>
+			</a>
 		</div>
 
 		<!-- YouTube Trailer Preloading and Controls -->
@@ -277,7 +292,7 @@
 			<div class="mutes" *ngIf="startTrailer" (click)="changeAudio()">
 				<svg height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><line *ngIf="mute" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-miterlimit:10;stroke-width:32px" x1="416" x2="64" y1="432" y2="80"/><path fill="currentColor" d="M243.33,98.86a23.89,23.89,0,0,0-25.55,1.82l-.66.51L188.6,124.54a8,8,0,0,0-.59,11.85l54.33,54.33A8,8,0,0,0,256,185.06V120.57A24.51,24.51,0,0,0,243.33,98.86Z"/><path fill="currentColor" d="M251.33,335.29,96.69,180.69A16,16,0,0,0,85.38,176H56a24,24,0,0,0-24,24V312a24,24,0,0,0,24,24h69.76l92,75.31A23.9,23.9,0,0,0,243.63,413,24.51,24.51,0,0,0,256,391.45V346.59A16,16,0,0,0,251.33,335.29Z"/><path *ngIf="!mute" fill="currentColor" d="M352,256c0-24.56-5.81-47.87-17.75-71.27a16,16,0,1,0-28.5,14.55C315.34,218.06,320,236.62,320,256q0,4-.31,8.13a8,8,0,0,0,2.32,6.25l14.36,14.36a8,8,0,0,0,13.55-4.31A146,146,0,0,0,352,256Z"/><path *ngIf="!mute" fill="currentColor" d="M416,256c0-51.18-13.08-83.89-34.18-120.06a16,16,0,0,0-27.64,16.12C373.07,184.44,384,211.83,384,256c0,23.83-3.29,42.88-9.37,60.65a8,8,0,0,0,1.9,8.26L389,337.4a8,8,0,0,0,13.13-2.79C411,311.76,416,287.26,416,256Z"/><path *ngIf="!mute" fill="currentColor" d="M480,256c0-74.25-20.19-121.11-50.51-168.61a16,16,0,1,0-27,17.22C429.82,147.38,448,189.5,448,256c0,46.19-8.43,80.27-22.43,110.53a8,8,0,0,0,1.59,9l11.92,11.92A8,8,0,0,0,452,385.29C471.6,344.9,480,305,480,256Z"/></svg>
 			</div>
-			<a class="play playinPopUp" (click)="routerDetailMovie(popUpMovie)">
+			<a class="play playinPopUp" [routerLink]="getDetailUrl(popUpMovie)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
 				Play Now
 			</a>
