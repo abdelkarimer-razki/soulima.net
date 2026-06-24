@@ -1119,3 +1119,31 @@ app-root
 	margin-bottom: 24px;
 	display: block !important;
 }
+
+/* Details Popup Modal Metadata (Actors, Directors) */
+.modalMetadata {
+	margin-top: 16px;
+	border-top: 1px solid var(--border-light);
+	padding-top: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 14px;
+}
+
+.metadataRow {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 6px;
+	line-height: 1.5;
+}
+
+.metadataLabel {
+	color: var(--text-muted);
+	font-weight: 600;
+}
+
+.metadataValue {
+	color: var(--text-primary);
+}

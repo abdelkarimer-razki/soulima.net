@@ -428,9 +428,18 @@ export class TvshowsComponent implements OnInit {
             this.moviedbAPIService.getSerieImages(movie.id),
             this.moviedbAPIService.getVideosSerie(movie.id),
             this.moviedbAPIService.getEpisodeDetails(movie.id, movie.seasonnb, movie.episodenb),
-            this.moviedbAPIService.getEpisodeVideos(movie.id, movie.seasonnb, movie.episodenb)
+            this.moviedbAPIService.getEpisodeVideos(movie.id, movie.seasonnb, movie.episodenb),
+            this.moviedbAPIService.getSerieCredits(movie.id)
           ]).subscribe({
-            next: ([details, images, videos, episodeDetails, episodeVideos]: [any, any, any, any, any]) => {
+            next: ([details, images, videos, episodeDetails, episodeVideos, serieCredits]: [any, any, any, any, any, any]) => {
+              const episodeDirectors = episodeDetails.crew?.filter((member: any) => member.job === 'Director').map((dir: any) => dir.name) || [];
+              const showCreators = details.created_by?.map((creator: any) => creator.name) || [];
+              const directors = episodeDirectors.length > 0 ? episodeDirectors : showCreators;
+
+              const guestStars = episodeDetails.guest_stars?.slice(0, 5).map((actor: any) => actor.name) || [];
+              const mainCast = serieCredits.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+              const cast = guestStars.length > 0 ? guestStars : mainCast;
+
               this.popUpMovie = {
                 ...details,
                 episode_title: episodeDetails.name,
@@ -440,7 +449,9 @@ export class TvshowsComponent implements OnInit {
                 vote_average: episodeDetails.vote_average || details.vote_average,
                 first_air_date: episodeDetails.air_date || details.first_air_date,
                 isEpisodePopup: true,
-                isTvShow: true
+                isTvShow: true,
+                directors: directors,
+                cast: cast
               };
               
               // Set the episode still image as the poster backdrop
@@ -468,10 +479,22 @@ export class TvshowsComponent implements OnInit {
           forkJoin([
             this.moviedbAPIService.getSerieDetails(movie.id),
             this.moviedbAPIService.getSerieImages(movie.id),
-            this.moviedbAPIService.getVideosSerie(movie.id)
+            this.moviedbAPIService.getVideosSerie(movie.id),
+            this.moviedbAPIService.getSerieCredits(movie.id)
           ]).subscribe({
-            next: ([details, images, videos]: [any, any, any]) => {
-              this.popUpMovie = { ...details, isTvShow: true };
+            next: ([details, images, videos, serieCredits]: [any, any, any, any]) => {
+              const creators = details.created_by?.map((creator: any) => creator.name) || [];
+              const crewDirectors = serieCredits.crew?.filter((member: any) => member.job === 'Director' || member.job === 'Executive Producer').slice(0, 2).map((dir: any) => dir.name) || [];
+              const directors = creators.length > 0 ? creators : crewDirectors;
+
+              const cast = serieCredits.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+
+              this.popUpMovie = { 
+                ...details, 
+                isTvShow: true,
+                directors: directors,
+                cast: cast
+              };
               this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
               
               const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
@@ -493,10 +516,18 @@ export class TvshowsComponent implements OnInit {
         forkJoin([
           this.moviedbAPIService.getMovieDetails(movie.id),
           this.moviedbAPIService.getMovieImages(movie.id),
-          this.moviedbAPIService.getVideosMovie(movie.id)
+          this.moviedbAPIService.getVideosMovie(movie.id),
+          this.moviedbAPIService.getMovieCredits(movie.id)
         ]).subscribe({
-          next: ([details, images, videos]: [any, any, any]) => {
-            this.popUpMovie = details;
+          next: ([details, images, videos, movieCredits]: [any, any, any, any]) => {
+            const directors = movieCredits.crew?.filter((member: any) => member.job === 'Director').map((dir: any) => dir.name) || [];
+            const cast = movieCredits.cast?.slice(0, 5).map((actor: any) => actor.name) || [];
+
+            this.popUpMovie = {
+              ...details,
+              directors: directors,
+              cast: cast
+            };
             this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
             
             const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];

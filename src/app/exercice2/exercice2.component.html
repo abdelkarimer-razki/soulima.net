@@ -333,6 +333,16 @@
 			<div class="modalDescription">
 				{{popUpMovie?.overview}}
 			</div>
+			<div class="modalMetadata" *ngIf="popUpMovie?.directors?.length || popUpMovie?.cast?.length">
+				<div class="metadataRow" *ngIf="popUpMovie?.directors?.length">
+					<span class="metadataLabel">{{popUpMovie?.isTvShow ? 'Created by:' : 'Directed by:'}}</span>
+					<span class="metadataValue">{{popUpMovie?.directors?.join(', ')}}</span>
+				</div>
+				<div class="metadataRow" *ngIf="popUpMovie?.cast?.length">
+					<span class="metadataLabel">Starring:</span>
+					<span class="metadataValue">{{popUpMovie?.cast?.join(', ')}}</span>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
