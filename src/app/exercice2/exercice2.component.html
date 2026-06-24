@@ -100,7 +100,7 @@
 		<h2 class="categorieTitle">Recently watched</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of recentlyWatched | slice:0:15">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</ng-container>
@@ -111,7 +111,7 @@
 		<h2 class="categorieTitle">For you</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of foryou | slice:0:15">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</ng-container>
@@ -123,7 +123,7 @@
 		<div class="moviesInCategorie rankedRow">
 			<div class="movieRankWrapper" *ngFor="let movie of trendingMovies | slice:0:10; let idx = index">
 				<span class="rankNumber" *ngIf="movie.poster_path">{{ idx + 1 }}</span>
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="movies moviesRanked" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</div>
@@ -134,7 +134,7 @@
 		<h2 class="categorieTitle">New Releases</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of newReleasedMovies | slice:0:15">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</ng-container>
@@ -145,7 +145,7 @@
 		<h2 class="categorieTitle">Top Rated</h2>
 		<div class="moviesInCategorie">
 			<ng-container *ngFor="let movie of topRatedMovies | slice:0:15">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="movies" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</ng-container>
@@ -165,7 +165,7 @@
 		
 		<div class="searchResutls" *ngIf="this.searchQuery && searchedMovies.length == 0 && searchedSeries.length == 0 && !isSearching">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
 				</a>
 			</ng-container>
@@ -178,7 +178,7 @@
  
 		<ng-container *ngIf="!isSearching">
 			<div class="searchResutls" *ngIf="movies.length > 0">
-				<a *ngFor="let movie of movies" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" class="search-card" style="display: block; text-decoration: none; color: inherit;">
+				<a *ngFor="let movie of movies" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" class="search-card" style="display: block; text-decoration: none; color: inherit;">
 					<img ngOptimizedImage *ngIf="movie.poster_path" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
 					<span class="media-type-badge" [class.badge-movie]="!(movie.name || movie.first_air_date || movie.media_type === 'tv')" [class.badge-tv]="movie.name || movie.first_air_date || movie.media_type === 'tv'">
 						{{(movie.name || movie.first_air_date || movie.media_type === 'tv') ? 'TV Show' : 'Movie'}}
@@ -195,7 +195,7 @@
 		<h2 class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">Best of {{genraName}} movies</h2>
 		<div class="searchResutls">
 			<ng-container *ngFor="let movie of genraMovies">
-				<a *ngIf="movie.poster_path" [routerLink]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
+				<a *ngIf="movie.poster_path" [href]="getDetailUrl(movie)" (click)="onCardClick($event, movie)" style="display: contents;">
 					<img ngOptimizedImage class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
 				</a>
 			</ng-container>
