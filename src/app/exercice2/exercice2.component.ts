@@ -1,12 +1,14 @@
-import { Component,Renderer2,OnInit, ViewChild  } from '@angular/core';
+import { Component,Renderer2,OnInit, ViewChild, HostListener, ElementRef  } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CookieService } from 'ngx-cookie-service';
 import { SeoService } from '../services/seo.service';
+import { SearchCorrectorService } from '../services/search-corrector.service';
 
 interface Genre {
 	name: string;
@@ -28,8 +30,16 @@ export class Exercice2Component implements OnInit
 {
 	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
 	searchQuery: string ="";
+	suggestedCorrection: string | null = null;
+	ghostText: string = "";
+	autocompleteTitle: string = "";
+	searchSubject = new Subject<string>();
+	autocompleteSuggestions: any[] = [];
+	showAutocomplete = false;
 	//movies variables
 	movies: any[] = [];
+	searchedMovies: any[] = [];
+	searchedSeries: any[] = [];
 	trendingMovies: any[] = [];
 	topRatedMovies:any[] = [];
 	newReleasedMovies:any[] = [];
@@ -74,7 +84,9 @@ export class Exercice2Component implements OnInit
 		private cookie: CookieService,
 		private titleService: Title,
 		private metaService: Meta,
-		private seoService: SeoService
+		private seoService: SeoService,
+		private elementRef: ElementRef,
+		private searchCorrector: SearchCorrectorService
 	) { }
 
 	sliceTo3(table:any[]):any[]
@@ -86,20 +98,149 @@ export class Exercice2Component implements OnInit
 	{
 		if (!this.searchQuery) {
 			this.movies = [];
+			this.searchedMovies = [];
+			this.searchedSeries = [];
+			this.autocompleteSuggestions = [];
+			this.isSearching = false;
+			this.showAutocomplete = false;
+			this.suggestedCorrection = null;
+			this.ghostText = "";
+			this.autocompleteTitle = "";
+			return;
+		}
+		this.isSearching = true;
+		this.showAutocomplete = true;
+		this.updateSuggestions();
+		this.searchSubject.next(this.searchQuery);
+	}
+
+	performSearch(query: string)
+	{
+		if (!query) {
+			this.movies = [];
+			this.searchedMovies = [];
+			this.searchedSeries = [];
+			this.autocompleteSuggestions = [];
 			this.isSearching = false;
 			return;
 		}
 		this.isSearching = true;
-		this.moviedbAPIService.searchMovies(this.searchQuery)
-		.subscribe({
-			next: (response: any) => {
-				this.movies = response.results;
+		forkJoin([
+			this.moviedbAPIService.searchMovies(query),
+			this.moviedbAPIService.searchSeries(query)
+		]).subscribe({
+			next: ([moviesResponse, seriesResponse]: [any, any]) => {
+				if (query !== this.searchQuery) {
+					return;
+				}
+				const movieResults = (moviesResponse.results || []).map((m: any) => ({ ...m, media_type: 'movie' }));
+				const seriesResults = (seriesResponse.results || []).map((s: any) => ({ ...s, media_type: 'tv' }));
+				
+				movieResults.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+				seriesResults.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+				
+				this.searchedMovies = movieResults;
+				this.searchedSeries = seriesResults;
+				
+				this.movies = [...movieResults, ...seriesResults];
+				
+				// Create autocomplete suggestions
+				const combined = [...movieResults, ...seriesResults];
+				combined.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
+				this.autocompleteSuggestions = combined.slice(0, 6);
+				
+				// Add results to correction dictionary
+				this.searchCorrector.addMediaItems(movieResults);
+				this.searchCorrector.addMediaItems(seriesResults);
+				
+				// Recalculate correction/ghost text with the updated dictionary
+				this.updateSuggestions();
+				
 				this.isSearching = false;
 			},
 			error: () => {
 				this.isSearching = false;
 			}
 		});
+	}
+
+	selectSuggestion(item: any)
+	{
+		this.showAutocomplete = false;
+		this.showPopUp(item);
+	}
+
+	applyCorrection(correction: string)
+	{
+		this.searchQuery = correction;
+		this.suggestedCorrection = null;
+		this.ghostText = "";
+		this.autocompleteTitle = "";
+		this.searchMovies();
+	}
+
+	updateSuggestions()
+	{
+		this.ghostText = '';
+		this.autocompleteTitle = '';
+		this.suggestedCorrection = null;
+		
+		if (!this.searchQuery) return;
+		
+		const prefixMatch = this.searchCorrector.suggestPrefixCorrection(this.searchQuery);
+		if (prefixMatch) {
+			this.autocompleteTitle = prefixMatch;
+			this.ghostText = this.getGhostText(this.searchQuery, prefixMatch);
+		} else {
+			this.suggestedCorrection = this.searchCorrector.suggestCorrection(this.searchQuery);
+		}
+	}
+
+	getGhostText(query: string, matchTitle: string): string
+	{
+		if (!query || !matchTitle) return '';
+		
+		const normQuery = this.searchCorrector.normalize(query);
+		const normTitle = this.searchCorrector.normalize(matchTitle);
+		
+		if (!normTitle.startsWith(normQuery)) return '';
+		
+		let queryIndex = 0;
+		let titleIndex = 0;
+		
+		while (queryIndex < normQuery.length && titleIndex < matchTitle.length) {
+			const qChar = normQuery[queryIndex];
+			const tChar = matchTitle[titleIndex].toLowerCase();
+			
+			if (qChar === tChar) {
+				queryIndex++;
+				titleIndex++;
+			} else if (/[^\w]/.test(matchTitle[titleIndex])) {
+				titleIndex++;
+			} else if (/[^\w]/.test(qChar)) {
+				queryIndex++;
+			} else {
+				titleIndex++;
+			}
+		}
+		
+		return matchTitle.substring(titleIndex);
+	}
+
+	onKeyDown(event: KeyboardEvent)
+	{
+		if ((event.key === 'Tab' || event.key === 'ArrowRight') && this.autocompleteTitle && (this.ghostText || this.searchQuery !== this.autocompleteTitle)) {
+			this.applyCorrection(this.autocompleteTitle);
+			event.preventDefault();
+		}
+	}
+
+	@HostListener('document:click', ['$event'])
+	onDocumentClick(event: MouseEvent) {
+		const clickedInside = this.elementRef.nativeElement.contains(event.target);
+		if (!clickedInside) {
+			this.showAutocomplete = false;
+		}
 	}
 
 	onPlayerReady(event: any)
@@ -172,29 +313,99 @@ export class Exercice2Component implements OnInit
 		this.popUpMovie = movie;
 		this.isPopUpLoading = true;
 
-		forkJoin([
-			this.moviedbAPIService.getMovieDetails(movie.id),
-			this.moviedbAPIService.getMovieImages(movie.id),
-			this.moviedbAPIService.getVideosMovie(movie.id)
-		]).subscribe({
-			next: ([details, images, videos]: [any, any, any]) => {
-				this.popUpMovie = details;
-				this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
-				
-				const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
-				this.popUpLogo = logo ? logo.file_path : "";
+		const isTv = movie.name || movie.first_air_date || movie.isTvShow || movie.seasonnb || movie.episodenb;
 
-				const trailer = videos.results.find((video: any) => video.type === 'Trailer');
-				if (trailer?.key) {
-					this.popUpLink = trailer.key;
-				}
-				this.isPopUpLoading = false;
-			},
-			error: (err) => {
-				console.error("Error loading pop-up details:", err);
-				this.isPopUpLoading = false;
+		if (isTv) {
+			if (movie.seasonnb && movie.episodenb) {
+				forkJoin([
+					this.moviedbAPIService.getSerieDetails(movie.id),
+					this.moviedbAPIService.getSerieImages(movie.id),
+					this.moviedbAPIService.getVideosSerie(movie.id),
+					this.moviedbAPIService.getEpisodeDetails(movie.id, movie.seasonnb, movie.episodenb),
+					this.moviedbAPIService.getEpisodeVideos(movie.id, movie.seasonnb, movie.episodenb)
+				]).subscribe({
+					next: ([details, images, videos, episodeDetails, episodeVideos]: [any, any, any, any, any]) => {
+						this.popUpMovie = {
+							...details,
+							episode_title: episodeDetails.name,
+							season_number: episodeDetails.season_number,
+							episode_number: episodeDetails.episode_number,
+							overview: episodeDetails.overview || details.overview,
+							vote_average: episodeDetails.vote_average || details.vote_average,
+							first_air_date: episodeDetails.air_date || details.first_air_date,
+							isEpisodePopup: true,
+							isTvShow: true
+						};
+						
+						this.popUpPoster = episodeDetails.still_path || images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+						
+						const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+						this.popUpLogo = logo ? logo.file_path : "";
+
+						const epiTrailer = episodeVideos.results?.find((video: any) => video.type === 'Trailer');
+						const showTrailer = videos.results?.find((video: any) => video.type === 'Trailer');
+						const trailer = epiTrailer || showTrailer;
+						if (trailer?.key) {
+							this.popUpLink = trailer.key;
+						}
+						
+						this.isPopUpLoading = false;
+					},
+					error: (err) => {
+						console.error("Error loading episode pop-up details:", err);
+						this.isPopUpLoading = false;
+					}
+				});
+			} else {
+				forkJoin([
+					this.moviedbAPIService.getSerieDetails(movie.id),
+					this.moviedbAPIService.getSerieImages(movie.id),
+					this.moviedbAPIService.getVideosSerie(movie.id)
+				]).subscribe({
+					next: ([details, images, videos]: [any, any, any]) => {
+						this.popUpMovie = { ...details, isTvShow: true };
+						this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+						
+						const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+						this.popUpLogo = logo ? logo.file_path : "";
+
+						const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+						if (trailer?.key) {
+							this.popUpLink = trailer.key;
+						}
+						this.isPopUpLoading = false;
+					},
+					error: (err) => {
+						console.error("Error loading pop-up details:", err);
+						this.isPopUpLoading = false;
+					}
+				});
 			}
-		});
+		} else {
+			forkJoin([
+				this.moviedbAPIService.getMovieDetails(movie.id),
+				this.moviedbAPIService.getMovieImages(movie.id),
+				this.moviedbAPIService.getVideosMovie(movie.id)
+			]).subscribe({
+				next: ([details, images, videos]: [any, any, any]) => {
+					this.popUpMovie = details;
+					this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+					
+					const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
+					this.popUpLogo = logo ? logo.file_path : "";
+
+					const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+					if (trailer?.key) {
+						this.popUpLink = trailer.key;
+					}
+					this.isPopUpLoading = false;
+				},
+				error: (err) => {
+					console.error("Error loading pop-up details:", err);
+					this.isPopUpLoading = false;
+				}
+			});
+		}
 	}
 
 	getMoviesByGenre(genreId:number, genraName:string)
@@ -212,6 +423,8 @@ export class Exercice2Component implements OnInit
 		this.genraMovies = [];
 		this.genraName = "";
 		this.genraSearch = false;
+		this.searchedMovies = [];
+		this.searchedSeries = [];
 	}
 
 	closePopUp()
@@ -244,6 +457,12 @@ export class Exercice2Component implements OnInit
 
 	ngOnInit(): void
 	{
+		this.searchSubject.pipe(
+			debounceTime(300),
+			distinctUntilChanged()
+		).subscribe(query => {
+			this.performSearch(query);
+		});
 		this.seoService.updateMeta({
 			title: "Soulima Movies | Free Streaming of Movies & Cinema Hits",
 			description: "Watch your favorite movies for free on Soulima. Explore trending cinema hits, classic movies, and new releases in high definition.",
@@ -284,6 +503,12 @@ export class Exercice2Component implements OnInit
 				this.trendingMovies = responses[0].results;
 				this.topRatedMovies = responses[1].results;
 				this.newReleasedMovies = responses[2].results;
+				
+				// Seed search corrector service
+				this.searchCorrector.addMediaItems(responses[0].results);
+				this.searchCorrector.addMediaItems(responses[1].results);
+				this.searchCorrector.addMediaItems(responses[2].results);
+				
 				this.getMovieImage();
 			}
 		)
@@ -325,9 +550,36 @@ export class Exercice2Component implements OnInit
 		event.stopPropagation();
 	}
 
-	routerDetailMovie(id: number)
+	routerDetailMovie(item: any)
 	{
-		this.router.navigate(['/movie',id]);
+		this.closePopUp();
+		if (!item) return;
+
+		let id = typeof item === 'object' ? item.id : item;
+		let isTv = false;
+		if (typeof item === 'object') {
+			isTv = !!(item.name || item.first_air_date || item.isTvShow);
+		} else {
+			if (this.popUpMovie && this.popUpMovie.id === id) {
+				isTv = !!(this.popUpMovie.name || this.popUpMovie.first_air_date || this.popUpMovie.isTvShow);
+			}
+		}
+
+		if (isTv) {
+			const series = localStorage.getItem("series");
+			if (series) {
+				const seriesParsed = JSON.parse(series);
+				for (let i = 0; i < seriesParsed.length; i++) {
+					if (seriesParsed[i].id == id) {
+						this.router.navigate(['/serie/' + id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb]);
+						return;
+					}
+				}
+			}
+			this.router.navigate(['/serie/' + id + '/1/1']);
+		} else {
+			this.router.navigate(['/movie', id]);
+		}
 	}
 
 	onLoadingScreenDismissed() {

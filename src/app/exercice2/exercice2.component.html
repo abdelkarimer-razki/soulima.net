@@ -25,8 +25,19 @@
 		</a>
 	</div>
 	<div class="searchBarContainer">
-		<svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-		<input class="searchBar" type="text" placeholder="Search for movies..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()">
+		<div class="searchBarRow">
+			<svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+			<div class="searchGhostContainer">
+				<span class="ghost-transparent">{{searchQuery}}</span>
+				<span class="ghost-visible" *ngIf="ghostText">{{ghostText}}</span>
+			</div>
+			<input class="searchBar" type="text" placeholder="Search for movies or series..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" (keydown)="onKeyDown($event)">
+			
+			<button class="autocomplete-inline-btn" *ngIf="autocompleteTitle && (ghostText || searchQuery.toLowerCase() !== autocompleteTitle.toLowerCase())" (click)="applyCorrection(autocompleteTitle)" [title]="'Click to correct to: ' + autocompleteTitle + ' (or press Tab)'">
+				<span>{{ghostText ? 'Tab' : 'Correct'}}</span>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+			</button>
+		</div>
 	</div>
 </nav>
 
@@ -134,12 +145,16 @@
 <!-- Search results -->
 <article class="moviesContainer" *ngIf="this.searchQuery && !this.genraSearch">
 	<div class="search">
-		<h2 class="categorieTitle results" *ngIf="movies.length || isSearching">Search Results</h2>
-		<h2 *ngIf="this.searchQuery && movies.length == 0 && !isSearching" class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">There is no movie under the name of "{{this.searchQuery}}" but you can watch:</h2>
+		<h2 class="categorieTitle results" *ngIf="searchedMovies.length || searchedSeries.length || isSearching">Search Results</h2>
+		<h2 *ngIf="this.searchQuery && searchedMovies.length == 0 && searchedSeries.length == 0 && !isSearching" class="categorieTitle results" style="margin-left: 10px; margin-right: 10px;">
+			There are no results under the name of "{{this.searchQuery}}".
+			<span *ngIf="suggestedCorrection" class="did-you-mean">Did you mean <strong class="correction-link" (click)="applyCorrection(suggestedCorrection)">{{suggestedCorrection}}</strong>?</span>
+			But you can watch:
+		</h2>
 		
-		<div class="searchResutls" *ngIf="this.searchQuery && movies.length == 0 && !isSearching">
+		<div class="searchResutls" *ngIf="this.searchQuery && searchedMovies.length == 0 && searchedSeries.length == 0 && !isSearching">
 			<ng-container *ngFor="let movie of trendingMovies">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
+				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
 			</ng-container>
 		</div>
 		
@@ -148,11 +163,16 @@
 			<div class="moviesSearch shimmer" *ngFor="let card of [1, 2, 3, 4, 5, 6, 7, 8]" style="height: 100%; min-height: 225px;"></div>
 		</div>
  
-		<div class="searchResutls" *ngIf="!isSearching">
-			<ng-container *ngFor="let movie of movies">
-				<img ngOptimizedImage *ngIf="movie.poster_path" (click)="showPopUp(movie)" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title}} poster">
-			</ng-container>
-		</div>
+		<ng-container *ngIf="!isSearching">
+			<div class="searchResutls" *ngIf="movies.length > 0">
+				<div class="search-card" *ngFor="let movie of movies" (click)="showPopUp(movie)">
+					<img ngOptimizedImage *ngIf="movie.poster_path" class="moviesSearch" [src]="'https://image.tmdb.org/t/p/w500' + movie.poster_path" alt="{{movie.title || movie.original_title || movie.name || movie.original_name}} poster">
+					<span class="media-type-badge" [class.badge-movie]="!(movie.name || movie.first_air_date || movie.media_type === 'tv')" [class.badge-tv]="movie.name || movie.first_air_date || movie.media_type === 'tv'">
+						{{(movie.name || movie.first_air_date || movie.media_type === 'tv') ? 'TV Show' : 'Movie'}}
+					</span>
+				</div>
+			</div>
+		</ng-container>
 	</div>
 </article>
 
@@ -173,8 +193,24 @@
 	<div class="mobileHeaderLeft" *ngIf="!showSearch">
 		<img src="../../assets/soulimaWhiteLogo.png" width="30px" alt="Soulima Logo" class="mobileLogo">
 	</div>
-	<input *ngIf="showSearch" class="searchBar2" [class.showSearch]="showSearch" type="text" placeholder="Search for movies..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" [@Loading]>
-	<svg (click)="showSearch = !showSearch" class="searchIcon" enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M27.414,24.586l-5.077-5.077C23.386,17.928,24,16.035,24,14c0-5.514-4.486-10-10-10S4,8.486,4,14  s4.486,10,10,10c2.035,0,3.928-0.614,5.509-1.663l5.077,5.077c0.78,0.781,2.048,0.781,2.828,0  C28.195,26.633,28.195,25.367,27.414,24.586z M7,14c0-3.86,3.14-7,7-7s7,3.14,7,7s-3.14,7-7,7S7,17.86,7,14z" id="XMLID_223_"/></svg>
+	
+	<!-- Mobile unified search input container -->
+	<div class="mobileSearchContainer" *ngIf="showSearch" [@Loading]>
+		<div class="searchBarRow">
+			<div class="searchGhostContainer mobile">
+				<span class="ghost-transparent">{{searchQuery}}</span>
+				<span class="ghost-visible" *ngIf="ghostText">{{ghostText}}</span>
+			</div>
+			<input class="searchBar2" type="text" placeholder="Search for movies or series..." [(ngModel)]="searchQuery" (ngModelChange)="searchMovies()" (keydown)="onKeyDown($event)">
+			
+			<button class="autocomplete-inline-btn" *ngIf="autocompleteTitle && (ghostText || searchQuery.toLowerCase() !== autocompleteTitle.toLowerCase())" (click)="applyCorrection(autocompleteTitle)" [title]="'Click to correct to: ' + autocompleteTitle + ' (or press Tab)'">
+				<span>{{ghostText ? 'Tab' : 'Correct'}}</span>
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+			</button>
+		</div>
+	</div>
+	
+	<svg (click)="showSearch = !showSearch; showAutocomplete = showSearch" class="searchIcon" enable-background="new 0 0 32 32" id="Glyph" version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M27.414,24.586l-5.077-5.077C23.386,17.928,24,16.035,24,14c0-5.514-4.486-10-10-10S4,8.486,4,14  s4.486,10,10,10c2.035,0,3.928-0.614,5.509-1.663l5.077,5.077c0.78,0.781,2.048,0.781,2.828,0  C28.195,26.633,28.195,25.367,27.414,24.586z M7,14c0-3.86,3.14-7,7-7s7,3.14,7,7s-3.14,7-7,7S7,17.86,7,14z" id="XMLID_223_"/></svg>
 </div>
 
 <!-- Details Modal -->
@@ -190,7 +226,7 @@
 			<div [class.noShow]="startTrailer" *ngIf="!isPopUpLoading" style="pointer-events: none; overflow: hidden; aspect-ratio: 16/9; width: 100%; position: relative;">
 				<img ngOptimizedImage style="width: 100%; height: 100%; object-fit: cover;" [src]="'https://image.tmdb.org/t/p/original' + popUpPoster" alt="{{popUpMovie?.title || popUpMovie?.name}} details backdrop">
 			</div>
-			<div class="play playinPopUp" *ngIf="!isPopUpLoading" (click)="routerDetailMovie(popUpMovie?.id)">
+			<div class="play playinPopUp" *ngIf="!isPopUpLoading" (click)="routerDetailMovie(popUpMovie)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
 				Play Now
 			</div>
@@ -207,7 +243,7 @@
 			<div class="mutes" *ngIf="startTrailer" (click)="changeAudio()">
 				<svg height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><line *ngIf="mute" style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-miterlimit:10;stroke-width:32px" x1="416" x2="64" y1="432" y2="80"/><path fill="currentColor" d="M243.33,98.86a23.89,23.89,0,0,0-25.55,1.82l-.66.51L188.6,124.54a8,8,0,0,0-.59,11.85l54.33,54.33A8,8,0,0,0,256,185.06V120.57A24.51,24.51,0,0,0,243.33,98.86Z"/><path fill="currentColor" d="M251.33,335.29,96.69,180.69A16,16,0,0,0,85.38,176H56a24,24,0,0,0-24,24V312a24,24,0,0,0,24,24h69.76l92,75.31A23.9,23.9,0,0,0,243.63,413,24.51,24.51,0,0,0,256,391.45V346.59A16,16,0,0,0,251.33,335.29Z"/><path *ngIf="!mute" fill="currentColor" d="M352,256c0-24.56-5.81-47.87-17.75-71.27a16,16,0,1,0-28.5,14.55C315.34,218.06,320,236.62,320,256q0,4-.31,8.13a8,8,0,0,0,2.32,6.25l14.36,14.36a8,8,0,0,0,13.55-4.31A146,146,0,0,0,352,256Z"/><path *ngIf="!mute" fill="currentColor" d="M416,256c0-51.18-13.08-83.89-34.18-120.06a16,16,0,0,0-27.64,16.12C373.07,184.44,384,211.83,384,256c0,23.83-3.29,42.88-9.37,60.65a8,8,0,0,0,1.9,8.26L389,337.4a8,8,0,0,0,13.13-2.79C411,311.76,416,287.26,416,256Z"/><path *ngIf="!mute" fill="currentColor" d="M480,256c0-74.25-20.19-121.11-50.51-168.61a16,16,0,1,0-27,17.22C429.82,147.38,448,189.5,448,256c0,46.19-8.43,80.27-22.43,110.53a8,8,0,0,0,1.59,9l11.92,11.92A8,8,0,0,0,452,385.29C471.6,344.9,480,305,480,256Z"/></svg>
 			</div>
-			<a class="play playinPopUp" [routerLink]="'/movie/' + popUpMovie?.id">
+			<a class="play playinPopUp" (click)="routerDetailMovie(popUpMovie)">
 				<svg class="playsvg" height="24px" viewBox="0 0 512 512" width="24px" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M405.2,232.9L126.8,67.2c-3.4-2-6.9-3.2-10.9-3.2c-10.9,0-19.8,9-19.8,20H96v344h0.1c0,11,8.9,20,19.8,20  c4.1,0,7.5-1.4,11.2-3.4l278.1-165.5c6.6-5.5,10.8-13.8,10.8-23.1C416,246.7,411.8,238.5,405.2,232.9z"/></svg>
 				Play Now
 			</a>
@@ -229,8 +265,11 @@
 		<!-- Loaded Popup Content -->
 		<div class="modalContent" *ngIf="!isPopUpLoading">
 			<div class="titleInPopUp">
-				<img *ngIf="popUpLogo" [src]="'https://image.tmdb.org/t/p/w500' + popUpLogo" class="popupLogo" alt="{{popUpMovie?.title}} Logo">
-				<span *ngIf="!popUpLogo">{{popUpMovie?.title}}</span>
+				<img *ngIf="popUpLogo" [src]="'https://image.tmdb.org/t/p/w500' + popUpLogo" class="popupLogo" alt="{{popUpMovie?.title || popUpMovie?.name}} Logo">
+				<span *ngIf="!popUpLogo">{{popUpMovie?.title || popUpMovie?.name}}</span>
+			</div>
+			<div class="episodeSubTitle" *ngIf="popUpMovie?.isEpisodePopup" style="font-size: 15px; color: #b3b3b3; margin-top: 5px;">
+				Season {{popUpMovie?.season_number}} Episode {{popUpMovie?.episode_number}} &bull; "{{popUpMovie?.episode_title}}"
 			</div>
 			<div class="ratingAndInfo">
 				<div class="rating">
@@ -238,7 +277,7 @@
 					<svg class="star" height="21px" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
 				</div>
 				<div class="info">
-					<label class="genra">{{popUpMovie?.release_date | date:'yyyy'}}</label>
+					<label class="genra">{{(popUpMovie?.release_date || popUpMovie?.first_air_date) | date:'yyyy'}}</label>
 					<label class="genra" *ngFor="let genre of popUpMovie?.genres">{{genre?.name}}</label>
 				</div>
 			</div>
