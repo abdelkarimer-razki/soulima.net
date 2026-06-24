@@ -188,6 +188,40 @@
 	</section>
 </article>
 
+<footer class="app-footer">
+	<div class="footer-content">
+		<div class="footer-brand">
+			<div class="footer-logo">
+				<img src="../../assets/soulimaWhiteLogo.png" alt="Soulima Logo" class="footer-logo-img">
+				<span class="footer-logo-text">Soulima</span>
+			</div>
+			<p class="footer-tagline">Your ultimate hub for movies and TV series tracking.</p>
+		</div>
+		<div class="footer-links">
+			<h4 class="footer-section-title">Navigation</h4>
+			<ul class="footer-links-list">
+				<li><a (click)="this.searchQuery = ''; clearGenre()" routerLink="/" class="footer-link">Movies</a></li>
+				<li><a (click)="this.searchQuery = ''" routerLink="/tvshows" class="footer-link">TV Shows</a></li>
+			</ul>
+		</div>
+		<div class="footer-author">
+			<h4 class="footer-section-title">Developer</h4>
+			<p class="footer-developer-text">Created by</p>
+			<a href="https://github.com/abdelkarimer-razki" target="_blank" rel="noopener noreferrer" class="footer-portfolio-link">
+				<span>Abdelkarim Er-razki</span>
+				<svg class="portfolio-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+			</a>
+		</div>
+	</div>
+	<div class="footer-divider"></div>
+	<div class="footer-disclaimer">
+		<p class="disclaimer-text">
+			<strong>Legal Disclaimer:</strong> Soulima is an automated search engine indexer that indexes public URLs and metadata. We do not host, store, or upload any pirated media files, video streams, or copyrighted content on our servers. All torrent links and search results are dynamically indexed from open, public platforms. Soulima does not advocate or encourage piracy in any form. Please support official creators and streaming services.
+		</p>
+		<p class="copyright-text">&copy; 2026 Soulima. All rights reserved.</p>
+	</div>
+</footer>
+
 <!-- Mobile search bar / Top Header -->
 <div class="searchd" [class.searching]="showSearch">
 	<div class="mobileHeaderLeft" *ngIf="!showSearch">
