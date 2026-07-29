@@ -28,15 +28,16 @@ export class CustomPlayerComponent implements OnInit, OnDestroy, OnChanges {
   private readonly noSandboxHosts = ['vidfast.pro', 'vidlink.pro', 'embed.su'];
 
   get iframeSandbox(): string | null {
-    if (!this.iframeOriginalUrl) return 'allow-scripts allow-same-origin';
+    const sandbox = 'allow-scripts allow-same-origin allow-popups allow-presentation allow-forms';
+    if (!this.iframeOriginalUrl) return sandbox;
     try {
       const hostname = new URL(this.iframeOriginalUrl).hostname.toLowerCase();
       const needsNoSandbox = this.noSandboxHosts.some(
         (h) => hostname === h || hostname.endsWith('.' + h)
       );
-      return needsNoSandbox ? null : 'allow-scripts allow-same-origin';
+      return needsNoSandbox ? null : sandbox;
     } catch {
-      return 'allow-scripts allow-same-origin';
+      return sandbox;
     }
   }
 

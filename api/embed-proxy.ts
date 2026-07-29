@@ -27,13 +27,6 @@ const AD_PATTERNS = [
   /<ins[^>]*class=["'][^"']*adsbygoogle[^"']*["'][^>]*>[\s\S]*?<\/ins>/gi,
 ];
 
-const SCRIPT_REDIRECT_PATTERNS = [
-  /<script[^>]*>[\s\S]*?(?:location\.(?:href|replace|assign)\s*[=\(]|document\.location\s*=|window\.location\s*=|top\.location|parent\.location|self\.location)[\s\S]*?<\/script>/gi,
-  /<script[^>]*>[\s\S]*?(?:document\.domain|location\.hostname|location\.host|location\.origin)[\s\S]*?(?:!==|!=|===|==|indexOf)[\s\S]*?<\/script>/gi,
-  /<script[^>]*>[\s\S]*?(?:window\.top\s*!==\s*window|top\s*!==\s*self|self\s*!==\s*top|parent\s*!==\s*self|window\.parent\s*!==\s*window)[\s\S]*?<\/script>/gi,
-  /<script[^>]*>[\s\S]*?\.href\s*=\s*["'][^"']*(?:https?:\/\/)[^"']*["'][\s\S]*?<\/script>/gi,
-];
-
 const CHALLENGE_MARKERS = [
   'performing security verification',
   'verifies you are not a bot',
@@ -62,7 +55,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
     const origin = new URL(targetUrl).origin;
@@ -75,32 +68,10 @@ export default async function handler(req: any, res: any) {
         'Accept-Language': 'en-US,en;q=0.5',
         'Referer': origin + '/',
       },
-      redirect: 'manual',
+      redirect: 'follow',
     });
 
     clearTimeout(timeout);
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location');
-      if (!location) throw new Error('redirect with no location');
-      const redirectHost = new URL(location, targetUrl).hostname;
-      if (redirectHost !== new URL(targetUrl).hostname) {
-        throw new Error('server redirects to different origin');
-      }
-      response = await fetch(location, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Referer': origin + '/',
-        },
-        redirect: 'manual',
-      });
-      if (response.status >= 300 && response.status < 400) {
-        throw new Error('redirect chain');
-      }
-    }
 
     const contentType = response.headers.get('content-type') || '';
     const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml');
@@ -119,11 +90,6 @@ export default async function handler(req: any, res: any) {
     }
 
     for (const p of AD_PATTERNS) html = html.replace(p, '');
-    for (const p of SCRIPT_REDIRECT_PATTERNS) html = html.replace(p, '');
-    html = html.replace(/\.location\s*=\s*["'][^"']*["']\s*;?/gi, '/*sli*/');
-    html = html.replace(/\.location\.href\s*=\s*["'][^"']*["']\s*;?/gi, '/*sli*/');
-    html = html.replace(/\.location\.(replace|assign)\s*\([^)]+\)\s*;?/gi, '/*sli*/');
-    html = html.replace(/\s+on(load|error)\s*=\s*["'][^"']*location[^"']*["']/gi, '');
 
     html = html.replace('<head>', `<head><base href="${origin}/">`);
 
