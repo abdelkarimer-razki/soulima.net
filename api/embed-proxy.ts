@@ -125,6 +125,8 @@ export default async function handler(req: any, res: any) {
     html = html.replace(/\.location\.(replace|assign)\s*\([^)]+\)\s*;?/gi, '/*sli*/');
     html = html.replace(/\s+on(load|error)\s*=\s*["'][^"']*location[^"']*["']/gi, '');
 
+    html = html.replace('<head>', `<head><base href="${origin}/">`);
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('X-Frame-Options', 'ALLOWALL');
     res.setHeader('Cache-Control', 'no-store');
