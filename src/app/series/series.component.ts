@@ -208,7 +208,6 @@ export class SeriesComponent {
 		if (this.isSearchingTorrents) return;
 
 		const name = this.serie?.original_name || this.serie?.name || '';
-		const query = `${name} S${String(this.season).padStart(2,'0')}E${String(this.episode).padStart(2,'0')}`;
 
 		this.isSearchingTorrents = true;
 		this.showTorrentList = true;
@@ -502,11 +501,10 @@ export class SeriesComponent {
 			if (activeSeasonData) {
 				this.preloadEpisodesForSeason(activeSeasonData);
 			}
+			this.searchTorrents();
 		});
 		this.checkAllServers();
 		this.showPlayerControls();
-
-		this.searchTorrents();
 	}
 
 	getRecentlyWatched() {

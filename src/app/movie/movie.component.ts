@@ -452,11 +452,10 @@ export class MovieComponent implements OnInit {
 
       this.getRecentlyWatched();
       this.updateLink();
+      this.searchTorrents();
     });
     this.checkAllServers();
     this.showPlayerControls();
-
-    this.searchTorrents();
   }
 
   getRecentlyWatched() {
