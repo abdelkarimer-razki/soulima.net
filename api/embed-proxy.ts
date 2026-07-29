@@ -27,13 +27,25 @@ const AD_PATTERNS = [
   /<ins[^>]*class=["'][^"']*adsbygoogle[^"']*["'][^>]*>[\s\S]*?<\/ins>/gi,
 ];
 
-// Strip entire inline <script> blocks containing redirect or anti-iframe patterns
 const SCRIPT_REDIRECT_PATTERNS = [
   /<script[^>]*>[\s\S]*?(?:location\.(?:href|replace|assign)\s*[=\(]|document\.location\s*=|window\.location\s*=|top\.location|parent\.location|self\.location)[\s\S]*?<\/script>/gi,
   /<script[^>]*>[\s\S]*?(?:document\.domain|location\.hostname|location\.host|location\.origin)[\s\S]*?(?:!==|!=|===|==|indexOf)[\s\S]*?<\/script>/gi,
   /<script[^>]*>[\s\S]*?(?:window\.top\s*!==\s*window|top\s*!==\s*self|self\s*!==\s*top|parent\s*!==\s*self|window\.parent\s*!==\s*window)[\s\S]*?<\/script>/gi,
   /<script[^>]*>[\s\S]*?\.href\s*=\s*["'][^"']*(?:https?:\/\/)[^"']*["'][\s\S]*?<\/script>/gi,
 ];
+
+const CHALLENGE_MARKERS = [
+  'performing security verification',
+  'verifies you are not a bot',
+  'checking your browser before accessing',
+  'cf-browser-verification',
+  'cf-chl-bypass',
+];
+
+function looksLikeBotChallenge(html: string): boolean {
+  const lower = html.toLowerCase();
+  return CHALLENGE_MARKERS.some((marker) => lower.includes(marker));
+}
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -45,7 +57,6 @@ export default async function handler(req: any, res: any) {
 
   const targetUrl = req.query?.url;
   if (!targetUrl) return res.status(400).json({ error: 'url query param required' });
-
   try { new URL(targetUrl); } catch {
     return res.status(400).json({ error: 'invalid url' });
   }
@@ -69,7 +80,6 @@ export default async function handler(req: any, res: any) {
 
     clearTimeout(timeout);
 
-    // Handle redirects — only follow same-origin, block cross-origin redirects (anti-proxy)
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       if (!location) throw new Error('redirect with no location');
@@ -92,27 +102,32 @@ export default async function handler(req: any, res: any) {
       }
     }
 
+    const contentType = response.headers.get('content-type') || '';
+    const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml');
+
+    if (!isHtml) {
+      const body = await response.arrayBuffer();
+      res.setHeader('Content-Type', contentType || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(response.status).send(Buffer.from(body));
+    }
+
     let html = await response.text();
 
-    // Strip ads
+    if (looksLikeBotChallenge(html)) {
+      return res.status(503).json({ error: 'source_challenge', message: 'Upstream requires bot verification' });
+    }
+
     for (const p of AD_PATTERNS) html = html.replace(p, '');
-
-    // Strip entire inline scripts that redirect or detect iframes
     for (const p of SCRIPT_REDIRECT_PATTERNS) html = html.replace(p, '');
-
-    // Strip redirect lines from inline JS (as backup for missed script blocks)
     html = html.replace(/\.location\s*=\s*["'][^"']*["']\s*;?/gi, '/*sli*/');
     html = html.replace(/\.location\.href\s*=\s*["'][^"']*["']\s*;?/gi, '/*sli*/');
     html = html.replace(/\.location\.(replace|assign)\s*\([^)]+\)\s*;?/gi, '/*sli*/');
-
-    // Strip redirect from HTML event attributes
     html = html.replace(/\s+on(load|error)\s*=\s*["'][^"']*location[^"']*["']/gi, '');
-
-    // Inject base tag
-    html = html.replace('<head>', `<head><base href="${origin}/">`);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('X-Frame-Options', 'ALLOWALL');
+    res.setHeader('Cache-Control', 'no-store');
     res.status(200).send(html);
   } catch (err: any) {
     clearTimeout(timeout);

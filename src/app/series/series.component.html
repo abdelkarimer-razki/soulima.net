@@ -11,7 +11,7 @@
 		</div>
 
 		<!-- Unified Player (Server Stream + Torrent tabs) -->
-		<app-custom-player #player [iframeSrc]="link" [torrentMagnet]="torrentMagnet" [title]="serie?.name" (iframeError)="onIframeError()">
+		<app-custom-player #player [iframeSrc]="link" [iframeOriginalUrl]="iframeOriginalUrl" [torrentMagnet]="torrentMagnet" [title]="serie?.name" (iframeError)="onIframeError()">
 		</app-custom-player>
 
 		<!-- Transparent Overlay Layer -->

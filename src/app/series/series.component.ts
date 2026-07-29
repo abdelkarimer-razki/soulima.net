@@ -63,6 +63,7 @@ export class SeriesComponent {
 	seasons: any[] = [];
 	episodes: any[] = [];
 	link: SafeResourceUrl = '';
+	iframeOriginalUrl: string = '';
 
 	// Torrent state
 	@ViewChild('player') player!: CustomPlayerComponent;
@@ -104,6 +105,7 @@ export class SeriesComponent {
 		}
 		const proxyUrl = `/api/embed-proxy?url=${encodeURIComponent(constructedUrl)}`;
 		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(proxyUrl);
+		this.iframeOriginalUrl = constructedUrl;
 		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();
 		setTimeout(() => this.player?.switchToServer());

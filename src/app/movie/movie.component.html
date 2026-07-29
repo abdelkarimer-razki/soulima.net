@@ -63,7 +63,7 @@
 		</div>
 
 		<!-- Unified Player (Server Stream + Torrent tabs) -->
-		<app-custom-player #player [iframeSrc]="link" [torrentMagnet]="torrentMagnet" [title]="movie?.title" (iframeError)="onIframeError()">
+		<app-custom-player #player [iframeSrc]="link" [iframeOriginalUrl]="iframeOriginalUrl" [torrentMagnet]="torrentMagnet" [title]="movie?.title" (iframeError)="onIframeError()">
 		</app-custom-player>
 	</div>
 

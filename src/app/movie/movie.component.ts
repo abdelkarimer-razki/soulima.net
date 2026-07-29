@@ -17,6 +17,7 @@ export class MovieComponent implements OnInit {
   id: number = 0;
   movie: any = '';
   link: SafeResourceUrl = '';
+  iframeOriginalUrl: string = '';
 
   servers: ServerEntry[] = [
     { name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
@@ -97,6 +98,7 @@ export class MovieComponent implements OnInit {
     }
     const proxyUrl = `/api/embed-proxy?url=${encodeURIComponent(constructedUrl)}`;
     this.link = this.sanitizer.bypassSecurityTrustResourceUrl(proxyUrl);
+    this.iframeOriginalUrl = constructedUrl;
     this.triedServers.add(this.selectedServerIndex);
     this.resetHeartbeat();
     setTimeout(() => this.player?.switchToServer());

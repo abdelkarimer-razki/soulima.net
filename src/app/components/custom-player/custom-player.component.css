@@ -11,63 +11,6 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
-/* ── Tabs ─────────────────────────────── */
-.playerTabs {
-  display: flex;
-  gap: 8px;
-  padding: 10px 14px;
-  background: #141414;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  position: relative;
-  z-index: 20;
-}
-
-.playerTab {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  background: transparent;
-  color: #888;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  transition: all 0.25s ease;
-  position: relative;
-}
-
-.playerTab:hover {
-  color: #ddd;
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255,255,255,0.05);
-}
-
-.playerTab.active {
-  background: var(--text-primary, #ffffff);
-  color: #000 !important;
-  border-color: var(--text-primary, #ffffff);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
-  font-weight: 600;
-}
-
-.torrentBadge {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  background: rgba(255,255,255,0.2);
-  padding: 2px 5px;
-  border-radius: 3px;
-  color: #fff;
-}
-
-.playerTab.active .torrentBadge {
-  background: rgba(0, 0, 0, 0.15);
-  color: #000;
-}
-
 /* ── Player Area ──────────────────────── */
 .playerContent {
   position: relative;
@@ -342,8 +285,6 @@
 
 /* ── Responsive ───────────────────────── */
 @media (max-width: 600px) {
-  .playerTabs { flex-wrap: wrap; gap: 6px; padding: 8px 10px; }
-  .playerTab { font-size: 12px; padding: 7px 12px; }
   .torrentStats { flex-wrap: wrap; }
   .stat { min-width: 80px; }
   .torrentPrompt h3 { font-size: 16px; }

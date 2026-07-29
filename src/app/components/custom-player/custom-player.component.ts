@@ -19,10 +19,26 @@ export interface PlayerSource {
 })
 export class CustomPlayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() iframeSrc?: SafeResourceUrl;
+  @Input() iframeOriginalUrl?: string;
   @Input() torrentMagnet?: string;
   @Input() title: string = 'Video Player';
   @Output() allServersFailed = new EventEmitter<void>();
   @Output() iframeError = new EventEmitter<void>();
+
+  private readonly noSandboxHosts = ['vidfast.pro', 'vidlink.pro', 'embed.su'];
+
+  get iframeSandbox(): string | null {
+    if (!this.iframeOriginalUrl) return 'allow-scripts allow-same-origin';
+    try {
+      const hostname = new URL(this.iframeOriginalUrl).hostname.toLowerCase();
+      const needsNoSandbox = this.noSandboxHosts.some(
+        (h) => hostname === h || hostname.endsWith('.' + h)
+      );
+      return needsNoSandbox ? null : 'allow-scripts allow-same-origin';
+    } catch {
+      return 'allow-scripts allow-same-origin';
+    }
+  }
 
   @ViewChild('videoElement') videoEl!: ElementRef<HTMLVideoElement>;
 
