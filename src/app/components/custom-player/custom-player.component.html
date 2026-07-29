@@ -36,8 +36,10 @@
         class="iframePlayer"
         frameborder="0"
         referrerpolicy="origin"
+        sandbox="allow-scripts allow-same-origin"
         allowfullscreen="true"
-        allow="picture-in-picture; fullscreen">
+        allow="picture-in-picture; fullscreen"
+        (error)="iframeError.emit()">
       </iframe>
     </div>
 

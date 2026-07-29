@@ -1,10 +1,11 @@
-import { Component, OnInit, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
+import { CustomPlayerComponent } from '../components/custom-player/custom-player.component';
 
 @Component({
   selector: 'app-series',
@@ -64,6 +65,7 @@ export class SeriesComponent {
 	link: SafeResourceUrl = '';
 
 	// Torrent state
+	@ViewChild('player') player!: CustomPlayerComponent;
 	torrents: Torrent[] = [];
 	selectedTorrent: Torrent | null = null;
 	torrentMagnet: string | undefined = undefined;
@@ -100,9 +102,11 @@ export class SeriesComponent {
 		} else {
 			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
 		}
-		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
+		const proxyUrl = `/api/embed-proxy?url=${encodeURIComponent(constructedUrl)}`;
+		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(proxyUrl);
 		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();
+		setTimeout(() => this.player?.switchToServer());
 	}
 
 	selectServer(index: number) {
@@ -119,6 +123,7 @@ export class SeriesComponent {
 			this.showControls = false;
 			this.showServerDropdown = false;
 		}, 3500);
+		this.resetHeartbeat();
 	}
 
 	toggleServerDropdown(event?: Event) {
@@ -133,12 +138,6 @@ export class SeriesComponent {
 		this.serverStatus[index] = 'offline';
 		this.updateReliability(index, false);
 		this.saveServerCache();
-		this.onIframeError();
-	}
-
-	/** Called when the iframe fails to load — auto-rotates to next working server or falls back to torrent */
-	onIframeError() {
-		this.clearHeartbeat();
 		const nextIndex = this.serverStatus.findIndex(
 			(s, i) => s === 'online' && !this.triedServers.has(i)
 		);
@@ -153,6 +152,19 @@ export class SeriesComponent {
 				}
 			}, 7000);
 		}
+	}
+
+	/** Called when the iframe fails to load — marks server offline, no auto-switch */
+	onIframeError() {
+		this.clearHeartbeat();
+		this.serverStatus[this.selectedServerIndex] = 'offline';
+		this.updateReliability(this.selectedServerIndex, false);
+		this.saveServerCache();
+		setTimeout(() => {
+			if (!this.serverStatus.includes('online')) {
+				this.autoTorrentFallback();
+			}
+		}, 7000);
 	}
 
 	/** Listen for postMessage from embed iframes (some providers send play/error events) */
@@ -182,12 +194,11 @@ export class SeriesComponent {
 	/** Start heartbeat: if no play signal within 25s, assume failure and try next server */
 	private resetHeartbeat() {
 		this.clearHeartbeat();
-		this.videoConfirmed = false;
 		this.heartbeatTimer = setTimeout(() => {
 			if (!this.videoConfirmed) {
 				this.onIframeError();
 			}
-		}, 25000);
+		}, 300000);
 	}
 
 	private clearHeartbeat() {
@@ -232,6 +243,7 @@ export class SeriesComponent {
 		this.selectedTorrent = torrent;
 		this.torrentMagnet = torrent.magnet;
 		this.showTorrentList = false;
+		setTimeout(() => this.player?.switchToTorrent());
 	}
 
 	clearTorrent() {

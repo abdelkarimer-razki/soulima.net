@@ -62,9 +62,9 @@
 			</div>
 		</div>
 
-		<!-- High-performance Iframe Video Streaming (shows as soon as first server responds) -->
-		<iframe *ngIf="hasOnlineServer() || !isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" class="moviePlayer" (error)="onIframeError()">
-		</iframe>
+		<!-- Unified Player (Server Stream + Torrent tabs) -->
+		<app-custom-player #player [iframeSrc]="link" [torrentMagnet]="torrentMagnet" [title]="movie?.title" (iframeError)="onIframeError()">
+		</app-custom-player>
 	</div>
 
 	<!-- Torrent Section -->
@@ -116,8 +116,6 @@
 			<button class="clearTorrentBtn" (click)="clearTorrent()">Clear</button>
 		</div>
 
-		<!-- Custom Player (torrent player) -->
-		<app-custom-player *ngIf="torrentMagnet" [torrentMagnet]="torrentMagnet" [title]="movie?.title"></app-custom-player>
 	</div>
 
 </div>

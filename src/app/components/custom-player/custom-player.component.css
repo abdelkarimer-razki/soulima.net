@@ -18,6 +18,8 @@
   padding: 10px 14px;
   background: #141414;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  position: relative;
+  z-index: 20;
 }
 
 .playerTab {

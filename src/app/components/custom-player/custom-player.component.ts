@@ -22,6 +22,7 @@ export class CustomPlayerComponent implements OnInit, OnDestroy, OnChanges {
   @Input() torrentMagnet?: string;
   @Input() title: string = 'Video Player';
   @Output() allServersFailed = new EventEmitter<void>();
+  @Output() iframeError = new EventEmitter<void>();
 
   @ViewChild('videoElement') videoEl!: ElementRef<HTMLVideoElement>;
 

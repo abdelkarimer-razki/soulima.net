@@ -10,9 +10,9 @@
 			<span class="loaderText">Checking working servers...</span>
 		</div>
 
-		<!-- Streaming Player Iframe (shows as soon as first server responds) -->
-		<iframe *ngIf="hasOnlineServer() || !isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" (error)="onIframeError()">
-		</iframe>
+		<!-- Unified Player (Server Stream + Torrent tabs) -->
+		<app-custom-player #player [iframeSrc]="link" [torrentMagnet]="torrentMagnet" [title]="serie?.name" (iframeError)="onIframeError()">
+		</app-custom-player>
 
 		<!-- Transparent Overlay Layer -->
 		<div class="playerOverlay">
@@ -241,8 +241,6 @@
 			<button class="clearTorrentBtn" (click)="clearTorrent()">Clear</button>
 		</div>
 
-		<!-- Custom Player (torrent player) -->
-		<app-custom-player *ngIf="torrentMagnet" [torrentMagnet]="torrentMagnet" [title]="serie?.name"></app-custom-player>
 	</div>
 
 </div>
