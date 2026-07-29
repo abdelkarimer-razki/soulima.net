@@ -910,6 +910,27 @@
 	}
 }
 
+/* ─── Skeleton / Shimmer Placeholders ────────────────────────────────────── */
+.skeleton-title {
+  display: inline-block;
+  height: 18px;
+  width: 220px;
+  border-radius: 4px;
+}
+
+.skeleton-subtitle {
+  display: inline-block;
+  height: 12px;
+  width: 60px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.skeleton-block {
+  display: block;
+  border-radius: 6px;
+}
+
 /* ─── Page Entry Animations ─── */
 
 .playerContainer {

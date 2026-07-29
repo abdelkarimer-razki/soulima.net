@@ -2,8 +2,8 @@
 	<!-- Netflix-like Video Player Container -->
 	<div class="moviePlayerWrapper" (mousemove)="showPlayerControls()" (click)="showPlayerControls()" [class.controlsActive]="showControls">
 		
-		<!-- Buffering / Server Checker Centered Loader -->
-		<div class="playerLoaderOverlay" *ngIf="isCheckingServers()">
+		<!-- Buffering / Server Checker Centered Loader (only while checking AND no server found yet) -->
+		<div class="playerLoaderOverlay" *ngIf="isCheckingServers() && !hasOnlineServer()">
 			<div class="circleSpinner"></div>
 			<span class="loaderText">Checking working servers...</span>
 		</div>
@@ -18,8 +18,14 @@
 				</a>
 
 				<div class="overlayTitle">
-					<h1 class="overlayMovieTitle">Watch {{ movie?.title || movie?.original_title }}</h1>
-					<span class="overlayMovieInfo" *ngIf="movie?.release_date">{{ movie?.release_date | date:'yyyy' }}</span>
+					<ng-container *ngIf="!loading; else titleSkeleton">
+						<h1 class="overlayMovieTitle">Watch {{ movie?.title || movie?.original_title }}</h1>
+						<span class="overlayMovieInfo" *ngIf="movie?.release_date">{{ movie?.release_date | date:'yyyy' }}</span>
+					</ng-container>
+					<ng-template #titleSkeleton>
+						<div class="skeleton-title shimmer"></div>
+						<div class="skeleton-subtitle shimmer"></div>
+					</ng-template>
 				</div>
 
 				<div class="overlayRightActions">
@@ -56,9 +62,62 @@
 			</div>
 		</div>
 
-		<!-- High-performance Iframe Video Streaming (Only injected after servers checking finishes) -->
-		<iframe *ngIf="!isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" class="moviePlayer">
+		<!-- High-performance Iframe Video Streaming (shows as soon as first server responds) -->
+		<iframe *ngIf="hasOnlineServer() || !isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" class="moviePlayer" (error)="onIframeError()">
 		</iframe>
+	</div>
+
+	<!-- Torrent Section -->
+	<div class="torrentSection">
+		<div class="torrentHeader">
+			<div class="torrentHeaderLeft">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M3 19h18"/></svg>
+				<span class="torrentTitle">Torrent Streaming</span>
+			</div>
+
+			<button *ngIf="!selectedTorrent && !isSearchingTorrents && !torrentSearchDone" class="findTorrentBtn" (click)="searchTorrents()" id="btn-find-torrents">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+				Find Torrents
+			</button>
+			<button *ngIf="isSearchingTorrents" class="findTorrentBtn" disabled>
+				<span class="searchingText">
+					<span class="dot-flashing"></span>
+					Searching...
+				</span>
+			</button>
+		</div>
+
+		<p class="torrentDesc">Stream directly via BitTorrent with WebTorrent P2P technology. No server needed — play from the swarm.</p>
+
+		<!-- Torrent List (results) -->
+		<div class="torrentList" *ngIf="showTorrentList && torrents.length > 0">
+			<div *ngFor="let torrent of torrents" class="torrentItem" [class.selected]="selectedTorrent?.id === torrent.id" (click)="selectTorrent(torrent)">
+				<div class="torrentQuality">{{ torrent.quality }}</div>
+				<div class="torrentMeta">
+					<span class="torrentSeeds">▲ {{ torrent.seeders }}</span>
+					<span class="torrentPeers">▼ {{ torrent.leechers }}</span>
+					<span *ngIf="torrent.filesize">{{ torrent.filesize }}</span>
+				</div>
+				<svg *ngIf="selectedTorrent?.id === torrent.id" class="checkIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+			</div>
+		</div>
+
+		<div class="noTorrents" *ngIf="torrentSearchDone && torrents.length === 0">
+			<p>No torrents found. You can try an external search:</p>
+			<button class="ytsBtn" (click)="openYtsDownload()">Search on YTS</button>
+		</div>
+
+		<!-- Selected Torrent -->
+		<div class="selectedTorrentInfo" *ngIf="selectedTorrent">
+			<span class="qualityBadge">{{ selectedTorrent.quality }}</span>
+			<span class="seedersInfo">▲ {{ selectedTorrent.seeders }} seeders</span>
+			<span *ngIf="selectedTorrent.filesize" style="color:var(--text-muted);font-size:13px;">{{ selectedTorrent.filesize }}</span>
+			<button class="changeTorrentBtn" (click)="showTorrentList = !showTorrentList">Change</button>
+			<button class="clearTorrentBtn" (click)="clearTorrent()">Clear</button>
+		</div>
+
+		<!-- Custom Player (torrent player) -->
+		<app-custom-player *ngIf="torrentMagnet" [torrentMagnet]="torrentMagnet" [title]="movie?.title"></app-custom-player>
 	</div>
 
 </div>

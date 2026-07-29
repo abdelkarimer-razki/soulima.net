@@ -301,6 +301,7 @@
 		<!-- Popup Content Loader (Skeletons) -->
 		<div class="modalContent" *ngIf="isPopUpLoading">
 			<div class="popupSkeletonTitle shimmer"></div>
+			<div class="popupSkeletonEpisodeSubtitle shimmer" *ngIf="popUpMovie?.isEpisodePopup"></div>
 			<div class="popupSkeletonRatingAndInfo">
 				<div class="popupSkeletonRating shimmer"></div>
 				<div class="popupSkeletonGenre shimmer"></div>
@@ -309,6 +310,10 @@
 			<div class="popupSkeletonLine shimmer" style="width: 100%;"></div>
 			<div class="popupSkeletonLine shimmer" style="width: 92%;"></div>
 			<div class="popupSkeletonLine shimmer" style="width: 78%;"></div>
+			<div class="popupSkeletonMetadata">
+				<div class="popupSkeletonMetadataLine shimmer" style="width: 60%;"></div>
+				<div class="popupSkeletonMetadataLine shimmer" style="width: 45%;"></div>
+			</div>
 		</div>
 
 		<!-- Loaded Popup Content -->

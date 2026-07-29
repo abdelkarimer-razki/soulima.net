@@ -52,20 +52,73 @@
           </svg>
         </div>
         <h3>Torrent Streaming</h3>
-        <p>Stream this video directly via torrent. Playback starts as soon as the cloud server connects to peers and buffers.</p>
+        <p>Stream this video directly via torrent. Playback starts as soon as peers connect.</p>
         <button class="startTorrentBtn" (click)="switchToTorrent()" id="btn-start-torrent">
           Start Torrent Stream
         </button>
       </div>
 
-      <!-- Cloud Torrent Player Frame -->
-      <iframe *ngIf="torrentStarted && torrentStreamUrl"
+      <!-- WebTorrent Loading -->
+      <div class="torrentLoading" *ngIf="torrentLoading && !useCloudFallback">
+        <div class="loadingRing"><div></div><div></div><div></div><div></div></div>
+        <div class="loadingInfo">
+          <h4 class="loadingTitle">Connecting to peers...</h4>
+          <div class="loadingStats" *ngIf="torrentProgress">
+            <span>&darr; {{ formatBytes(torrentProgress.downloadSpeed) }}/s</span>
+            <span>&uarr; {{ formatBytes(torrentProgress.uploadSpeed) }}/s</span>
+            <span>{{ torrentProgress.progress }}%</span>
+          </div>
+          <div class="progressTrack" *ngIf="torrentProgress">
+            <div class="progressBar" [style.width.%]="torrentProgress.progress"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error State -->
+      <div class="torrentError" *ngIf="torrentError && !useCloudFallback">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>{{ torrentError }}</p>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button class="retryBtn" (click)="retryTorrent()">Retry</button>
+          <button class="retryBtn" style="background:#333;color:#fff;box-shadow:none;" (click)="fallbackToCloud()">Try Cloud Stream</button>
+        </div>
+      </div>
+
+      <!-- Video Element (WebTorrent) -->
+      <video #videoElement
+        class="videoPlayer"
+        [class.hidden]="!torrentStarted || torrentLoading || !!torrentError || useCloudFallback"
+        controls
+        autoplay
+        playsinline>
+      </video>
+
+      <!-- Cloud Fallback (Webtor.io) -->
+      <iframe *ngIf="useCloudFallback && torrentStreamUrl"
         [src]="torrentStreamUrl"
         class="iframePlayer"
         frameborder="0"
         allowfullscreen="true"
         allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen">
       </iframe>
+
+      <!-- Torrent Stats Bar -->
+      <div class="torrentStats" *ngIf="torrentProgress && torrentProgress.status === 'playing' && !useCloudFallback">
+        <div class="stat">
+          <span class="statLabel">Download</span>
+          <span class="statValue">{{ formatBytes(torrentProgress.downloadSpeed) }}/s</span>
+        </div>
+        <div class="stat">
+          <span class="statLabel">Upload</span>
+          <span class="statValue">{{ formatBytes(torrentProgress.uploadSpeed) }}/s</span>
+        </div>
+        <div class="stat">
+          <span class="statLabel">Progress</span>
+          <span class="statValue">{{ torrentProgress.progress }}%</span>
+        </div>
+      </div>
     </div>
   </div>
 

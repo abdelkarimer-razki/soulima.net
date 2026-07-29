@@ -4,14 +4,14 @@
 	<!-- Netflix-like Video Player Container -->
 	<div class="moviePlayerWrapper" (mousemove)="showPlayerControls()" (click)="showPlayerControls()" [class.controlsActive]="showControls" [class.selectorActive]="showSelector || epiSelector">
 		
-		<!-- Buffering / Server Checker Centered Loader -->
-		<div class="playerLoaderOverlay" *ngIf="isCheckingServers()">
+		<!-- Buffering / Server Checker Centered Loader (only while checking AND no server found yet) -->
+		<div class="playerLoaderOverlay" *ngIf="isCheckingServers() && !hasOnlineServer()">
 			<div class="circleSpinner"></div>
 			<span class="loaderText">Checking working servers...</span>
 		</div>
 
-		<!-- Streaming Player Iframe (Only injected after servers checking finishes) -->
-		<iframe *ngIf="!isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture">
+		<!-- Streaming Player Iframe (shows as soon as first server responds) -->
+		<iframe *ngIf="hasOnlineServer() || !isCheckingServers()" id="vidsrc" [src]="link" frameborder="0" referrerpolicy="origin" allowfullscreen="true" allow="picture-in-picture" (error)="onIframeError()">
 		</iframe>
 
 		<!-- Transparent Overlay Layer -->
@@ -25,8 +25,14 @@
 				</a>
 
 				<div class="overlayTitle">
-					<h1 class="overlayMovieTitle">Watch {{ serie?.name }}</h1>
-					<span class="overlayMovieInfo" *ngIf="season && episode">Season {{ season }} &bull; Episode {{ episode }}</span>
+					<ng-container *ngIf="!loading; else titleSkeleton">
+						<h1 class="overlayMovieTitle">Watch {{ serie?.name }}</h1>
+						<span class="overlayMovieInfo" *ngIf="season && episode">Season {{ season }} &bull; Episode {{ episode }}</span>
+					</ng-container>
+					<ng-template #titleSkeleton>
+						<div class="skeleton-title shimmer"></div>
+						<div class="skeleton-subtitle shimmer"></div>
+					</ng-template>
 				</div>
 
 				<div class="overlayRightActions">
@@ -97,31 +103,42 @@
 				<button class="selectorCloseBtn" (click)="showSelector = false; $event.stopPropagation()">✕</button>
 			</div>
 			<div class="selectorScrollArea">
-				<ng-container *ngFor="let seasoned of seasons;index as i" >
-					<div class="season" (click)="choseSeason(i)" *ngIf="seasoned">
-						<div class="seasonNumber">
-							<div class="number">
-								{{seasoned.season_number}}
+				<ng-container *ngIf="seasons.length > 0; else seasonSkeleton">
+					<ng-container *ngFor="let seasoned of seasons;index as i" >
+						<div class="season" (click)="choseSeason(i)" *ngIf="seasoned">
+							<div class="seasonNumber">
+								<div class="number">
+									{{seasoned.season_number}}
+								</div>
+								<img ngOptimizedImage [src]="seasoned.poster_path ? 'https://image.tmdb.org/t/p/original' + seasoned.poster_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png')" class="seasonPoster" alt="">
 							</div>
-							<img ngOptimizedImage [src]="seasoned.poster_path ? 'https://image.tmdb.org/t/p/original' + seasoned.poster_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png')" class="seasonPoster" alt="">
+							<div class="seasonDetails">
+								<div class="seasonRatingd">
+									<div class="seasonRating" *ngIf="seasoned.vote_average">
+										{{seasoned.vote_average}}
+										<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+									</div>
+									<div class="seasonRating">
+										{{seasoned.episode_count}}
+										Episodes
+									</div>
+								</div>
+								<div class="seasonOverview" *ngIf="seasoned.overview">
+									{{seasoned.overview | slice:0:200}}...
+								</div>
+							</div>
 						</div>
-						<div class="seasonDetails">
-							<div class="seasonRatingd">
-								<div class="seasonRating" *ngIf="seasoned.vote_average">
-									{{seasoned.vote_average}}
-									<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
-								</div>
-								<div class="seasonRating">
-									{{seasoned.episode_count}}
-									Episodes
-								</div>
-							</div>
-							<div class="seasonOverview" *ngIf="seasoned.overview">
-								{{seasoned.overview | slice:0:200}}...
-							</div>
+					</ng-container>
+				</ng-container>
+				<ng-template #seasonSkeleton>
+					<div class="skeleton-episode-row" *ngFor="let _ of [1,2,3]">
+						<div class="skeleton-episode-thumb shimmer" style="width:60px;aspect-ratio:2/3;"></div>
+						<div class="skeleton-episode-text">
+							<div class="skeleton-episode-title shimmer" style="width:40%;"></div>
+							<div class="skeleton-episode-desc shimmer"></div>
 						</div>
 					</div>
-				</ng-container>
+				</ng-template>
 			</div>
 		</div>
 
@@ -136,32 +153,96 @@
 				<button class="selectorCloseBtn" (click)="epiSelector = false; $event.stopPropagation()">✕</button>
 			</div>
 			<div class="selectorScrollArea">
-				<ng-container *ngFor="let episode of episodes;index as i" >
-					<div class="season" (click)="changeEpisode(episode.episode_number)" *ngIf="episode">
-						<div class="seasonNumber">
-							<div class="number">
-								{{episode.episode_number}}
+				<ng-container *ngIf="episodes.length > 0; else episodeSkeleton">
+					<ng-container *ngFor="let episode of episodes;index as i" >
+						<div class="season" (click)="changeEpisode(episode.episode_number)" *ngIf="episode">
+							<div class="seasonNumber">
+								<div class="number">
+									{{episode.episode_number}}
+								</div>
+								<img ngOptimizedImage [src]="episode.still_path ? 'https://image.tmdb.org/t/p/original' + episode.still_path : (serie.backdrop_path ? 'https://image.tmdb.org/t/p/original' + serie.backdrop_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png'))" class="episodePoster" alt="">
 							</div>
-							<img ngOptimizedImage [src]="episode.still_path ? 'https://image.tmdb.org/t/p/original' + episode.still_path : (serie.backdrop_path ? 'https://image.tmdb.org/t/p/original' + serie.backdrop_path : (serie.poster_path ? 'https://image.tmdb.org/t/p/original' + serie.poster_path : 'assets/soulima.png'))" class="episodePoster" alt="">
+							<div class="seasonDetails">
+								<div class="seasonRatingd">
+									<div class="seasonRating" *ngIf="episode.vote_average">
+										{{episode.vote_average}}
+										<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
+									</div>
+									<div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">
+										{{episode.name}}
+									</div>
+								</div>
+								<div class="seasonOverview" *ngIf="episode.overview">
+									{{episode.overview | slice:0:200}}...
+								</div>
+							</div>
 						</div>
-						<div class="seasonDetails">
-							<div class="seasonRatingd">
-								<div class="seasonRating" *ngIf="episode.vote_average">
-									{{episode.vote_average}}
-									<svg class="star" height="21px" version="1.1" viewBox="0 0 20 21" width="20px" xmlns="http://www.w3.org/2000/svg"><g fill="#F6C906" fill-rule="evenodd" id="Page-1" stroke="none" stroke-width="1"><g fill="#F6C906" id="Core" transform="translate(-296.000000, -422.000000)"><g id="star" transform="translate(296.000000, 422.500000)"><path d="M10,15.273 L16.18,19 L14.545,11.971 L20,7.244 L12.809,6.627 L10,0 L7.191,6.627 L0,7.244 L5.455,11.971 L3.82,19 L10,15.273 Z" id="Shape"/></g></g></g></svg>
-								</div>
-								<div style="font-weight: 600; font-size: 14px; color: var(--text-primary);">
-									{{episode.name}}
-								</div>
-							</div>
-							<div class="seasonOverview" *ngIf="episode.overview">
-								{{episode.overview | slice:0:200}}...
-							</div>
+					</ng-container>
+				</ng-container>
+				<ng-template #episodeSkeleton>
+					<div class="skeleton-episode-row" *ngFor="let _ of [1,2,3,4,5]">
+						<div class="skeleton-episode-thumb shimmer"></div>
+						<div class="skeleton-episode-text">
+							<div class="skeleton-episode-title shimmer"></div>
+							<div class="skeleton-episode-desc shimmer"></div>
 						</div>
 					</div>
-				</ng-container>
+				</ng-template>
 			</div>
 		</div>
+	</div>
+
+	<!-- Torrent Section -->
+	<div class="torrentSection">
+		<div class="torrentHeader">
+			<div class="torrentHeaderLeft">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 10l5 5 5-5"/><path d="M3 19h18"/></svg>
+				<span class="torrentTitle">Torrent Streaming</span>
+			</div>
+
+			<button *ngIf="!selectedTorrent && !isSearchingTorrents && !torrentSearchDone" class="findTorrentBtn" (click)="searchTorrents()" id="btn-find-torrents">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+				Find Torrents
+			</button>
+			<button *ngIf="isSearchingTorrents" class="findTorrentBtn" disabled>
+				<span class="searchingText">
+					<span class="dot-flashing"></span>
+					Searching...
+				</span>
+			</button>
+		</div>
+
+		<p class="torrentDesc">Stream directly via BitTorrent with WebTorrent P2P technology. No server needed — play from the swarm.</p>
+
+		<!-- Torrent List (results) -->
+		<div class="torrentList" *ngIf="showTorrentList && torrents.length > 0">
+			<div *ngFor="let torrent of torrents" class="torrentItem" [class.selected]="selectedTorrent?.id === torrent.id" (click)="selectTorrent(torrent)">
+				<div class="torrentQuality">{{ torrent.quality }}</div>
+				<div class="torrentMeta">
+					<span class="torrentSeeds">▲ {{ torrent.seeders }}</span>
+					<span class="torrentPeers">▼ {{ torrent.leechers }}</span>
+					<span *ngIf="torrent.filesize">{{ torrent.filesize }}</span>
+				</div>
+				<svg *ngIf="selectedTorrent?.id === torrent.id" class="checkIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+			</div>
+		</div>
+
+		<div class="noTorrents" *ngIf="torrentSearchDone && torrents.length === 0">
+			<p>No torrents found. You can try an external search:</p>
+			<button class="ytsBtn" (click)="openEztvDownload()">Search on EZTV</button>
+		</div>
+
+		<!-- Selected Torrent -->
+		<div class="selectedTorrentInfo" *ngIf="selectedTorrent">
+			<span class="qualityBadge">{{ selectedTorrent.quality }}</span>
+			<span class="seedersInfo">▲ {{ selectedTorrent.seeders }} seeders</span>
+			<span *ngIf="selectedTorrent.filesize" style="color:var(--text-muted);font-size:13px;">{{ selectedTorrent.filesize }}</span>
+			<button class="changeTorrentBtn" (click)="showTorrentList = !showTorrentList">Change</button>
+			<button class="clearTorrentBtn" (click)="clearTorrent()">Clear</button>
+		</div>
+
+		<!-- Custom Player (torrent player) -->
+		<app-custom-player *ngIf="torrentMagnet" [torrentMagnet]="torrentMagnet" [title]="serie?.name"></app-custom-player>
 	</div>
 
 </div>

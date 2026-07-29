@@ -198,14 +198,15 @@ app-root
 	font-size: 210px;
 	font-weight: 900;
 	line-height: 0.72;
-	color: #000000;
-	-webkit-text-stroke: 5px rgba(255, 255, 255, 0.35);
+	color: #141414;
+	-webkit-text-stroke: 3px rgba(255, 255, 255, 0.55);
+	text-stroke: 3px rgba(255, 255, 255, 0.55);
 	position: absolute;
-	left: -20px;
-	bottom: -10px;
+	left: -15px;
+	bottom: -5px;
 	z-index: 1;
 	pointer-events: none;
-	letter-spacing: -12px;
+	letter-spacing: -6px;
 	user-select: none;
 	font-family: 'Inter', sans-serif;
 }
@@ -464,14 +465,15 @@ app-root
 		font-size: 125px !important;
 		font-weight: 900 !important;
 		line-height: 0.8 !important;
-		color: #000000 !important;
-		-webkit-text-stroke: 4px rgba(255, 255, 255, 0.5) !important;
+		color: #141414 !important;
+		-webkit-text-stroke: 2.5px rgba(255, 255, 255, 0.6) !important;
+		text-stroke: 2.5px rgba(255, 255, 255, 0.6) !important;
 		position: absolute !important;
-		left: -12px !important;
-		bottom: -15px !important;
+		left: -10px !important;
+		bottom: -12px !important;
 		z-index: 1 !important;
 		pointer-events: none !important;
-		letter-spacing: -8px !important;
+		letter-spacing: -4px !important;
 		user-select: none !important;
 	}
 

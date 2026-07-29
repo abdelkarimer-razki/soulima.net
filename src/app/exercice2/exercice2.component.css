@@ -767,6 +767,28 @@
 	border-radius: 4px;
 }
 
+.popupSkeletonMetadata {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 20px;
+	padding-top: 16px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.popupSkeletonMetadataLine {
+	height: 13px;
+	width: 55%;
+	border-radius: 4px;
+}
+
+.popupSkeletonEpisodeSubtitle {
+	height: 15px;
+	width: 45%;
+	border-radius: 4px;
+	margin: 4px 0 12px 0;
+}
+
 /* ─── Page Entry Animations ─── */
 
 .moviesContainer {
