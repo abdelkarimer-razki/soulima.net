@@ -103,8 +103,7 @@ export class SeriesComponent {
 		} else {
 			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
 		}
-		const proxyUrl = `/api/embed-proxy?url=${encodeURIComponent(constructedUrl)}`;
-		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(proxyUrl);
+		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
 		this.iframeOriginalUrl = constructedUrl;
 		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();

@@ -96,8 +96,7 @@ export class MovieComponent implements OnInit {
     } else {
       constructedUrl = `${server.url}/movie/${this.id}?player=new&ds_lang=ar`;
     }
-    const proxyUrl = `/api/embed-proxy?url=${encodeURIComponent(constructedUrl)}`;
-    this.link = this.sanitizer.bypassSecurityTrustResourceUrl(proxyUrl);
+    this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
     this.iframeOriginalUrl = constructedUrl;
     this.triedServers.add(this.selectedServerIndex);
     this.resetHeartbeat();
