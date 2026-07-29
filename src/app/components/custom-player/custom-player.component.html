@@ -6,9 +6,9 @@
         [src]="iframeSrc"
         class="iframePlayer"
         frameborder="0"
-        [attr.sandbox]="iframeSandbox"
         allowfullscreen="true"
-        allow="picture-in-picture; fullscreen"
+        referrerpolicy="origin"
+        allow="picture-in-picture"
         (error)="iframeError.emit()">
       </iframe>
     </div>
