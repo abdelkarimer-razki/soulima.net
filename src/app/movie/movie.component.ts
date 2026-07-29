@@ -1,7 +1,6 @@
-import { Component, OnInit, NgZone, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
-import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
@@ -59,20 +58,9 @@ export class MovieComponent implements OnInit {
   private heartbeatTimer: any = null;
   private videoConfirmed = false;
 
-  @ViewChild('player') player!: CustomPlayerComponent;
-
-  // Torrent state
-  torrents: Torrent[] = [];
-  selectedTorrent: Torrent | null = null;
-  torrentMagnet: string | undefined = undefined;
-  isSearchingTorrents = false;
-  torrentSearchDone = false;
-  showTorrentList = false;
-
   constructor(
     private route: ActivatedRoute,
     private moviedbAPIService: MoviedbAPIService,
-    private torrentSearchService: TorrentSearchService,
     private sanitizer: DomSanitizer,
     private zone: NgZone,
     private titleService: Title,
@@ -100,7 +88,6 @@ export class MovieComponent implements OnInit {
     this.iframeOriginalUrl = constructedUrl;
     this.triedServers.add(this.selectedServerIndex);
     this.resetHeartbeat();
-    setTimeout(() => this.player?.switchToServer());
   }
 
   selectServer(index: number) {
@@ -139,11 +126,6 @@ export class MovieComponent implements OnInit {
     } else {
       this.triedServers.clear();
       this.checkAllServers();
-      setTimeout(() => {
-        if (!this.serverStatus.includes('online')) {
-          this.autoTorrentFallback();
-        }
-      }, 7000);
     }
   }
 
@@ -153,11 +135,6 @@ export class MovieComponent implements OnInit {
     this.serverStatus[this.selectedServerIndex] = 'offline';
     this.updateReliability(this.selectedServerIndex, false);
     this.saveServerCache();
-    setTimeout(() => {
-      if (!this.serverStatus.includes('online')) {
-        this.autoTorrentFallback();
-      }
-    }, 7000);
   }
 
   /** Listen for postMessage from embed iframes (some providers send play/error events) */
@@ -199,70 +176,6 @@ export class MovieComponent implements OnInit {
       clearTimeout(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
-  }
-
-  private autoTorrentFallback() {
-    if (!this.torrentSearchDone && !this.isSearchingTorrents) {
-      this.searchTorrents();
-    }
-  }
-
-  /** Search torrents for this movie via YTS */
-  searchTorrents() {
-    if (this.isSearchingTorrents) return;
-
-    const title = this.movie?.original_title || this.movie?.title || '';
-    const year = this.movie?.release_date?.split('-')[0];
-    const imdbId = this.movie?.imdb_id;
-
-    this.isSearchingTorrents = true;
-    this.showTorrentList = true;
-
-    this.torrentSearchService.searchMovieTorrents(title, year ? Number(year) : undefined, imdbId)
-      .subscribe({
-        next: (results) => {
-          this.torrents = results;
-          this.isSearchingTorrents = false;
-          this.torrentSearchDone = true;
-
-          if (results.length > 0) {
-            const preferred = results.find(t => t.quality === '1080p') || results[0];
-            this.selectTorrent(preferred);
-          }
-        },
-        error: () => {
-          this.isSearchingTorrents = false;
-          this.torrentSearchDone = true;
-          this.torrents = [];
-        }
-      });
-  }
-
-  selectTorrent(torrent: Torrent) {
-    this.selectedTorrent = torrent;
-    this.torrentMagnet = torrent.magnet;
-    this.showTorrentList = false;
-    setTimeout(() => this.player?.switchToTorrent());
-  }
-
-  clearTorrent() {
-    this.selectedTorrent = null;
-    this.torrentMagnet = undefined;
-    this.showTorrentList = false;
-    this.torrentSearchDone = false;
-    this.torrents = [];
-  }
-
-  downloadMagnet(magnet: string) {
-    window.open(magnet, '_self');
-  }
-
-  /** Download via YTS (opens in new tab) */
-  openYtsDownload() {
-    const title = this.movie?.title || this.movie?.original_title || '';
-    const year  = this.movie?.release_date?.split('-')[0] || '';
-    const query = encodeURIComponent(title + (year ? ' ' + year : ''));
-    window.open(`https://yts.mx/browse-movies/${query}`, '_blank');
   }
 
   private buildCheckUrl(server: ServerEntry): string {
@@ -309,7 +222,6 @@ export class MovieComponent implements OnInit {
 
     if (ranked.length === 0) {
       this.serverStatus = this.servers.map(() => 'offline');
-      this.autoTorrentFallback();
       return;
     }
 
@@ -466,7 +378,6 @@ export class MovieComponent implements OnInit {
 
       this.getRecentlyWatched();
       this.updateLink();
-      this.searchTorrents();
     });
     this.checkAllServers();
     this.showPlayerControls();

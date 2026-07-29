@@ -1,11 +1,9 @@
-import { Component, OnInit, NgZone, HostListener, ViewChild } from '@angular/core';
+import { Component, OnInit, NgZone, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
-import { TorrentSearchService, Torrent } from '../services/torrent-search.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
-import { CustomPlayerComponent } from '../components/custom-player/custom-player.component';
 
 @Component({
   selector: 'app-series',
@@ -65,19 +63,9 @@ export class SeriesComponent {
 	link: SafeResourceUrl = '';
 	iframeOriginalUrl: string = '';
 
-	// Torrent state
-	@ViewChild('player') player!: CustomPlayerComponent;
-	torrents: Torrent[] = [];
-	selectedTorrent: Torrent | null = null;
-	torrentMagnet: string | undefined = undefined;
-	isSearchingTorrents = false;
-	torrentSearchDone = false;
-	showTorrentList = false;
-
 	constructor(
 		private route: ActivatedRoute,
 		private moviedbAPIService: MoviedbAPIService,
-		private torrentSearchService: TorrentSearchService,
 		private sanitizer: DomSanitizer,
 		private zone: NgZone,
 		private titleService: Title,
@@ -107,7 +95,6 @@ export class SeriesComponent {
 		this.iframeOriginalUrl = constructedUrl;
 		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();
-		setTimeout(() => this.player?.switchToServer());
 	}
 
 	selectServer(index: number) {
@@ -147,11 +134,6 @@ export class SeriesComponent {
 		} else {
 			this.triedServers.clear();
 			this.checkAllServers();
-			setTimeout(() => {
-				if (!this.serverStatus.includes('online')) {
-					this.autoTorrentFallback();
-				}
-			}, 7000);
 		}
 	}
 
@@ -161,11 +143,6 @@ export class SeriesComponent {
 		this.serverStatus[this.selectedServerIndex] = 'offline';
 		this.updateReliability(this.selectedServerIndex, false);
 		this.saveServerCache();
-		setTimeout(() => {
-			if (!this.serverStatus.includes('online')) {
-				this.autoTorrentFallback();
-			}
-		}, 7000);
 	}
 
 	/** Listen for postMessage from embed iframes (some providers send play/error events) */
@@ -209,64 +186,6 @@ export class SeriesComponent {
 		}
 	}
 
-	private autoTorrentFallback() {
-		if (!this.torrentSearchDone && !this.isSearchingTorrents) {
-			this.searchTorrents();
-		}
-	}
-
-	/** Search torrents for this episode */
-	searchTorrents() {
-		if (this.isSearchingTorrents) return;
-
-		const name = this.serie?.original_name || this.serie?.name || '';
-
-		this.isSearchingTorrents = true;
-		this.showTorrentList = true;
-
-		this.torrentSearchService.searchTVTorrents(name, this.season, this.episode)
-			.subscribe({
-				next: (results) => {
-					this.torrents = results;
-					this.isSearchingTorrents = false;
-					this.torrentSearchDone = true;
-					if (results.length > 0) this.selectTorrent(results[0]);
-				},
-				error: () => {
-					this.isSearchingTorrents = false;
-					this.torrentSearchDone = true;
-					this.torrents = [];
-				}
-			});
-	}
-
-	selectTorrent(torrent: Torrent) {
-		this.selectedTorrent = torrent;
-		this.torrentMagnet = torrent.magnet;
-		this.showTorrentList = false;
-		setTimeout(() => this.player?.switchToTorrent());
-	}
-
-	clearTorrent() {
-		this.selectedTorrent = null;
-		this.torrentMagnet = undefined;
-		this.showTorrentList = false;
-		this.torrentSearchDone = false;
-		this.torrents = [];
-	}
-
-	downloadMagnet(magnet: string) {
-		window.open(magnet, '_self');
-	}
-
-	/** Open EZTV search for the series name — covers all TV shows reliably */
-	openEztvDownload() {
-		const name  = this.serie?.name || this.serie?.original_name || '';
-		const s     = String(this.season).padStart(2, '0');
-		const query = encodeURIComponent(`${name} S${s}`);
-		window.open(`https://eztvx.to/search/${query}`, '_blank');
-	}
-
 	private buildCheckUrl(server: ServerEntry): string {
 		if (server.format === 'smashy') {
 			return `${server.url}/tv/${this.id}?s=${this.season}&e=${this.episode}`;
@@ -305,7 +224,6 @@ export class SeriesComponent {
 			const ranked = this.getServerCheckQueue();
 			if (ranked.length === 0) {
 				this.serverStatus = this.servers.map(() => 'offline');
-				this.autoTorrentFallback();
 				return;
 			}
 			ranked.forEach(({ server, index }) => {
@@ -417,10 +335,6 @@ export class SeriesComponent {
 		this.saveReliability(data);
 	}
 
-	ngOnChanges() {
-		var id = document.getElementById('video-element');
-	}
-
 	changeEpisode(episodeNumber: number) {
 		this.epiSelector = false;
 		this.showSelector = false;
@@ -514,7 +428,6 @@ export class SeriesComponent {
 			if (activeSeasonData) {
 				this.preloadEpisodesForSeason(activeSeasonData);
 			}
-			this.searchTorrents();
 		});
 		this.checkAllServers();
 		this.showPlayerControls();
