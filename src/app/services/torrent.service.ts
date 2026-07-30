@@ -32,11 +32,10 @@ const TRACKERS = [
 ];
 
 function magnetLink(hash: string, name: string): string {
-  const params = new URLSearchParams();
-  params.set('xt', `urn:btih:${hash}`);
-  params.set('dn', name);
-  TRACKERS.forEach(tr => params.append('tr', tr));
-  return `magnet:?${params.toString()}`;
+  const xt = `urn:btih:${hash.toLowerCase()}`;
+  const dn = encodeURIComponent(name);
+  const tr = TRACKERS.map(t => `tr=${encodeURIComponent(t)}`).join('&');
+  return `magnet:?xt=${xt}&dn=${dn}&${tr}`;
 }
 
 @Injectable({ providedIn: 'root' })
