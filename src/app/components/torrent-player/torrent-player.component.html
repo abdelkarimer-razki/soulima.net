@@ -1,11 +1,16 @@
 <div class="torrentPlayer" (mousemove)="onPlayerMouseMove()" [class.controlsActive]="showControls">
 
   <div class="torrentLoaderOverlay" *ngIf="loading">
-    <div class="circleSpinner"></div>
-    <span class="loaderText">
-      Connecting to peers… {{ peers > 0 ? peers + ' peers' : '' }}
+    <div class="loaderBarTrack">
+      <div class="loaderBarFill" [style.width.%]="progress * 100"></div>
+    </div>
+    <span class="loaderText" *ngIf="progress === 0">Connecting to peers…</span>
+    <span class="loaderText" *ngIf="progress > 0">Buffering… {{ (progress * 100).toFixed(1) }}%</span>
+    <span class="loaderSubText">
+      <span class="loaderStat" *ngIf="peers > 0">{{ peers }} peers</span>
+      <span class="loaderStat" *ngIf="speed > 0">{{ formatSpeed(speed) }}</span>
+      <span class="loaderStat" *ngIf="downloaded > 0">{{ formatSize(downloaded) }} / {{ formatSize(total) }}</span>
     </span>
-    <span class="loaderSubText" *ngIf="progress > 0">{{ (progress * 100).toFixed(1) }}% buffered</span>
   </div>
 
   <div class="torrentErrorOverlay" *ngIf="error && !loading">

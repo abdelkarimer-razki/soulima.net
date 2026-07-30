@@ -160,6 +160,15 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     return `${v.toFixed(1)} ${u[i]}`;
   }
 
+  formatSize(bytes: number): string {
+    if (!bytes) return '0 B';
+    const u = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let v = bytes;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(1)} ${u[i]}`;
+  }
+
   download() {
     if (this.selectedSource?.magnet) {
       window.open(this.selectedSource.magnet, '_blank');
