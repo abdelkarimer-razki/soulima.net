@@ -1,6 +1,5 @@
-import { Component, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 import { TorrentService, TorrentSource } from '../../services/torrent.service';
-import { DownloadService } from '../../services/download.service';
 
 @Component({
   selector: 'app-torrent-player',
@@ -17,25 +16,24 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   loading = false;
   error: string | null = null;
 
-  downloaded = 0;
-  total = 0;
   progress = 0;
   speed = 0;
   peers = 0;
+  downloaded = 0;
+  total = 0;
   ready = false;
 
   isPlaying = false;
   currentTime = 0;
   duration = 0;
   showControls = true;
+
+  private currentStreamId: string | null = null;
   private controlsTimeout: any = null;
   private progressSub: any = null;
-  private timeUpdateHandler: (() => void) | null = null;
 
   constructor(
     private torrentService: TorrentService,
-    private downloadService: DownloadService,
-    private zone: NgZone
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
@@ -49,71 +47,34 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
 
   selectSource(source: TorrentSource) {
     this.selectedSource = source;
-    this.startTorrent();
+    this.startStream();
   }
 
-  startTorrent() {
+  async startStream() {
     if (!this.selectedSource) return;
-    this.stopTorrent();
+    this.stopStream();
     this.loading = true;
     this.error = null;
     this.ready = false;
 
-    const existingVideo = this.videoRef?.nativeElement;
-    if (existingVideo) {
-      existingVideo.src = '';
-      existingVideo.load();
+    const video = this.videoRef?.nativeElement;
+    if (video) {
+      video.src = '';
+      video.load();
     }
 
-    const video = this.torrentService.play(this.selectedSource.magnet);
-    if (!video) {
-      this.error = 'WebTorrent is not available.';
-      this.loading = false;
-      return;
-    }
+    try {
+      const info = await this.torrentService.requestStream(this.selectedSource.magnet);
+      this.currentStreamId = info.id;
+      this.total = info.size;
 
-    video.style.width = '100%';
-    video.style.height = '100%';
-    video.style.objectFit = 'contain';
+      this.torrentService.startPolling(info.id);
 
-    const container = this.videoRef?.nativeElement?.parentElement;
-    if (container) {
-      container.innerHTML = '';
-      container.appendChild(video);
-    }
-
-    video.addEventListener('canplay', () => {
-      this.zone.run(() => {
-        this.loading = false;
-        this.ready = true;
-        video.play().catch(() => {});
-      });
-    });
-
-    video.addEventListener('play', () => this.zone.run(() => this.isPlaying = true));
-    video.addEventListener('pause', () => this.zone.run(() => this.isPlaying = false));
-    video.addEventListener('timeupdate', () => {
-      this.zone.run(() => {
-        this.currentTime = video.currentTime;
-        this.duration = video.duration || 0;
-      });
-    });
-    video.addEventListener('error', () => {
-      this.zone.run(() => {
-        this.error = 'Video playback error.';
-        this.loading = false;
-      });
-    });
-
-    this.timeUpdateHandler = () => {};
-
-    this.progressSub = this.torrentService.progress$.subscribe(p => {
-      this.zone.run(() => {
-        this.downloaded = p.downloaded;
-        this.total = p.total;
+      this.progressSub = this.torrentService.progress$.subscribe(p => {
         this.progress = p.progress;
         this.speed = p.speed;
         this.peers = p.peers;
+        this.downloaded = p.downloaded;
         this.ready = this.ready || p.ready;
         this.loading = this.loading && !p.ready;
         if (p.error) {
@@ -121,11 +82,22 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
           this.loading = false;
         }
       });
-    });
+
+      if (video && info.streamUrl) {
+        video.src = info.streamUrl;
+        video.load();
+      }
+    } catch (err: any) {
+      this.error = err.message || 'Failed to start stream';
+      this.loading = false;
+    }
   }
 
-  private stopTorrent() {
-    this.torrentService.stop();
+  private stopStream() {
+    if (this.currentStreamId) {
+      this.torrentService.stopStream(this.currentStreamId);
+      this.currentStreamId = null;
+    }
     if (this.progressSub) {
       this.progressSub.unsubscribe();
       this.progressSub = null;
@@ -176,7 +148,6 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.stopTorrent();
-    this.torrentService.destroy();
+    this.stopStream();
   }
 }

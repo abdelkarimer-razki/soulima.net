@@ -1,6 +1,6 @@
 <div class="torrentPlayer" (mousemove)="onPlayerMouseMove()" [class.controlsActive]="showControls">
 
-  <div class="torrentLoaderOverlay" *ngIf="loading">
+  <div class="torrentLoaderOverlay" *ngIf="loading && !ready">
     <div class="loaderBarTrack">
       <div class="loaderBarFill" [style.width.%]="progress * 100"></div>
     </div>
@@ -13,7 +13,7 @@
     </span>
   </div>
 
-  <div class="torrentErrorOverlay" *ngIf="error && !loading">
+  <div class="torrentErrorOverlay" *ngIf="error">
     <span class="errorIcon">⚠️</span>
     <span class="errorText">{{ error }}</span>
   </div>
@@ -22,7 +22,16 @@
     <span class="emptyText">No torrent sources found for this title.</span>
   </div>
 
-  <div class="videoContainer" #videoContainer></div>
+  <video #videoPlayer
+         class="torrentVideo"
+         (play)="isPlaying = true"
+         (pause)="isPlaying = false"
+         (timeupdate)="currentTime = videoRef.nativeElement.currentTime || 0; duration = videoRef.nativeElement.duration || 0"
+         (canplay)="loading = false; ready = true"
+         (error)="error = 'Video playback error.'; loading = false"
+         preload="auto"
+         playsinline>
+  </video>
 
   <div class="torrentHud" *ngIf="ready && !error">
     <div class="hudTop">

@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
@@ -18,7 +18,13 @@ export interface TorrentProgress {
   error: string | null;
 }
 
-declare const WebTorrent: any;
+export interface StreamInfo {
+  id: string;
+  streamUrl: string;
+  statusUrl: string;
+  fileName: string;
+  size: number;
+}
 
 const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
 
@@ -40,8 +46,7 @@ function magnetLink(hash: string, name: string): string {
 
 @Injectable({ providedIn: 'root' })
 export class TorrentService {
-  private client: any = null;
-  private currentTorrent: any = null;
+  private streamServerUrl = 'http://localhost:3030';
 
   private progressSubject = new BehaviorSubject<TorrentProgress>({
     downloaded: 0, total: 0, progress: 0, speed: 0, peers: 0, ready: false, error: null,
@@ -49,13 +54,10 @@ export class TorrentService {
 
   progress$: Observable<TorrentProgress> = this.progressSubject.asObservable();
 
-  constructor(private http: HttpClient, private zone: NgZone) {}
+  constructor(private http: HttpClient) {}
 
-  private getClient(): any {
-    if (!this.client && typeof WebTorrent !== 'undefined') {
-      this.client = new WebTorrent();
-    }
-    return this.client;
+  setStreamServerUrl(url: string) {
+    this.streamServerUrl = url;
   }
 
   async fetchSources(tmdbId: number, mediaType: string, season?: number, episode?: number): Promise<TorrentSource[]> {
@@ -71,6 +73,47 @@ export class TorrentService {
     } catch {
       return [];
     }
+  }
+
+  async requestStream(magnet: string): Promise<StreamInfo> {
+    const data: any = await this.http.post(`${this.streamServerUrl}/api/stream`, { magnet }).toPromise();
+    return {
+      id: data.id,
+      streamUrl: data.streamUrl,
+      statusUrl: data.statusUrl,
+      fileName: data.fileName,
+      size: data.size,
+    };
+  }
+
+  startPolling(streamId: string) {
+    const url = `${this.streamServerUrl}/api/stream/${streamId}/status`;
+    const poll = () => {
+      this.http.get(url).toPromise().then((data: any) => {
+        this.progressSubject.next({
+          downloaded: data.downloaded,
+          total: data.total,
+          progress: data.progress,
+          speed: data.speed,
+          peers: data.peers,
+          ready: data.ready,
+          error: null,
+        });
+        if (!data.ready) {
+          setTimeout(poll, 2000);
+        }
+      }).catch(() => {
+        setTimeout(poll, 2000);
+      });
+    };
+    poll();
+  }
+
+  stopStream(streamId: string) {
+    this.http.delete(`${this.streamServerUrl}/api/stream/${streamId}`).subscribe();
+    this.progressSubject.next({
+      downloaded: 0, total: 0, progress: 0, speed: 0, peers: 0, ready: false, error: null,
+    });
   }
 
   private async getImdbId(tmdbId: number, mediaType: string): Promise<string | null> {
@@ -111,68 +154,5 @@ export class TorrentService {
         magnet: t.magnet_url,
         size: t.size || undefined,
       }));
-  }
-
-  play(magnet: string): HTMLVideoElement | null {
-    this.stop();
-
-    const client = this.getClient();
-    if (!client) return null;
-
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.preload = 'auto';
-
-    client.add(magnet, (torrent: any) => {
-      this.currentTorrent = torrent;
-      torrent.files.forEach((file: any) => {
-        if (file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.avi') || file.name.endsWith('.webm')) {
-          file.renderTo(video, { autoplay: true });
-        }
-      });
-
-      const interval = setInterval(() => {
-        this.zone.run(() => {
-          this.progressSubject.next({
-            downloaded: torrent.downloaded,
-            total: torrent.length,
-            progress: torrent.progress,
-            speed: torrent.downloadSpeed,
-            peers: torrent.numPeers,
-            ready: torrent.done || torrent.progress > 0.05,
-            error: null,
-          });
-        });
-        if (torrent.done) clearInterval(interval);
-      }, 1000);
-    });
-
-    client.on('error', (err: Error) => {
-      this.zone.run(() => {
-        this.progressSubject.next({
-          ...this.progressSubject.value, error: err.message,
-        });
-      });
-    });
-
-    return video;
-  }
-
-  stop() {
-    if (this.currentTorrent) {
-      try { this.currentTorrent.destroy(); } catch {}
-      this.currentTorrent = null;
-    }
-    this.progressSubject.next({
-      downloaded: 0, total: 0, progress: 0, speed: 0, peers: 0, ready: false, error: null,
-    });
-  }
-
-  destroy() {
-    this.stop();
-    if (this.client) {
-      try { this.client.destroy(); } catch {}
-      this.client = null;
-    }
   }
 }

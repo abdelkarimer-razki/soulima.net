@@ -1,7 +1,0 @@
-{
-  "/api/*": {
-    "target": "https://soulima.net",
-    "secure": true,
-    "changeOrigin": true
-  }
-}

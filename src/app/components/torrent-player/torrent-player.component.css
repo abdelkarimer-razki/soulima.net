@@ -12,12 +12,10 @@
   overflow: hidden;
 }
 
-.videoContainer {
+.torrentVideo {
   width: 100%;
   height: 100%;
-}
-
-.videoContainer video {
+  object-fit: contain;
   display: block;
 }
 
