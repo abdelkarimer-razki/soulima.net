@@ -23,12 +23,12 @@ declare const WebTorrent: any;
 const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
 
 const TRACKERS = [
+  'wss://tracker.btorrent.xyz',
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.fastcast.nz',
   'udp://tracker.opentrackr.org:1337/announce',
-  'udp://open.stealth.si:80/announce',
-  'udp://tracker.torrent.eu.org:451/announce',
-  'udp://tracker.dler.org:6969/announce',
-  'udp://open.dstud.io:6969/announce',
-  'udp://tracker.moeking.me:6969/announce',
+  'udp://tracker.leechers-paradise.org:6969/announce',
+  'udp://tracker.coppersurfer.tk:6969/announce',
 ];
 
 function magnetLink(hash: string, name: string): string {
