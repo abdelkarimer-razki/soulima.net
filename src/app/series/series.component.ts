@@ -1,16 +1,18 @@
-import { Component, OnInit, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
+import { WatchProgressService } from '../services/watch-progress.service';
+import { TorrentService, TorrentSource } from '../services/torrent.service';
 
 @Component({
   selector: 'app-series',
   templateUrl: './series.component.html',
   styleUrls: ['./series.component.css']
 })
-export class SeriesComponent {
+export class SeriesComponent implements OnDestroy {
 
 	id: number = 0;
 	season: number = 1;
@@ -63,6 +65,15 @@ export class SeriesComponent {
 	link: SafeResourceUrl = '';
 	iframeOriginalUrl: string = '';
 
+	/** watch-progress tracking */
+	savedProgress = 0;
+	private watchTimer: any = null;
+	private elapsedSeconds = 0;
+	private progressSavedAt = 0;
+
+	playerMode: 'server' | 'torrent' = 'server';
+	torrentSources: TorrentSource[] = [];
+
 	constructor(
 		private route: ActivatedRoute,
 		private moviedbAPIService: MoviedbAPIService,
@@ -71,7 +82,9 @@ export class SeriesComponent {
 		private titleService: Title,
 		private metaService: Meta,
 		private seoService: SeoService,
-		private serverConfig: ServerConfigService
+		private serverConfig: ServerConfigService,
+		private watchProgress: WatchProgressService,
+		private torrentService: TorrentService
 	) {
 		this.route.params.subscribe(params => {
 			this.id      = Number(params['id']);
@@ -81,7 +94,86 @@ export class SeriesComponent {
 		});
 	}
 
+	ngOnDestroy() {
+		this.saveProgress();
+		this.stopWatchTimer();
+	}
+
+	@HostListener('window:beforeunload')
+	onBeforeUnload() {
+		this.saveProgress();
+	}
+
+	private startWatchTimer() {
+		this.stopWatchTimer();
+		this.elapsedSeconds = 0;
+		this.progressSavedAt = 0;
+		this.watchTimer = setInterval(() => {
+			this.elapsedSeconds++;
+		}, 1000);
+	}
+
+	private stopWatchTimer() {
+		if (this.watchTimer) {
+			clearInterval(this.watchTimer);
+			this.watchTimer = null;
+		}
+	}
+
+	private saveProgress() {
+		if (!this.serie?.id) return;
+		const total = this.progressSavedAt + this.elapsedSeconds;
+		if (total <= 0) return;
+		this.watchProgress.save({
+			id: this.serie.id,
+			name: this.serie.name || this.serie.original_name || '',
+			poster_path: this.serie.poster_path || null,
+			backdrop_path: this.serie.backdrop_path || null,
+			seasonnb: this.season,
+			episodenb: this.episode,
+			current_still_path: this.serie.current_still_path || null,
+			progress: total,
+		});
+		this.progressSavedAt = total;
+		this.elapsedSeconds = 0;
+	}
+
+	formatProgress(seconds: number): string {
+		return this.watchProgress.formatTime(seconds);
+	}
+
+	switchMode(mode: 'server' | 'torrent') {
+		this.playerMode = mode;
+		if (mode === 'torrent') {
+			this.fetchTorrentSources();
+		}
+	}
+
+	fetchTorrentSources() {
+		this.torrentService.fetchSources(this.id, 'tv', this.season, this.episode).then(sources => {
+			this.torrentSources = sources;
+		});
+	}
+
+	getEpisodeProgress(episodeNumber: number): number {
+		const saved = this.watchProgress.get(this.id);
+		if (saved && saved.seasonnb === this.season && saved.episodenb === episodeNumber && saved.progress > 10) {
+			return saved.progress;
+		}
+		return 0;
+	}
+
+	resumeFromSaved() {
+		const saved = this.watchProgress.get(this.id);
+		if (saved && saved.progress > 0) {
+			this.updateLinkWithTime(saved.progress);
+		}
+	}
+
 	updateLink() {
+		const saved = this.watchProgress.get(this.id);
+		const time = (saved?.seasonnb === this.season && saved?.episodenb === this.episode) ? saved.progress : 0;
+		this.savedProgress = time;
 		const server = this.servers[this.selectedServerIndex];
 		let constructedUrl = '';
 		if (server.format === 'smashy') {
@@ -90,6 +182,30 @@ export class SeriesComponent {
 			constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1&s=${this.season}&e=${this.episode}`;
 		} else {
 			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
+		}
+		if (time > 5) {
+			constructedUrl += `&t=${Math.floor(time)}`;
+		}
+		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
+		this.iframeOriginalUrl = constructedUrl;
+		this.triedServers.add(this.selectedServerIndex);
+		this.resetHeartbeat();
+	}
+
+	updateLinkWithTime(time: number) {
+		this.elapsedSeconds = 0;
+		this.progressSavedAt = time;
+		const server = this.servers[this.selectedServerIndex];
+		let constructedUrl = '';
+		if (server.format === 'smashy') {
+			constructedUrl = `${server.url}/tv/${this.id}?s=${this.season}&e=${this.episode}`;
+		} else if (server.format === 'multiembed') {
+			constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1&s=${this.season}&e=${this.episode}`;
+		} else {
+			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
+		}
+		if (time > 5) {
+			constructedUrl += `&t=${Math.floor(time)}`;
 		}
 		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
 		this.iframeOriginalUrl = constructedUrl;
@@ -336,6 +452,7 @@ export class SeriesComponent {
 	}
 
 	changeEpisode(episodeNumber: number) {
+		this.saveProgress();
 		this.epiSelector = false;
 		this.showSelector = false;
 		this.episode = episodeNumber;
@@ -343,6 +460,8 @@ export class SeriesComponent {
 		this.updateLink();
 		this.checkAllServers();
 		this.showPlayerControls();
+		this.startWatchTimer();
+		if (this.playerMode === 'torrent') this.fetchTorrentSources();
 		this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 			.subscribe((epi: any) => {
 				this.serie.seasonnb = this.season;
@@ -410,10 +529,10 @@ export class SeriesComponent {
 			this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 				.subscribe((epi: any) => {
 					this.serie.current_still_path = epi?.still_path || null;
-					const raw = localStorage.getItem('series');
-					const Movies: any[] = raw ? JSON.parse(raw) : [];
+					const Movies = this.watchProgress.getHistory();
 					if (Movies.length) this.findElementAndSwitchEpi(Movies);
 					this.getRecentlyWatched();
+					this.startWatchTimer();
 				});
 
 			this.seasons = [];
@@ -434,16 +553,24 @@ export class SeriesComponent {
 	}
 
 	getRecentlyWatched() {
-		const raw = localStorage.getItem('series');
-		let seriesList: any[] = raw ? JSON.parse(raw) : [];
-		seriesList = seriesList.filter((s: any) => s && Number(s.id) !== Number(this.id));
-		seriesList.unshift(this.serie);
-		seriesList = seriesList.slice(0, 20);
-		localStorage.setItem('series', JSON.stringify(seriesList));
+		const total = this.progressSavedAt + this.elapsedSeconds;
+		const list = this.watchProgress.getHistory().filter(s => Number(s.id) !== Number(this.id));
+		list.unshift({
+			id: this.serie.id,
+			name: this.serie.name || this.serie.original_name || '',
+			poster_path: this.serie.poster_path || null,
+			backdrop_path: this.serie.backdrop_path || null,
+			seasonnb: this.season,
+			episodenb: this.episode,
+			current_still_path: this.serie.current_still_path || null,
+			progress: total,
+			updated_at: Date.now(),
+		});
+		this.watchProgress.replaceAll(list);
 	}
 
-	findElementAndSwitchEpi(Movies: any) {
-		const found = Movies.some((m: any) => m && Number(m.id) === Number(this.id));
+	findElementAndSwitchEpi(Movies: any[]) {
+		const found = Movies.some(m => m && Number(m.id) === Number(this.id));
 		if (found) {
 			this.serie.seasonnb = this.season;
 			this.serie.episodenb = this.episode;

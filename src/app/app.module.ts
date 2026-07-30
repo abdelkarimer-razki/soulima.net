@@ -19,6 +19,7 @@ import { YouTubePlayerModule } from '@angular/youtube-player';
 import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
 import { NotifComponent } from './notif/notif.component';
 import { CustomPlayerComponent } from './components/custom-player/custom-player.component';
+import { TorrentPlayerComponent } from './components/torrent-player/torrent-player.component';
 
 
 @NgModule({
@@ -32,7 +33,8 @@ import { CustomPlayerComponent } from './components/custom-player/custom-player.
     HelloworldComponent,
     LoadingScreenComponent,
     NotifComponent,
-    CustomPlayerComponent
+    CustomPlayerComponent,
+    TorrentPlayerComponent
   ],
   imports: [
     BrowserModule,

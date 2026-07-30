@@ -5,6 +5,7 @@ import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-br
 import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
 import { CustomPlayerComponent } from '../components/custom-player/custom-player.component';
+import { TorrentService, TorrentSource } from '../services/torrent.service';
 
 @Component({
   selector: 'app-movie',
@@ -17,6 +18,9 @@ export class MovieComponent implements OnInit {
   movie: any = '';
   link: SafeResourceUrl = '';
   iframeOriginalUrl: string = '';
+
+  playerMode: 'server' | 'torrent' = 'server';
+  torrentSources: TorrentSource[] = [];
 
   servers: ServerEntry[] = [
     { name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
@@ -66,7 +70,8 @@ export class MovieComponent implements OnInit {
     private titleService: Title,
     private metaService: Meta,
     private seoService: SeoService,
-    private serverConfig: ServerConfigService
+    private serverConfig: ServerConfigService,
+    private torrentService: TorrentService
   ) {
     this.route.params.subscribe(params => {
       this.id = Number(params['id']);
@@ -381,6 +386,19 @@ export class MovieComponent implements OnInit {
     });
     this.checkAllServers();
     this.showPlayerControls();
+  }
+
+  switchMode(mode: 'server' | 'torrent') {
+    this.playerMode = mode;
+    if (mode === 'torrent' && !this.torrentSources.length && this.id) {
+      this.fetchTorrentSources();
+    }
+  }
+
+  fetchTorrentSources() {
+    this.torrentService.fetchSources(this.id, 'movie').then(sources => {
+      this.torrentSources = sources;
+    });
   }
 
   getRecentlyWatched() {

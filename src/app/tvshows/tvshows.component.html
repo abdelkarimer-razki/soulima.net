@@ -110,6 +110,10 @@
 						</div>
 						<span class="recentCardTitle">{{movie.name || movie.original_name}}</span>
 					</div>
+					<div class="recentProgressWrap" *ngIf="movie.progress && movie.progress > 10">
+						<div class="recentProgressBar" [style.width.%]="watchProgress.progressPercent(movie.progress)"></div>
+						<span class="recentProgressTime">{{ watchProgress.formatTime(movie.progress) }}</span>
+					</div>
 				</a>
 			</ng-container>
 		</div>

@@ -9,6 +9,7 @@ import { forkJoin, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SeoService } from '../services/seo.service';
 import { SearchCorrectorService } from '../services/search-corrector.service';
+import { WatchProgressService } from '../services/watch-progress.service';
 
 
 
@@ -88,7 +89,8 @@ export class TvshowsComponent implements OnInit {
     private metaService: Meta,
     private seoService: SeoService,
     private elementRef: ElementRef,
-    private searchCorrector: SearchCorrectorService
+    private searchCorrector: SearchCorrectorService,
+    public watchProgress: WatchProgressService
   ) { }
 
 
