@@ -1,5 +1,10 @@
 /* ─── Movie Player Page ──────────────────────────────────────────────────── */
 
+/* Ensure the [hidden] attribute always wins over any display rule */
+[hidden] {
+	display: none !important;
+}
+
 .playerContainer {
 	background-color: var(--bg-color);
 	min-height: 100vh;

@@ -6,6 +6,7 @@ import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
 import { CustomPlayerComponent } from '../components/custom-player/custom-player.component';
 import { TorrentService, TorrentSource } from '../services/torrent.service';
+import { SubtitleService, SubtitleTrack } from '../services/subtitle.service';
 
 @Component({
   selector: 'app-movie',
@@ -19,8 +20,10 @@ export class MovieComponent implements OnInit {
   link: SafeResourceUrl = '';
   iframeOriginalUrl: string = '';
 
-  playerMode: 'server' | 'torrent' = 'server';
+  playerMode: 'server' | 'torrent' = 'torrent';
   torrentSources: TorrentSource[] = [];
+  torrentSourcesLoading = false;
+  subtitleTracks: SubtitleTrack[] = [];
 
   servers: ServerEntry[] = [
     { name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
@@ -71,7 +74,8 @@ export class MovieComponent implements OnInit {
     private metaService: Meta,
     private seoService: SeoService,
     private serverConfig: ServerConfigService,
-    private torrentService: TorrentService
+    private torrentService: TorrentService,
+    private subtitleService: SubtitleService
   ) {
     this.route.params.subscribe(params => {
       this.id = Number(params['id']);
@@ -384,20 +388,27 @@ export class MovieComponent implements OnInit {
       this.getRecentlyWatched();
       this.updateLink();
     });
-    this.checkAllServers();
     this.showPlayerControls();
+    this.fetchTorrentSources();
+    this.subtitleService.getSubtitles(this.id).then(tracks => {
+      this.subtitleTracks = tracks;
+    });
   }
 
   switchMode(mode: 'server' | 'torrent') {
-    this.playerMode = mode;
-    if (mode === 'torrent' && !this.torrentSources.length && this.id) {
+    this.playerMode = 'torrent';
+    if (!this.torrentSources.length && this.id) {
       this.fetchTorrentSources();
     }
   }
 
+  onTorrentUnplayable() {}
+
   fetchTorrentSources() {
+    this.torrentSourcesLoading = true;
     this.torrentService.fetchSources(this.id, 'movie').then(sources => {
       this.torrentSources = sources;
+      this.torrentSourcesLoading = false;
     });
   }
 

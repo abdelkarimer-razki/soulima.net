@@ -6,6 +6,7 @@ export interface TorrentSource {
   quality: string;
   magnet: string;
   size?: string;
+  seeds?: number;
 }
 
 export interface TorrentProgress {
@@ -29,12 +30,19 @@ export interface StreamInfo {
 const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
 
 const TRACKERS = [
-  'wss://tracker.btorrent.xyz',
-  'wss://tracker.openwebtorrent.com',
-  'wss://tracker.fastcast.nz',
   'udp://tracker.opentrackr.org:1337/announce',
-  'udp://tracker.leechers-paradise.org:6969/announce',
-  'udp://tracker.coppersurfer.tk:6969/announce',
+  'udp://open.demonii.com:1337/announce',
+  'udp://open.stealth.si:80/announce',
+  'udp://tracker.torrent.eu.org:451/announce',
+  'udp://explodie.org:6969/announce',
+  'udp://tracker.tiny-vps.com:6969/announce',
+  'udp://tracker.cyberia.is:6969/announce',
+  'udp://tracker.moeking.me:6969/announce',
+  'udp://ipv4.tracker.harry.lu:80/announce',
+  'udp://valerie.zackptg5.com:6969/announce',
+  'udp://exodus.desync.com:6969/announce',
+  'http://tracker.opentrackr.org:1337/announce',
+  'https://tracker.btorrent.xyz',
 ];
 
 function magnetLink(hash: string, name: string): string {
@@ -62,21 +70,33 @@ export class TorrentService {
 
   async fetchSources(tmdbId: number, mediaType: string, season?: number, episode?: number): Promise<TorrentSource[]> {
     try {
-      const imdbId = await this.getImdbId(tmdbId, mediaType);
-      if (!imdbId) return [];
-
       if (mediaType === 'movie') {
+        const imdbId = await this.getImdbId(tmdbId, mediaType);
+        if (!imdbId) return [];
         return this.fetchYtsSources(imdbId);
-      } else {
-        return this.fetchEztvSources(imdbId, season, episode);
       }
+
+      return this.fetchProxySources(tmdbId, season, episode);
+    } catch {
+      return [];
+    }
+  }
+
+  private async fetchProxySources(tmdbId: number, season?: number, episode?: number): Promise<TorrentSource[]> {
+    try {
+      const url = `${this.streamServerUrl}/api/search?tmdbId=${tmdbId}&season=${season}&episode=${episode}`;
+      const data: any = await this.http.get(url).toPromise();
+      return data?.sources || [];
     } catch {
       return [];
     }
   }
 
   async requestStream(magnet: string): Promise<StreamInfo> {
-    const data: any = await this.http.post(`${this.streamServerUrl}/api/stream`, { magnet }).toPromise();
+    const data: any = await this.withTimeout(
+      this.http.post(`${this.streamServerUrl}/api/stream`, { magnet }).toPromise(),
+      25000
+    );
     return {
       id: data.id,
       streamUrl: data.streamUrl,
@@ -84,6 +104,16 @@ export class TorrentService {
       fileName: data.fileName,
       size: data.size,
     };
+  }
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(`request timeout after ${ms}ms`)), ms);
+      promise.then(
+        v => { clearTimeout(timer); resolve(v); },
+        e => { clearTimeout(timer); reject(e); }
+      );
+    });
   }
 
   startPolling(streamId: string) {
@@ -116,7 +146,11 @@ export class TorrentService {
     });
   }
 
-  private async getImdbId(tmdbId: number, mediaType: string): Promise<string | null> {
+  getDownloadUrl(streamId: string): string {
+    return `${this.streamServerUrl}/api/stream/${streamId}/download`;
+  }
+
+  async getImdbId(tmdbId: number, mediaType: string): Promise<string | null> {
     const url = `https://api.themoviedb.org/3/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`;
     const data: any = await this.http.get(url).toPromise();
     return data?.imdb_id || null;
@@ -133,25 +167,6 @@ export class TorrentService {
       .map((t: any) => ({
         quality: `${t.quality} ${t.type || ''}`.trim(),
         magnet: magnetLink(t.hash, `${res.data.movie.title} ${t.quality}`),
-        size: t.size || undefined,
-      }));
-  }
-
-  private async fetchEztvSources(imdbId: string, season?: number, episode?: number): Promise<TorrentSource[]> {
-    const res: any = await this.http.get(`https://eztvx.to/api/get-torrents?imdb_id=${imdbId}&limit=50`).toPromise();
-    const torrents = res?.torrents;
-    if (!torrents) return [];
-
-    let filtered = torrents;
-    if (season !== undefined && episode !== undefined) {
-      filtered = torrents.filter((t: any) => t.season === season && t.episode === episode);
-    }
-
-    return filtered.slice(0, 10)
-      .filter((t: any) => t.magnet_url)
-      .map((t: any) => ({
-        quality: `${t.resolution || 'SD'} S${t.season}E${t.episode}`,
-        magnet: t.magnet_url,
         size: t.size || undefined,
       }));
   }

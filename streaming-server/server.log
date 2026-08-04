@@ -1,0 +1,31 @@
+[sync] ffsubsync: /home/pc/.local/bin/ffsubsync
+soulima streaming server running on :3030
+[stream] POST received magnet: magnet:?xt=urn:btih:0fc6845521849e24d57a465663bbd7dccbd45dd8&dn=The%20Legend%20o
+[stream] GET /api/stream/b1217df0468b range=bytes=0- downloaded=0.0MB peers=9
+[stream] b1217df0468b client closed after sent=133.01MB
+[stream] POST received magnet: magnet:?xt=urn:btih:7876c7bb5a96440ea86de0e12aba3045e3621541&dn=Project%20Hail%2
+[stream] GET /api/stream/1e38164acf81 range=bytes=0- downloaded=0.0MB peers=12
+[subs] subtitlecat Project Hail Mary -> 52 languages
+[subs] merged 687163 -> 54 languages
+[subs] yify cached yify:project-hail-mary-2026-arabic-yify-2149004 (106163 chars)
+[sync] running ffsubsync on Project.Hail.Mary.2026.IMAX.HYBRID.720p.BluRay.x264.AAC-[YTS.GG - YTS.BZ].mp4…
+[sync] ffsubsync done for Project.Hail.Mary.2026.IMAX.HYBRID.720p.BluRay.x264.AAC-[YTS.GG - YTS.BZ].mp4
+[sync] background sync saved to cache for gi3YCnCrHt
+[stream] 1e38164acf81 client closed after sent=99.71MB
+[stream] GET /api/stream/1e38164acf81 range=bytes=522289152- downloaded=377.6MB peers=11
+[stream] 1e38164acf81 client closed after sent=22.90MB
+[subs] subtitlecat Spider-Man: Brand New Day -> 30 languages
+[subs] merged 969681 -> 32 languages
+[subs] cached NzzEfldB1j (137934 bytes)
+[stream] POST received magnet: magnet:?xt=urn:btih:363bc6c534b1430c6758318d196ccd61db61b647&dn=The%20Matrix%207
+[stream] GET /api/stream/3918859b8944 range=bytes=0- downloaded=0.0MB peers=16
+[subs] subtitlecat The Matrix -> 4 languages
+[subs] merged 603 -> 38 languages
+[subs] cached pwHCQSfXYE (112434 bytes)
+[stream] 3918859b8944 client closed after sent=3.00MB
+[stream] GET /api/stream/3918859b8944 range=bytes=737869824- downloaded=9.2MB peers=17
+[stream] 3918859b8944 client closed after sent=0.00MB
+[stream] GET /api/stream/3918859b8944 range=bytes=3112960- downloaded=13.1MB peers=17
+[stream] 3918859b8944 client closed after sent=12.03MB
+[stream] GET /api/stream/3918859b8944 range=bytes=76840960- downloaded=16.9MB peers=17
+[stream] 3918859b8944 client closed after sent=8.72MB

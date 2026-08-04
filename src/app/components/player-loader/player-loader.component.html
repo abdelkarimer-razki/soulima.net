@@ -1,0 +1,24 @@
+<div class="playerLoader">
+  <div class="loaderBackdrop" [style.background-image]="backdropUrl ? 'url(' + backdropUrl + ')' : null"></div>
+  <div class="loaderShade"></div>
+
+  <div class="loaderContent">
+    <div class="loaderPosterWrap" *ngIf="posterUrl">
+      <img class="loaderPoster" [src]="posterUrl" [alt]="title">
+    </div>
+
+    <div class="loaderTextBlock">
+      <span class="loaderInfo" *ngIf="info">{{ info }}</span>
+      <h2 class="loaderTitle">{{ title }}</h2>
+      <p class="loaderOverview" *ngIf="overview">{{ overview }}</p>
+    </div>
+  </div>
+
+  <div class="loaderFooter">
+    <div class="loaderSpinner"></div>
+    <span class="loaderStatus">{{ status }}</span>
+    <div class="loaderProgressTrack" *ngIf="showProgress">
+      <div class="loaderProgressFill" [style.width.%]="progress"></div>
+    </div>
+  </div>
+</div>

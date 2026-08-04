@@ -6,6 +6,7 @@ import { SeoService } from '../services/seo.service';
 import { ServerConfigService, ServerEntry } from '../services/server-config.service';
 import { WatchProgressService } from '../services/watch-progress.service';
 import { TorrentService, TorrentSource } from '../services/torrent.service';
+import { SubtitleService, SubtitleTrack } from '../services/subtitle.service';
 
 @Component({
   selector: 'app-series',
@@ -71,8 +72,10 @@ export class SeriesComponent implements OnDestroy {
 	private elapsedSeconds = 0;
 	private progressSavedAt = 0;
 
-	playerMode: 'server' | 'torrent' = 'server';
+	playerMode: 'server' | 'torrent' = 'torrent';
 	torrentSources: TorrentSource[] = [];
+	torrentSourcesLoading = false;
+	subtitleTracks: SubtitleTrack[] = [];
 
 	constructor(
 		private route: ActivatedRoute,
@@ -84,7 +87,8 @@ export class SeriesComponent implements OnDestroy {
 		private seoService: SeoService,
 		private serverConfig: ServerConfigService,
 		private watchProgress: WatchProgressService,
-		private torrentService: TorrentService
+		private torrentService: TorrentService,
+		private subtitleService: SubtitleService
 	) {
 		this.route.params.subscribe(params => {
 			this.id      = Number(params['id']);
@@ -143,15 +147,23 @@ export class SeriesComponent implements OnDestroy {
 	}
 
 	switchMode(mode: 'server' | 'torrent') {
-		this.playerMode = mode;
-		if (mode === 'torrent') {
-			this.fetchTorrentSources();
-		}
+		this.playerMode = 'torrent';
+		this.fetchTorrentSources();
 	}
 
+	onTorrentUnplayable() {}
+
 	fetchTorrentSources() {
+		this.torrentSourcesLoading = true;
 		this.torrentService.fetchSources(this.id, 'tv', this.season, this.episode).then(sources => {
 			this.torrentSources = sources;
+			this.torrentSourcesLoading = false;
+		});
+	}
+
+	fetchSubtitles() {
+		this.subtitleService.getSubtitles(this.id, this.season, this.episode).then(tracks => {
+			this.subtitleTracks = tracks;
 		});
 	}
 
@@ -458,15 +470,17 @@ export class SeriesComponent implements OnDestroy {
 		this.episode = episodeNumber;
 		window.history.pushState({}, '', '/serie/' + this.id + '/' + this.season + '/' + this.episode);
 		this.updateLink();
-		this.checkAllServers();
 		this.showPlayerControls();
 		this.startWatchTimer();
-		if (this.playerMode === 'torrent') this.fetchTorrentSources();
+		this.fetchTorrentSources();
+		this.fetchSubtitles();
 		this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 			.subscribe((epi: any) => {
 				this.serie.seasonnb = this.season;
 				this.serie.episodenb = this.episode;
 				this.serie.current_still_path = epi?.still_path || null;
+				this.serie.current_episode_overview = epi?.overview || this.serie.overview || '';
+				this.serie.current_episode_name = epi?.name || '';
 				this.getRecentlyWatched();
 			});
 	}
@@ -529,6 +543,8 @@ export class SeriesComponent implements OnDestroy {
 			this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 				.subscribe((epi: any) => {
 					this.serie.current_still_path = epi?.still_path || null;
+					this.serie.current_episode_overview = epi?.overview || this.serie.overview || '';
+					this.serie.current_episode_name = epi?.name || '';
 					const Movies = this.watchProgress.getHistory();
 					if (Movies.length) this.findElementAndSwitchEpi(Movies);
 					this.getRecentlyWatched();
@@ -550,6 +566,8 @@ export class SeriesComponent implements OnDestroy {
 		});
 		this.checkAllServers();
 		this.showPlayerControls();
+		this.fetchTorrentSources();
+		this.fetchSubtitles();
 	}
 
 	getRecentlyWatched() {

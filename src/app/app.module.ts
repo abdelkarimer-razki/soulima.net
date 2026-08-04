@@ -20,6 +20,7 @@ import { LoadingScreenComponent } from './loading-screen/loading-screen.componen
 import { NotifComponent } from './notif/notif.component';
 import { CustomPlayerComponent } from './components/custom-player/custom-player.component';
 import { TorrentPlayerComponent } from './components/torrent-player/torrent-player.component';
+import { PlayerLoaderComponent } from './components/player-loader/player-loader.component';
 
 
 @NgModule({
@@ -34,7 +35,8 @@ import { TorrentPlayerComponent } from './components/torrent-player/torrent-play
     LoadingScreenComponent,
     NotifComponent,
     CustomPlayerComponent,
-    TorrentPlayerComponent
+    TorrentPlayerComponent,
+    PlayerLoaderComponent
   ],
   imports: [
     BrowserModule,

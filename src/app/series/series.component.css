@@ -1,5 +1,10 @@
 /* ─── Series Player Page ─────────────────────────────────────────────────── */
 
+/* Ensure the [hidden] attribute always wins over any display rule */
+[hidden] {
+	display: none !important;
+}
+
 /* Outer page wrapper — mirrors movie.component.css .playerContainer */
 .moviePlayer {
 	background-color: var(--bg-color);
@@ -156,7 +161,6 @@
 /* ─── Movie Player Wrapper (Netflix-like Overlay Container) ──────────────── */
 .moviePlayerWrapper {
 	margin: 0 auto;
-	display: block;
 	aspect-ratio: 16/9;
 	width: 100%;
 	max-width: 1000px;
