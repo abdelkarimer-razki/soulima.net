@@ -196,6 +196,12 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
       if (!this.selectedSource || !this.sources.includes(this.selectedSource)) {
         this.triedSources.clear();
         this.selectedSource = this.pickBestSource(this.sources);
+        // Prefetch secondary sources in background for instant fallback
+        this.sources.slice(0, 3).forEach(s => {
+          if (s.magnet && s !== this.selectedSource) {
+            this.torrentService.prefetchStream(s.magnet);
+          }
+        });
         this.startStream();
       }
     }

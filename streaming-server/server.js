@@ -117,6 +117,10 @@ async function autoSyncSubtitle(subBuf, videoPath) {
 }
 
 const BOOTSTRAP_TRACKERS = [
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.btorrent.xyz',
+  'wss://tracker.files.fm:7000/announce',
+  'wss://tracker.webtorrent.dev',
   'udp://tracker.opentrackr.org:1337/announce',
   'udp://open.demonii.com:1337/announce',
   'udp://open.stealth.si:80/announce',
@@ -128,8 +132,11 @@ const BOOTSTRAP_TRACKERS = [
   'udp://ipv4.tracker.harry.lu:80/announce',
   'udp://valerie.zackptg5.com:6969/announce',
   'udp://exodus.desync.com:6969/announce',
+  'udp://tracker.coppersurfer.tk:6969/announce',
+  'udp://tracker.leechers-paradise.org:6969/announce',
   'http://tracker.opentrackr.org:1337/announce',
   'https://tracker.btorrent.xyz',
+  'https://tracker.tamersrealm.com:443/announce',
 ];
 
 const app = express();
@@ -137,7 +144,7 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
 const client = new WebTorrent({
-  maxConns: 250,
+  maxConns: 300,
   dht: {
     bootstrap: [
       'router.bittorrent.com:6881',
@@ -145,7 +152,8 @@ const client = new WebTorrent({
       'dht.transmissionbt.com:6881',
       'dht.aelitis.com:6881'
     ]
-  }
+  },
+  webSeeds: true,
 });
 const streams = new Map();
 
@@ -200,8 +208,8 @@ app.post('/api/stream', async (req, res) => {
           existing.deselect(0, existing.pieces.length - 1, 0);
           file.select();
           const n = existing.pieces.length;
-          existing.critical(0, Math.min(10, n - 1));
-          if (n > 10) existing.critical(Math.max(0, n - 4), n - 1);
+          existing.critical(0, Math.min(20, n - 1));
+          if (n > 20) existing.critical(Math.max(0, n - 8), n - 1);
         }
       } catch {}
 
@@ -223,7 +231,7 @@ app.post('/api/stream', async (req, res) => {
         t = client.add(enrichedMagnet, {
           path: getTempDir(id),
           announce: BOOTSTRAP_TRACKERS,
-          maxConns: 250,
+          maxConns: 300,
           strategy: 'sequential',
         });
       } catch (e) {
@@ -255,9 +263,9 @@ app.post('/api/stream', async (req, res) => {
         torrent.deselect(0, torrent.pieces.length - 1, 0);
         file.select();
         const n = torrent.pieces.length;
-        // Priority download for start of video (first 10 pieces) & end of video (moov atom)
-        torrent.critical(0, Math.min(10, n - 1));
-        if (n > 10) torrent.critical(Math.max(0, n - 4), n - 1);
+        // Priority download for start of video (first 20 pieces) & end of video (moov atom)
+        torrent.critical(0, Math.min(20, n - 1));
+        if (n > 20) torrent.critical(Math.max(0, n - 8), n - 1);
       }
     } catch {}
 
@@ -273,6 +281,36 @@ app.post('/api/stream', async (req, res) => {
     });
   } catch (err) {
     console.error('[stream] POST error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/stream/prefetch', async (req, res) => {
+  const { magnet } = req.body;
+  if (!magnet || !magnet.startsWith('magnet:?xt=urn:btih:')) {
+    return res.status(400).json({ error: 'invalid magnet' });
+  }
+  const infoHashMatch = magnet.match(/xt=urn:btih:([a-fA-F0-9]+)/);
+  const infoHash = infoHashMatch ? infoHashMatch[1].toLowerCase() : null;
+  if (!infoHash) return res.status(400).json({ error: 'invalid infoHash' });
+
+  try {
+    let existing = client.get(`magnet:?xt=urn:btih:${infoHash}`);
+    if (!existing) {
+      let enrichedMagnet = magnet;
+      if (!magnet.includes('&tr=')) {
+        const trStr = BOOTSTRAP_TRACKERS.map(t => `tr=${encodeURIComponent(t)}`).join('&');
+        enrichedMagnet += (magnet.includes('?') ? '&' : '?') + trStr;
+      }
+      existing = client.add(enrichedMagnet, {
+        path: path.join(os.tmpdir(), 'soulima-prefetch', infoHash),
+        announce: BOOTSTRAP_TRACKERS,
+        maxConns: 300,
+        strategy: 'sequential',
+      });
+    }
+    res.json({ ok: true, infoHash });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -320,7 +358,7 @@ app.get('/api/stream/:id', (req, res) => {
       const startPiece = Math.floor(start / pLen);
       const endPiece = Math.floor(Math.min(end, file.length - 1) / pLen);
       try {
-        torrent.critical(startPiece, Math.min(endPiece, startPiece + 8));
+        torrent.critical(startPiece, Math.min(endPiece, startPiece + 15));
       } catch {}
     }
 

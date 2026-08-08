@@ -30,6 +30,10 @@ export interface StreamInfo {
 const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
 
 const TRACKERS = [
+  'wss://tracker.openwebtorrent.com',
+  'wss://tracker.btorrent.xyz',
+  'wss://tracker.files.fm:7000/announce',
+  'wss://tracker.webtorrent.dev',
   'udp://tracker.opentrackr.org:1337/announce',
   'udp://open.demonii.com:1337/announce',
   'udp://open.stealth.si:80/announce',
@@ -41,8 +45,11 @@ const TRACKERS = [
   'udp://ipv4.tracker.harry.lu:80/announce',
   'udp://valerie.zackptg5.com:6969/announce',
   'udp://exodus.desync.com:6969/announce',
+  'udp://tracker.coppersurfer.tk:6969/announce',
+  'udp://tracker.leechers-paradise.org:6969/announce',
   'http://tracker.opentrackr.org:1337/announce',
   'https://tracker.btorrent.xyz',
+  'https://tracker.tamersrealm.com:443/announce',
 ];
 
 function magnetLink(hash: string, name: string): string {
@@ -66,6 +73,13 @@ export class TorrentService {
 
   setStreamServerUrl(url: string) {
     this.streamServerUrl = url;
+  }
+
+  prefetchStream(magnet: string): void {
+    if (!magnet) return;
+    this.http.post(`${this.streamServerUrl}/api/stream/prefetch`, { magnet }).subscribe({
+      error: () => {}
+    });
   }
 
   async fetchSources(tmdbId: number, mediaType: string, season?: number, episode?: number): Promise<TorrentSource[]> {
@@ -118,6 +132,7 @@ export class TorrentService {
 
   startPolling(streamId: string) {
     const url = `${this.streamServerUrl}/api/stream/${streamId}/status`;
+    let pollInterval = 500;
     const poll = () => {
       this.http.get(url).toPromise().then((data: any) => {
         this.progressSubject.next({
@@ -130,7 +145,10 @@ export class TorrentService {
           error: null,
         });
         if (!data.ready) {
-          setTimeout(poll, 2000);
+          setTimeout(poll, pollInterval);
+        } else {
+          pollInterval = 2000;
+          setTimeout(poll, pollInterval);
         }
       }).catch(() => {
         setTimeout(poll, 2000);
