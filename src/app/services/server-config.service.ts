@@ -29,11 +29,14 @@ export const DEFAULT_SERVERS: ServerEntry[] = [
   { name: 'Cineby',             url: 'https://cineby.app',              format: 'cineby' },
   { name: 'Vidsrc.me (mirror)', url: 'https://vidsrcme.ru/embed',       format: 'standard' },
   { name: 'Vidsrc.nl',          url: 'https://vidsrc.nl',               format: 'standard' },
+  { name: 'Vidsrc.sbs',         url: 'https://vidsrc.sbs/embed',        format: 'standard' },
 ];
 
 const STATUS_CACHE_KEY = 'soulima_server_status_v2';
 const RELIABILITY_KEY = 'soulima_server_reliability_v2';
+const DISCOVERY_KEY = 'soulima_discovered_servers_v1';
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const DISCOVERY_TTL_MS = 6 * 60 * 60 * 1000;
 const FAILURE_THRESHOLD = 0.7;
 const MIN_ATTEMPTS = 3;
 const CHECK_CONCURRENCY = 4;
@@ -42,11 +45,27 @@ interface Reliability {
   [url: string]: { attempts: number; failures: number };
 }
 
+export interface DiscoverResult {
+  servers: ServerEntry[];
+  tested?: {
+    url: string;
+    status: string;
+    statusCode: number;
+    contentLength: number;
+    score: number;
+    evidence?: string[];
+    format?: string;
+  }[];
+  updatedAt?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ServerConfigService {
   private serversSubject = new BehaviorSubject<ServerEntry[]>(DEFAULT_SERVERS);
   private statusSubject = new BehaviorSubject<ServerHealth[]>(DEFAULT_SERVERS.map(() => 'checking'));
   private selectedIndexSubject = new BehaviorSubject<number>(0);
+  private discoveringSubject = new BehaviorSubject<boolean>(false);
+  private lastDiscoverySubject = new BehaviorSubject<string | null>(null);
 
   private servers: ServerEntry[] = DEFAULT_SERVERS;
   private status: ServerHealth[] = DEFAULT_SERVERS.map(() => 'checking');
@@ -59,6 +78,8 @@ export class ServerConfigService {
   servers$: Observable<ServerEntry[]> = this.serversSubject.asObservable();
   status$: Observable<ServerHealth[]> = this.statusSubject.asObservable();
   selectedIndex$: Observable<number> = this.selectedIndexSubject.asObservable();
+  discovering$: Observable<boolean> = this.discoveringSubject.asObservable();
+  lastDiscovery$: Observable<string | null> = this.lastDiscoverySubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -83,22 +104,83 @@ export class ServerConfigService {
     if (this.initialized) return;
     this.initialized = true;
 
+    const local = this.loadDiscovered();
     const remote = await this.fetchRemoteServers();
-    if (remote && remote.length) {
-      this.servers = remote;
-      this.status = remote.map(() => 'checking');
-      this.serversSubject.next(this.servers);
-      this.statusSubject.next(this.status);
-    }
+    const base = local && local.length ? local : (remote && remote.length ? remote : DEFAULT_SERVERS);
+    this.servers = base;
+    this.status = base.map(() => 'checking');
+    this.serversSubject.next(this.servers);
+    this.statusSubject.next(this.status);
 
     const cached = this.loadStatusCache();
     if (cached && cached.length === this.servers.length) {
       this.status = cached;
       this.statusSubject.next(this.status);
       this.recheckInBackground();
+    } else {
+      this.checkAll();
+    }
+
+    this.maybeAutoDiscover();
+  }
+
+  /** Kick off background discovery only when the cached result is stale. */
+  private maybeAutoDiscover(): void {
+    if (this.isDiscoveryFresh()) return;
+    this.discoverNow();
+  }
+
+  /** Re-probe the provider space; merge any newly working servers into the list. */
+  async discoverNow(): Promise<void> {
+    if (this.discoveringSubject.value) return;
+    this.discoveringSubject.next(true);
+    try {
+      const res = await fetch('/api/discover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidates: this.servers.map(s => s.url) }),
+      });
+      if (!res.ok) return;
+      const result: DiscoverResult = await res.json();
+      if (result.servers?.length) {
+        this.applyDiscovered(result.servers);
+      }
+      this.lastDiscoverySubject.next(result.updatedAt || new Date().toISOString());
+    } catch {
+      // discovery must never break playback
+    } finally {
+      this.discoveringSubject.next(false);
+    }
+  }
+
+  private applyDiscovered(discovered: ServerEntry[]): void {
+    const seen = new Set<string>();
+    const merged: ServerEntry[] = [];
+    for (const s of [...discovered, ...this.servers]) {
+      if (seen.has(s.url)) continue;
+      seen.add(s.url);
+      merged.push(s);
+    }
+
+    const currentUrls = this.servers.map(s => s.url).sort().join(',');
+    const mergedUrls = merged.map(s => s.url).sort().join(',');
+    if (currentUrls === mergedUrls) {
+      this.saveDiscovered(this.servers);
       return;
     }
 
+    const prevUrl = this.servers[this.selectedIndex]?.url;
+    this.servers = merged;
+    this.status = merged.map(() => 'checking');
+    this.triedServers.clear();
+    this.serversSubject.next(this.servers);
+    this.statusSubject.next(this.status);
+
+    const idx = prevUrl ? merged.findIndex(s => s.url === prevUrl) : -1;
+    this.selectedIndex = idx >= 0 ? idx : 0;
+    this.selectedIndexSubject.next(this.selectedIndex);
+
+    this.saveDiscovered(this.servers);
     this.checkAll();
   }
 
@@ -355,6 +437,31 @@ export class ServerConfigService {
         status: this.status,
         timestamp: Date.now(),
       }));
+    } catch {}
+  }
+
+  private isDiscoveryFresh(): boolean {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(DISCOVERY_KEY) || 'null');
+      return !!(parsed?.timestamp && Date.now() - parsed.timestamp < DISCOVERY_TTL_MS);
+    } catch {
+      return false;
+    }
+  }
+
+  private loadDiscovered(): ServerEntry[] | null {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(DISCOVERY_KEY) || 'null');
+      if (parsed?.timestamp && Date.now() - parsed.timestamp < DISCOVERY_TTL_MS && Array.isArray(parsed.servers) && parsed.servers.length) {
+        return parsed.servers;
+      }
+    } catch {}
+    return null;
+  }
+
+  private saveDiscovered(servers: ServerEntry[]): void {
+    try {
+      localStorage.setItem(DISCOVERY_KEY, JSON.stringify({ servers, timestamp: Date.now() }));
     } catch {}
   }
 }

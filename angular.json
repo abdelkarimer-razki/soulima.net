@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "matysTest": {
+    "soulima": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -73,10 +73,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "matysTest:build:production"
+              "browserTarget": "soulima:build:production"
             },
             "development": {
-              "browserTarget": "matysTest:build:development"
+              "browserTarget": "soulima:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -84,7 +84,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "matysTest:build"
+            "browserTarget": "soulima:build"
           }
         },
         "test": {

@@ -56,6 +56,10 @@
 							<div class="dropdownFooter">
 								<span class="serverWarning">⚠️ Switch servers if the movie doesn't load.</span>
 								<button class="dropdownReportBtn" (click)="reportUnavailable(selectedServerIndex); toggleServerDropdown()">Media unavailable? Mark as ✕</button>
+								<button class="dropdownDiscoverBtn" (click)="discoverServers()" [disabled]="discovering">
+									<span class="discoverSpinner" *ngIf="discovering"></span>
+									{{ discovering ? 'Scanning for new servers...' : 'Auto-discover new servers' }}
+								</button>
 							</div>
 						</div>
 					</div>

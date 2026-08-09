@@ -23,6 +23,7 @@ export class MovieComponent implements OnInit, OnDestroy {
   loading = true;
   showControls = true;
   showServerDropdown = false;
+  discovering = false;
   private controlsTimeout: any = null;
 
   /** 'checking' | 'online' | 'offline' for each server */
@@ -66,6 +67,9 @@ export class MovieComponent implements OnInit, OnDestroy {
         const changed = i !== this.selectedServerIndex;
         this.selectedServerIndex = i;
         if (changed) this.updateLink();
+      }),
+      this.serverConfig.discovering$.subscribe(d => {
+        this.discovering = d;
       })
     );
   }
@@ -102,6 +106,10 @@ export class MovieComponent implements OnInit, OnDestroy {
 
   reportUnavailable(index: number) {
     this.serverConfig.reportUnavailable(index);
+  }
+
+  discoverServers() {
+    this.serverConfig.discoverNow();
   }
 
   /** Called when the iframe fails to load — marks server offline, no auto-switch */

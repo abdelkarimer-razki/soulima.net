@@ -11,6 +11,7 @@ export default function handler(_req: any, res: any) {
       { name: 'Cineby',             url: 'https://cineby.app',              format: 'cineby' },
       { name: 'Vidsrc.me (mirror)', url: 'https://vidsrcme.ru/embed',       format: 'standard' },
       { name: 'Vidsrc.nl',          url: 'https://vidsrc.nl',               format: 'standard' },
+      { name: 'Vidsrc.sbs',         url: 'https://vidsrc.sbs/embed',        format: 'standard' },
     ],
     updatedAt: new Date().toISOString()
   });
