@@ -1,10 +1,16 @@
-const ERROR_KEYWORDS = [
-  'unavailable', 'not found', 'no longer available', 'removed',
-  'media unavailable', 'content unavailable', 'error', 'failed to load',
-  '404', 'not supported', 'try another server', 'no stream',
-  'no video', 'we are unable', 'this video is', 'blocked',
-  'access denied', 'forbidden', 'try again later',
+const CHALLENGE_MARKERS = [
+  'performing security verification',
+  'verifies you are not a bot',
+  'checking your browser before accessing',
+  'cf-browser-verification',
+  'cf-chl-bypass',
+  'just a moment',
+  'attention required!',
+  'verify you are human',
+  'enable javascript and cookies',
 ];
+
+const MIN_CONTENT_LENGTH = 50;
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,16 +63,22 @@ export default async function handler(req: any, res: any) {
     });
     clearTimeout(tid);
 
+    const statusCode = response.status;
     const text = await response.text();
     const bodyLower = text.toLowerCase();
 
-    const found = ERROR_KEYWORDS.find(kw => bodyLower.includes(kw));
+    const challenged = CHALLENGE_MARKERS.some(marker => bodyLower.includes(marker));
+    const emptyShell = bodyLower.trim().length < MIN_CONTENT_LENGTH;
+    const reached = statusCode >= 200 && statusCode < 400;
+
+    const online = reached && !challenged && !emptyShell;
 
     res.json({
-      status: found ? 'offline' : 'online',
-      keyword: found || null,
-      statusCode: response.status,
+      status: online ? 'online' : 'offline',
+      statusCode,
       contentLength: bodyLower.length,
+      challenged,
+      emptyShell,
     });
   } catch (err: any) {
     clearTimeout(tid);
@@ -75,6 +87,8 @@ export default async function handler(req: any, res: any) {
       keyword: err.name === 'AbortError' ? 'timeout' : 'fetch_failed',
       statusCode: 0,
       contentLength: 0,
+      challenged: false,
+      emptyShell: true,
     });
   }
 }

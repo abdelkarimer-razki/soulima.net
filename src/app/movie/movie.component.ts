@@ -1,49 +1,24 @@
-import { Component, OnInit, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
-import { ServerConfigService, ServerEntry } from '../services/server-config.service';
-import { CustomPlayerComponent } from '../components/custom-player/custom-player.component';
-import { TorrentService, TorrentSource } from '../services/torrent.service';
+import { ServerConfigService, ServerEntry, ServerHealth } from '../services/server-config.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-movie',
   templateUrl: './movie.component.html',
   styleUrls: ['./movie.component.css']
 })
-export class MovieComponent implements OnInit {
+export class MovieComponent implements OnInit, OnDestroy {
 
   id: number = 0;
   movie: any = '';
   link: SafeResourceUrl = '';
   iframeOriginalUrl: string = '';
 
-  playerMode: 'server' | 'torrent' = 'server';
-  torrentSources: TorrentSource[] = [];
-
-  servers: ServerEntry[] = [
-    { name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
-    { name: 'Server 2 (Vidlink.pro)',   url: 'https://vidlink.pro',                     format: 'standard' },
-    { name: 'Server 3 (Embed.su)',      url: 'https://embed.su/embed',                  format: 'standard' },
-    { name: 'Server 4 (SmashyStream)',  url: 'https://player.smashy.stream',            format: 'smashy' },
-    { name: 'Server 5 (Multiembed)',    url: 'https://multiembed.mov',                  format: 'multiembed' },
-    { name: 'Server 6 (Autoembed)',     url: 'https://autoembed.cc/embed',              format: 'standard' },
-    { name: 'Server 7 (2embed.cc)',     url: 'https://2embed.cc/embed',                 format: 'standard' },
-    { name: 'Server 8 (Vidsrc.pro)',    url: 'https://vidsrc.pro/embed',                format: 'standard' },
-    { name: 'Server 9 (Vidsrc.me)',     url: 'https://vidsrc.me/embed',                 format: 'standard' },
-    { name: 'Server 10 (Moviedata)',    url: 'https://moviedata.info/embed',            format: 'standard' },
-    { name: 'Server 11 (Vidbinge)',     url: 'https://vidbinge.dev/embed',              format: 'standard' },
-    { name: 'Server 12 (SuperEmbed)',   url: 'https://superembed.stream',               format: 'standard' },
-    { name: 'Server 13 (MoviesAPI)',    url: 'https://moviesapi.club',                  format: 'standard' },
-    { name: 'Server 14 (Cineby)',       url: 'https://cineby.app',                      format: 'standard' },
-    { name: 'Server 15 (Gomoplayer)',   url: 'https://gomo.to',                        format: 'standard' },
-    { name: 'Server 16 (Rive)',         url: 'https://rive.zone',                       format: 'standard' },
-    { name: 'Server 17 (Moviesapi.net)', url: 'https://moviesapi.net',                  format: 'standard' },
-    { name: 'Server 18 (Vidflix)',      url: 'https://vidflix.net',                     format: 'standard' },
-    { name: 'Server 19 (Filmsss)',      url: 'https://filmsss.com',                     format: 'standard' },
-    { name: 'Server 20 (Cinezone)',     url: 'https://cinezone.net',                    format: 'standard' },
-  ];
+  servers: ServerEntry[] = [];
   selectedServerIndex = 0;
   loading = true;
   showControls = true;
@@ -51,27 +26,20 @@ export class MovieComponent implements OnInit {
   private controlsTimeout: any = null;
 
   /** 'checking' | 'online' | 'offline' for each server */
-  serverStatus: string[] = this.servers.map(() => 'checking');
+  serverStatus: ServerHealth[] = [];
 
-  /** Tracks which servers were already tried this session */
-  private triedServers = new Set<number>();
-
-  private readonly SERVER_CACHE_KEY = 'soulima_server_status';
-  private readonly RELIABILITY_KEY = 'soulima_server_reliability';
-  private readonly FAILURE_THRESHOLD = 0.7;
   private heartbeatTimer: any = null;
   private videoConfirmed = false;
+  private subs: Subscription[] = [];
 
   constructor(
     private route: ActivatedRoute,
     private moviedbAPIService: MoviedbAPIService,
     private sanitizer: DomSanitizer,
-    private zone: NgZone,
     private titleService: Title,
     private metaService: Meta,
     private seoService: SeoService,
-    private serverConfig: ServerConfigService,
-    private torrentService: TorrentService
+    private serverConfig: ServerConfigService
   ) {
     this.route.params.subscribe(params => {
       this.id = Number(params['id']);
@@ -79,25 +47,38 @@ export class MovieComponent implements OnInit {
     });
   }
 
+  ngOnDestroy() {
+    this.subs.forEach(s => s.unsubscribe());
+    this.clearHeartbeat();
+  }
+
+  private subscribeToServers() {
+    this.subs.push(
+      this.serverConfig.servers$.subscribe(s => {
+        this.servers = s;
+        this.serverStatus = this.serverConfig.getStatus();
+      }),
+      this.serverConfig.status$.subscribe(s => {
+        this.serverStatus = s;
+        this.syncSelectedToOnline();
+      }),
+      this.serverConfig.selectedIndex$.subscribe(i => {
+        const changed = i !== this.selectedServerIndex;
+        this.selectedServerIndex = i;
+        if (changed) this.updateLink();
+      })
+    );
+  }
+
   updateLink() {
-    const server = this.servers[this.selectedServerIndex];
-    let constructedUrl = '';
-    if (server.format === 'smashy') {
-      constructedUrl = `${server.url}/movie/${this.id}`;
-    } else if (server.format === 'multiembed') {
-      constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1`;
-    } else {
-      constructedUrl = `${server.url}/movie/${this.id}?player=new&ds_lang=ar`;
-    }
+    const constructedUrl = this.serverConfig.buildEmbedUrl(this.selectedServerIndex, 'movie', this.id);
     this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
     this.iframeOriginalUrl = constructedUrl;
-    this.triedServers.add(this.selectedServerIndex);
     this.resetHeartbeat();
   }
 
   selectServer(index: number) {
-    this.selectedServerIndex = index;
-    this.updateLink();
+    this.serverConfig.select(index);
   }
 
   showPlayerControls() {
@@ -120,26 +101,13 @@ export class MovieComponent implements OnInit {
   }
 
   reportUnavailable(index: number) {
-    this.serverStatus[index] = 'offline';
-    this.updateReliability(index, false);
-    this.saveServerCache();
-    const nextIndex = this.serverStatus.findIndex(
-      (s, i) => s === 'online' && !this.triedServers.has(i)
-    );
-    if (nextIndex !== -1) {
-      this.selectServer(nextIndex);
-    } else {
-      this.triedServers.clear();
-      this.checkAllServers();
-    }
+    this.serverConfig.reportUnavailable(index);
   }
 
   /** Called when the iframe fails to load — marks server offline, no auto-switch */
   onIframeError() {
     this.clearHeartbeat();
-    this.serverStatus[this.selectedServerIndex] = 'offline';
-    this.updateReliability(this.selectedServerIndex, false);
-    this.saveServerCache();
+    this.serverConfig.markOffline(this.selectedServerIndex);
   }
 
   /** Listen for postMessage from embed iframes (some providers send play/error events) */
@@ -161,6 +129,7 @@ export class MovieComponent implements OnInit {
     if (isPlaying) {
       this.videoConfirmed = true;
       this.clearHeartbeat();
+      this.serverConfig.confirmPlayable(this.selectedServerIndex);
     } else if (isError) {
       this.onIframeError();
     }
@@ -183,168 +152,25 @@ export class MovieComponent implements OnInit {
     }
   }
 
-  private buildCheckUrl(server: ServerEntry): string {
-    if (server.format === 'smashy') {
-      return `${server.url}/movie/${this.id}`;
-    } else if (server.format === 'multiembed') {
-      return `${server.url}/?video_id=${this.id}&tmdb=1`;
-    }
-    return `${server.url}/movie/${this.id}`;
-  }
-
-  private async checkServerStatus(server: ServerEntry): Promise<string> {
-    const checkUrl = this.buildCheckUrl(server);
-    const timeout = 2500;
-
-    try {
-      return await this.serverConfig.checkServer(checkUrl, timeout);
-    } catch {
-      return 'offline';
-    }
-  }
-
-  private isServerUnreliable(index: number): boolean {
-    const reliability = this.loadReliability();
-    const r = reliability[index];
-    if (!r || r.attempts < 3) return false;
-    return r.failures / r.attempts > this.FAILURE_THRESHOLD;
-  }
-
-  private checkAllServers() {
-    this.serverStatus = this.servers.map(() => 'checking');
-
-    const reliability = this.loadReliability();
-    const ranked = this.servers
-      .map((s, i) => ({ server: s, index: i }))
-      .filter(({ index }) => !this.isServerUnreliable(index))
-      .sort((a, b) => {
-        const ra = reliability[a.index];
-        const rb = reliability[b.index];
-        const scoreA = ra ? (ra.attempts - ra.failures) / ra.attempts : 0.5;
-        const scoreB = rb ? (rb.attempts - rb.failures) / rb.attempts : 0.5;
-        return scoreB - scoreA;
-      });
-
-    if (ranked.length === 0) {
-      this.serverStatus = this.servers.map(() => 'offline');
-      return;
-    }
-
-    ranked.forEach(({ server, index }) => {
-      this.checkServerStatus(server).then(status => {
-        this.zone.run(() => {
-          this.serverStatus[index] = status;
-          this.setDefaultToFirstWorkingServer();
-          this.saveServerCache();
-          if (status === 'online') this.updateReliability(index, true);
-        });
-      });
-    });
-  }
-
-  private recheckServersInBackground() {
-    this.servers.forEach((server, i) => {
-      this.checkServerStatus(server).then(status => {
-        this.zone.run(() => {
-          this.serverStatus[i] = status;
-          this.saveServerCache();
-        });
-      });
-    });
-  }
-
-  private getServerCheckQueue(): { server: ServerEntry; index: number }[] {
-    const reliability = this.loadReliability();
-    return this.servers
-      .map((s, i) => ({ server: s, index: i }))
-      .filter(({ index }) => !this.isServerUnreliable(index))
-      .sort((a, b) => {
-        const ra = reliability[a.index];
-        const rb = reliability[b.index];
-        const scoreA = ra ? (ra.attempts - ra.failures) / ra.attempts : 0.5;
-        const scoreB = rb ? (rb.attempts - rb.failures) / rb.attempts : 0.5;
-        return scoreB - scoreA;
-      });
-  }
-
-  private setDefaultToFirstWorkingServer() {
-    const firstOnlineIndex = this.serverStatus.findIndex(s => s === 'online');
-    if (firstOnlineIndex !== -1 && !this.triedServers.has(firstOnlineIndex)) {
-      this.selectedServerIndex = firstOnlineIndex;
-      this.updateLink();
-    } else if (firstOnlineIndex !== -1 && this.triedServers.has(firstOnlineIndex)) {
-      const untriedOnline = this.serverStatus.findIndex(
-        (s, i) => s === 'online' && !this.triedServers.has(i)
-      );
-      if (untriedOnline !== -1) {
-        this.selectedServerIndex = untriedOnline;
-        this.updateLink();
-      }
-    }
-  }
-
   isCheckingServers(): boolean {
-    return this.serverStatus.includes('checking');
+    return this.serverConfig.isChecking();
   }
 
   hasOnlineServer(): boolean {
-    return this.serverStatus.includes('online');
+    return this.serverConfig.hasOnline();
   }
 
-  private loadServerCache(): string[] | null {
-    try {
-      const raw = localStorage.getItem(this.SERVER_CACHE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed.timestamp && Date.now() - parsed.timestamp < 300000) {
-          return parsed.status;
-        }
-      }
-    } catch {}
-    return null;
-  }
-
-  private saveServerCache() {
-    try {
-      localStorage.setItem(this.SERVER_CACHE_KEY, JSON.stringify({
-        status: this.serverStatus,
-        timestamp: Date.now()
-      }));
-    } catch {}
-  }
-
-  private loadReliability(): Record<number, { attempts: number; failures: number }> {
-    try {
-      const raw = localStorage.getItem(this.RELIABILITY_KEY);
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
+  private syncSelectedToOnline() {
+    if (this.serverStatus[this.selectedServerIndex] === 'online') return;
+    const next = this.serverConfig.firstOnlineUntried();
+    if (next !== -1) {
+      this.serverConfig.select(next);
     }
-  }
-
-  private saveReliability(data: Record<number, { attempts: number; failures: number }>) {
-    try {
-      localStorage.setItem(this.RELIABILITY_KEY, JSON.stringify(data));
-    } catch {}
-  }
-
-  private updateReliability(serverIndex: number, success: boolean) {
-    const data = this.loadReliability();
-    if (!data[serverIndex]) {
-      data[serverIndex] = { attempts: 0, failures: 0 };
-    }
-    data[serverIndex].attempts++;
-    if (!success) data[serverIndex].failures++;
-    this.saveReliability(data);
   }
 
   ngOnInit(): void {
-    this.serverConfig.getServers().then(remote => {
-      if (remote && remote.length >= this.servers.length) {
-        this.servers = remote;
-        this.serverStatus = this.servers.map(() => 'checking');
-      }
-    });
+    this.serverConfig.init();
+    this.subscribeToServers();
 
     this.moviedbAPIService.getMovieDetails(this.id).subscribe((response: any) => {
       this.movie = response;
@@ -352,7 +178,7 @@ export class MovieComponent implements OnInit {
 
       const movieTitle = this.movie?.title || this.movie?.original_title || "Movie";
       const movieYear = this.movie?.release_date ? ` (${this.movie.release_date.split('-')[0]})` : "";
-      const movieDesc = this.movie?.overview || `Stream '${movieTitle}'${movieYear} in HD for free on Soulima. Watch with multiple fast server mirrors and high-speed magnet download links.`;
+      const movieDesc = this.movie?.overview || `Stream '${movieTitle}'${movieYear} in HD for free on Soulima. Watch with multiple fast server mirrors.`;
       const movieImg = this.movie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.movie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
       const movieUrl = `https://soulima.net/#/movie/${this.id}`;
 
@@ -384,21 +210,7 @@ export class MovieComponent implements OnInit {
       this.getRecentlyWatched();
       this.updateLink();
     });
-    this.checkAllServers();
     this.showPlayerControls();
-  }
-
-  switchMode(mode: 'server' | 'torrent') {
-    this.playerMode = mode;
-    if (mode === 'torrent' && !this.torrentSources.length && this.id) {
-      this.fetchTorrentSources();
-    }
-  }
-
-  fetchTorrentSources() {
-    this.torrentService.fetchSources(this.id, 'movie').then(sources => {
-      this.torrentSources = sources;
-    });
   }
 
   getRecentlyWatched() {

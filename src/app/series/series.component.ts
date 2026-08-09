@@ -1,18 +1,18 @@
-import { Component, OnInit, OnDestroy, NgZone, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { SeoService } from '../services/seo.service';
-import { ServerConfigService, ServerEntry } from '../services/server-config.service';
+import { ServerConfigService, ServerEntry, ServerHealth } from '../services/server-config.service';
 import { WatchProgressService } from '../services/watch-progress.service';
-import { TorrentService, TorrentSource } from '../services/torrent.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-series',
   templateUrl: './series.component.html',
   styleUrls: ['./series.component.css']
 })
-export class SeriesComponent implements OnDestroy {
+export class SeriesComponent implements OnInit, OnDestroy {
 
 	id: number = 0;
 	season: number = 1;
@@ -20,28 +20,7 @@ export class SeriesComponent implements OnDestroy {
 	serie: any = '';
 	showSelector = false;
 	epiSelector = false;
-	servers: ServerEntry[] = [
-		{ name: 'Server 1 (Vidsrc.to)',     url: 'https://vidsrc.to/embed',                 format: 'standard' },
-		{ name: 'Server 2 (Vidlink.pro)',   url: 'https://vidlink.pro',                     format: 'standard' },
-		{ name: 'Server 3 (Embed.su)',      url: 'https://embed.su/embed',                  format: 'standard' },
-		{ name: 'Server 4 (SmashyStream)',  url: 'https://player.smashy.stream',            format: 'smashy' },
-		{ name: 'Server 5 (Multiembed)',    url: 'https://multiembed.mov',                  format: 'multiembed' },
-		{ name: 'Server 6 (Autoembed)',     url: 'https://autoembed.cc/embed',              format: 'standard' },
-		{ name: 'Server 7 (2embed.cc)',     url: 'https://2embed.cc/embed',                 format: 'standard' },
-		{ name: 'Server 8 (Vidsrc.pro)',    url: 'https://vidsrc.pro/embed',                format: 'standard' },
-		{ name: 'Server 9 (Vidsrc.me)',     url: 'https://vidsrc.me/embed',                 format: 'standard' },
-		{ name: 'Server 10 (Moviedata)',    url: 'https://moviedata.info/embed',            format: 'standard' },
-		{ name: 'Server 11 (Vidbinge)',     url: 'https://vidbinge.dev/embed',              format: 'standard' },
-		{ name: 'Server 12 (SuperEmbed)',   url: 'https://superembed.stream',               format: 'standard' },
-		{ name: 'Server 13 (MoviesAPI)',    url: 'https://moviesapi.club',                  format: 'standard' },
-		{ name: 'Server 14 (Cineby)',       url: 'https://cineby.app',                      format: 'standard' },
-		{ name: 'Server 15 (Gomoplayer)',   url: 'https://gomo.to',                        format: 'standard' },
-		{ name: 'Server 16 (Rive)',         url: 'https://rive.zone',                       format: 'standard' },
-		{ name: 'Server 17 (Moviesapi.net)', url: 'https://moviesapi.net',                  format: 'standard' },
-		{ name: 'Server 18 (Vidflix)',      url: 'https://vidflix.net',                     format: 'standard' },
-		{ name: 'Server 19 (Filmsss)',      url: 'https://filmsss.com',                     format: 'standard' },
-		{ name: 'Server 20 (Cinezone)',     url: 'https://cinezone.net',                    format: 'standard' },
-	];
+	servers: ServerEntry[] = [];
 	selectedServerIndex = 0;
 	loading = true;
 	showControls = true;
@@ -49,16 +28,11 @@ export class SeriesComponent implements OnDestroy {
 	private controlsTimeout: any = null;
 
 	/** 'checking' | 'online' | 'offline' for each server */
-	serverStatus: string[] = this.servers.map(() => 'checking');
+	serverStatus: ServerHealth[] = [];
 
-	/** Tracks which servers were already tried this session */
-	private triedServers = new Set<number>();
-
-	private readonly SERVER_CACHE_KEY = 'soulima_server_status';
-	private readonly RELIABILITY_KEY = 'soulima_server_reliability';
-	private readonly FAILURE_THRESHOLD = 0.7;
 	private heartbeatTimer: any = null;
 	private videoConfirmed = false;
+	private subs: Subscription[] = [];
 
 	seasons: any[] = [];
 	episodes: any[] = [];
@@ -71,20 +45,15 @@ export class SeriesComponent implements OnDestroy {
 	private elapsedSeconds = 0;
 	private progressSavedAt = 0;
 
-	playerMode: 'server' | 'torrent' = 'server';
-	torrentSources: TorrentSource[] = [];
-
 	constructor(
 		private route: ActivatedRoute,
 		private moviedbAPIService: MoviedbAPIService,
 		private sanitizer: DomSanitizer,
-		private zone: NgZone,
 		private titleService: Title,
 		private metaService: Meta,
 		private seoService: SeoService,
 		private serverConfig: ServerConfigService,
-		private watchProgress: WatchProgressService,
-		private torrentService: TorrentService
+		private watchProgress: WatchProgressService
 	) {
 		this.route.params.subscribe(params => {
 			this.id      = Number(params['id']);
@@ -97,6 +66,26 @@ export class SeriesComponent implements OnDestroy {
 	ngOnDestroy() {
 		this.saveProgress();
 		this.stopWatchTimer();
+		this.clearHeartbeat();
+		this.subs.forEach(s => s.unsubscribe());
+	}
+
+	private subscribeToServers() {
+		this.subs.push(
+			this.serverConfig.servers$.subscribe(s => {
+				this.servers = s;
+				this.serverStatus = this.serverConfig.getStatus();
+			}),
+			this.serverConfig.status$.subscribe(s => {
+				this.serverStatus = s;
+				this.syncSelectedToOnline();
+			}),
+			this.serverConfig.selectedIndex$.subscribe(i => {
+				const changed = i !== this.selectedServerIndex;
+				this.selectedServerIndex = i;
+				if (changed) this.updateLink();
+			})
+		);
 	}
 
 	@HostListener('window:beforeunload')
@@ -142,19 +131,6 @@ export class SeriesComponent implements OnDestroy {
 		return this.watchProgress.formatTime(seconds);
 	}
 
-	switchMode(mode: 'server' | 'torrent') {
-		this.playerMode = mode;
-		if (mode === 'torrent') {
-			this.fetchTorrentSources();
-		}
-	}
-
-	fetchTorrentSources() {
-		this.torrentService.fetchSources(this.id, 'tv', this.season, this.episode).then(sources => {
-			this.torrentSources = sources;
-		});
-	}
-
 	getEpisodeProgress(episodeNumber: number): number {
 		const saved = this.watchProgress.get(this.id);
 		if (saved && saved.seasonnb === this.season && saved.episodenb === episodeNumber && saved.progress > 10) {
@@ -174,48 +150,25 @@ export class SeriesComponent implements OnDestroy {
 		const saved = this.watchProgress.get(this.id);
 		const time = (saved?.seasonnb === this.season && saved?.episodenb === this.episode) ? saved.progress : 0;
 		this.savedProgress = time;
-		const server = this.servers[this.selectedServerIndex];
-		let constructedUrl = '';
-		if (server.format === 'smashy') {
-			constructedUrl = `${server.url}/tv/${this.id}?s=${this.season}&e=${this.episode}`;
-		} else if (server.format === 'multiembed') {
-			constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1&s=${this.season}&e=${this.episode}`;
-		} else {
-			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
-		}
-		if (time > 5) {
-			constructedUrl += `&t=${Math.floor(time)}`;
-		}
+		let constructedUrl = this.serverConfig.buildEmbedUrl(this.selectedServerIndex, 'tv', this.id, this.season, this.episode);
+		constructedUrl = this.serverConfig.withResumeTime(constructedUrl, time);
 		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
 		this.iframeOriginalUrl = constructedUrl;
-		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();
 	}
 
 	updateLinkWithTime(time: number) {
 		this.elapsedSeconds = 0;
 		this.progressSavedAt = time;
-		const server = this.servers[this.selectedServerIndex];
-		let constructedUrl = '';
-		if (server.format === 'smashy') {
-			constructedUrl = `${server.url}/tv/${this.id}?s=${this.season}&e=${this.episode}`;
-		} else if (server.format === 'multiembed') {
-			constructedUrl = `${server.url}/?video_id=${this.id}&tmdb=1&s=${this.season}&e=${this.episode}`;
-		} else {
-			constructedUrl = `${server.url}/tv/${this.id}/${this.season}/${this.episode}?player=new&ds_lang=ar`;
-		}
-		if (time > 5) {
-			constructedUrl += `&t=${Math.floor(time)}`;
-		}
+		let constructedUrl = this.serverConfig.buildEmbedUrl(this.selectedServerIndex, 'tv', this.id, this.season, this.episode);
+		constructedUrl = this.serverConfig.withResumeTime(constructedUrl, time);
 		this.link = this.sanitizer.bypassSecurityTrustResourceUrl(constructedUrl);
 		this.iframeOriginalUrl = constructedUrl;
-		this.triedServers.add(this.selectedServerIndex);
 		this.resetHeartbeat();
 	}
 
 	selectServer(index: number) {
-		this.selectedServerIndex = index;
-		this.updateLink();
+		this.serverConfig.select(index);
 	}
 
 	showPlayerControls() {
@@ -239,26 +192,13 @@ export class SeriesComponent implements OnDestroy {
 
 	/** Let the user manually flag media-unavailable (cross-origin iframes prevent auto-detection) */
 	reportUnavailable(index: number) {
-		this.serverStatus[index] = 'offline';
-		this.updateReliability(index, false);
-		this.saveServerCache();
-		const nextIndex = this.serverStatus.findIndex(
-			(s, i) => s === 'online' && !this.triedServers.has(i)
-		);
-		if (nextIndex !== -1) {
-			this.selectServer(nextIndex);
-		} else {
-			this.triedServers.clear();
-			this.checkAllServers();
-		}
+		this.serverConfig.reportUnavailable(index);
 	}
 
 	/** Called when the iframe fails to load — marks server offline, no auto-switch */
 	onIframeError() {
 		this.clearHeartbeat();
-		this.serverStatus[this.selectedServerIndex] = 'offline';
-		this.updateReliability(this.selectedServerIndex, false);
-		this.saveServerCache();
+		this.serverConfig.markOffline(this.selectedServerIndex);
 	}
 
 	/** Listen for postMessage from embed iframes (some providers send play/error events) */
@@ -280,12 +220,13 @@ export class SeriesComponent implements OnDestroy {
 		if (isPlaying) {
 			this.videoConfirmed = true;
 			this.clearHeartbeat();
+			this.serverConfig.confirmPlayable(this.selectedServerIndex);
 		} else if (isError) {
 			this.onIframeError();
 		}
 	}
 
-	/** Start heartbeat: if no play signal within 25s, assume failure and try next server */
+	/** Start heartbeat: if no play signal within 5min, assume failure and try next server */
 	private resetHeartbeat() {
 		this.clearHeartbeat();
 		this.heartbeatTimer = setTimeout(() => {
@@ -302,153 +243,20 @@ export class SeriesComponent implements OnDestroy {
 		}
 	}
 
-	private buildCheckUrl(server: ServerEntry): string {
-		if (server.format === 'smashy') {
-			return `${server.url}/tv/${this.id}?s=${this.season}&e=${this.episode}`;
-		} else if (server.format === 'multiembed') {
-			return `${server.url}/?video_id=${this.id}&tmdb=1&s=${this.season}&e=${this.episode}`;
-		}
-		return `${server.url}/tv/${this.id}/${this.season}/${this.episode}`;
-	}
-
-	private async checkServerStatus(server: ServerEntry): Promise<string> {
-		const checkUrl = this.buildCheckUrl(server);
-		const timeout = 2500;
-
-		try {
-			return await this.serverConfig.checkServer(checkUrl, timeout);
-		} catch {
-			return 'offline';
-		}
-	}
-
-	private isServerUnreliable(index: number): boolean {
-		const reliability = this.loadReliability();
-		const r = reliability[index];
-		if (!r || r.attempts < 3) return false;
-		return r.failures / r.attempts > this.FAILURE_THRESHOLD;
-	}
-
-	private checkAllServers() {
-		const cached = this.loadServerCache();
-		if (cached) {
-			this.serverStatus = cached;
-			this.setDefaultToFirstWorkingServer();
-			this.recheckServersInBackground();
-		} else {
-			this.serverStatus = this.servers.map(() => 'checking');
-			const ranked = this.getServerCheckQueue();
-			if (ranked.length === 0) {
-				this.serverStatus = this.servers.map(() => 'offline');
-				return;
-			}
-			ranked.forEach(({ server, index }) => {
-				this.checkServerStatus(server).then(status => {
-					this.zone.run(() => { 
-						this.serverStatus[index] = status;
-						this.setDefaultToFirstWorkingServer();
-						this.saveServerCache();
-						if (status === 'online') this.updateReliability(index, true);
-					});
-				});
-			});
-		}
-	}
-
-	private getServerCheckQueue(): { server: ServerEntry; index: number }[] {
-		const reliability = this.loadReliability();
-		return this.servers
-			.map((s, i) => ({ server: s, index: i }))
-			.filter(({ index }) => !this.isServerUnreliable(index))
-			.sort((a, b) => {
-				const ra = reliability[a.index];
-				const rb = reliability[b.index];
-				const scoreA = ra ? (ra.attempts - ra.failures) / ra.attempts : 0.5;
-				const scoreB = rb ? (rb.attempts - rb.failures) / rb.attempts : 0.5;
-				return scoreB - scoreA;
-			});
-	}
-
-	private recheckServersInBackground() {
-		this.servers.forEach((server, i) => {
-			this.checkServerStatus(server).then(status => {
-				this.zone.run(() => {
-					this.serverStatus[i] = status;
-					this.saveServerCache();
-				});
-			});
-		});
-	}
-
-	private setDefaultToFirstWorkingServer() {
-		const firstOnlineIndex = this.serverStatus.findIndex(status => status === 'online');
-		if (firstOnlineIndex !== -1 && !this.triedServers.has(firstOnlineIndex)) {
-			this.selectedServerIndex = firstOnlineIndex;
-			this.updateLink();
-		} else if (firstOnlineIndex !== -1 && this.triedServers.has(firstOnlineIndex)) {
-			const untriedOnline = this.serverStatus.findIndex(
-				(s, i) => s === 'online' && !this.triedServers.has(i)
-			);
-			if (untriedOnline !== -1) {
-				this.selectedServerIndex = untriedOnline;
-				this.updateLink();
-			}
-		}
-	}
-
 	isCheckingServers(): boolean {
-		return this.serverStatus.includes('checking');
+		return this.serverConfig.isChecking();
 	}
 
 	hasOnlineServer(): boolean {
-		return this.serverStatus.includes('online');
+		return this.serverConfig.hasOnline();
 	}
 
-	private loadServerCache(): string[] | null {
-		try {
-			const raw = localStorage.getItem(this.SERVER_CACHE_KEY);
-			if (raw) {
-				const parsed = JSON.parse(raw);
-				if (parsed.timestamp && Date.now() - parsed.timestamp < 300000) {
-					return parsed.status;
-				}
-			}
-		} catch {}
-		return null;
-	}
-
-	private saveServerCache() {
-		try {
-			localStorage.setItem(this.SERVER_CACHE_KEY, JSON.stringify({
-				status: this.serverStatus,
-				timestamp: Date.now()
-			}));
-		} catch {}
-	}
-
-	private loadReliability(): Record<number, { attempts: number; failures: number }> {
-		try {
-			const raw = localStorage.getItem(this.RELIABILITY_KEY);
-			return raw ? JSON.parse(raw) : {};
-		} catch {
-			return {};
+	private syncSelectedToOnline() {
+		if (this.serverStatus[this.selectedServerIndex] === 'online') return;
+		const next = this.serverConfig.firstOnlineUntried();
+		if (next !== -1) {
+			this.serverConfig.select(next);
 		}
-	}
-
-	private saveReliability(data: Record<number, { attempts: number; failures: number }>) {
-		try {
-			localStorage.setItem(this.RELIABILITY_KEY, JSON.stringify(data));
-		} catch {}
-	}
-
-	private updateReliability(serverIndex: number, success: boolean) {
-		const data = this.loadReliability();
-		if (!data[serverIndex]) {
-			data[serverIndex] = { attempts: 0, failures: 0 };
-		}
-		data[serverIndex].attempts++;
-		if (!success) data[serverIndex].failures++;
-		this.saveReliability(data);
 	}
 
 	changeEpisode(episodeNumber: number) {
@@ -458,10 +266,9 @@ export class SeriesComponent implements OnDestroy {
 		this.episode = episodeNumber;
 		window.history.pushState({}, '', '/serie/' + this.id + '/' + this.season + '/' + this.episode);
 		this.updateLink();
-		this.checkAllServers();
+		this.serverConfig.refresh();
 		this.showPlayerControls();
 		this.startWatchTimer();
-		if (this.playerMode === 'torrent') this.fetchTorrentSources();
 		this.moviedbAPIService.getEpisodeDetails(this.id, this.season, this.episode)
 			.subscribe((epi: any) => {
 				this.serie.seasonnb = this.season;
@@ -480,12 +287,8 @@ export class SeriesComponent implements OnDestroy {
 	}
 
 	ngOnInit(): void {
-		this.serverConfig.getServers().then(remote => {
-			if (remote && remote.length >= this.servers.length) {
-				this.servers = remote;
-				this.serverStatus = this.servers.map(() => 'checking');
-			}
-		});
+		this.serverConfig.init();
+		this.subscribeToServers();
 
 		this.moviedbAPIService.getSerieDetails(this.id).subscribe((response: any) => {
 			this.serie = response;
@@ -495,7 +298,7 @@ export class SeriesComponent implements OnDestroy {
 
 			const serieName = this.serie?.name || this.serie?.original_name || "TV Show";
 			const episodeTitle = `Watch ${serieName} - Season ${this.season} Episode ${this.episode} Free - Soulima`;
-			const episodeDesc = `Stream ${serieName} Season ${this.season} Episode ${this.episode} in high quality for free on Soulima. Access multiple mirrors and magnet links.`;
+			const episodeDesc = `Stream ${serieName} Season ${this.season} Episode ${this.episode} in high quality for free on Soulima. Access multiple server mirrors.`;
 			const episodeImg = this.serie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.serie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
 			const episodeUrl = `https://soulima.net/#/serie/${this.id}/${this.season}/${this.episode}`;
 
@@ -548,7 +351,6 @@ export class SeriesComponent implements OnDestroy {
 				this.preloadEpisodesForSeason(activeSeasonData);
 			}
 		});
-		this.checkAllServers();
 		this.showPlayerControls();
 	}
 
