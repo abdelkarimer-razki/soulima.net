@@ -1,27 +1,82 @@
-# MatysTest
+# Soulima
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 16.0.0.
+Self-hosted streaming app: an Angular web frontend plus a Node.js torrent-to-HTTP streaming backend. It can run as a regular website (Vercel) or as a **desktop application** (Electron) that runs entirely on your own machine.
 
-## Development server
+## Project layout
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+| Path | Description |
+| --- | --- |
+| `src/` | Angular 16 web frontend |
+| `api/` | Vercel serverless functions (deployed with the site) |
+| `streaming-server/` | Express + WebTorrent backend that streams torrents over HTTP |
+| `desktop/` | Electron wrapper that bundles the frontend + streaming server into one app |
 
-## Code scaffolding
+## Desktop app
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+### Prerequisites
 
-## Build
+- [Node.js](https://nodejs.org) 18 or newer (20+ recommended)
+- npm
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+### Quick start (install and run)
 
-## Running unit tests
+```bash
+# 1. Install frontend dependencies (run once)
+npm install
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+# 2. Install streaming server dependencies (run once)
+npm --prefix streaming-server install
 
-## Running end-to-end tests
+# 3. Install Electron + build tools (run once)
+npm --prefix desktop install
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+# 4. Build the desktop app (compiles the Angular frontend and
+#    bundles the streaming server into desktop/resources/)
+npm run desktop:build
 
-## Further help
+# 5. Launch it
+npm run desktop:start
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+Or, in one command:
+
+```bash
+npm run desktop
+```
+
+This compiles the frontend, bundles everything, and opens the Soulima window. The streaming server starts automatically on `http://localhost:3030` and is shut down when you close the app.
+
+### Package an installer
+
+To produce a distributable installer (`.AppImage` / `.deb` on Linux, `.exe` on Windows, `.dmg` on macOS):
+
+```bash
+npm --prefix desktop run package
+```
+
+The installers are written to `desktop/dist/`.
+
+### Optional: subtitle key
+
+For subtitle search/downloads, copy `streaming-server/.env.example` to `streaming-server/.env` and add a free SubDL API key (https://subdl.com/panel/api). Subtitles are optional; the app works without them.
+
+### Notes
+
+- The first run of `npm --prefix desktop install` downloads the Electron binary (can take a minute).
+- On some Linux systems Electron needs its SUID sandbox helper configured: `sudo chown root:root desktop/node_modules/electron/dist/chrome-sandbox && sudo chmod 4755 desktop/node_modules/electron/dist/chrome-sandbox`.
+- ffmpeg is used for transcoding; the streaming server auto-detects it (see `FFMPEG_PATH` in `streaming-server/.env.example`).
+
+## Web development
+
+```bash
+npm install
+npm start            # Angular dev server on http://localhost:4200
+npm run dev          # Angular dev server + streaming server together (uses concurrently)
+npm run build        # production build -> docs/
+```
+
+## Tech stack
+
+- **Frontend:** Angular 16, RxJS, ngx-cookie-service
+- **Streaming:** Express, WebTorrent (server-side torrent-to-HTTP), SubDL subtitles
+- **Desktop:** Electron 43

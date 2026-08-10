@@ -1,0 +1,53 @@
+{
+  "name": "soulima-desktop",
+  "version": "1.0.0",
+  "description": "Soulima desktop app - self-contained streaming",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "node build.mjs",
+    "package": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "net.soulima.desktop",
+    "productName": "Soulima",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/web",
+        "to": "web"
+      },
+      {
+        "from": "resources/streaming-server",
+        "to": "streaming-server"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    }
+  }
+}
