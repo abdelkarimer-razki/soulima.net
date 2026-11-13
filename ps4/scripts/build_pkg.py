@@ -3,15 +3,15 @@
 build_pkg.py — Automated PS4 Homebrew PKG Assembler for Soulima
 
 This script:
-1. Validates all required build artifacts (param.sfo, icon0.png, pic1.png, eboot.bin)
+1. Validates all required build artifacts (param.sfo, icon0.png, pic1.png, eboot.bin, sce_module)
 2. Stages the package layout
 3. Generates project.gp4 via create-gp4
 4. Assembles the Fake PKG (FPKG) using OpenOrbis PkgTool.Core
 5. Validates PKG digests, tables, and signatures
 6. Outputs ready-to-install Soulima.pkg to ps4/dist/
 
-Title ID:   SOULM0001
-Content ID: IV0000-SOULM0001_00-SOULIMA000000000
+Title ID:   SOUL00001
+Content ID: IV0000-SOUL00001_00-SOULIMA000000000
 """
 
 import os
@@ -20,14 +20,15 @@ import shutil
 import subprocess
 import struct
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCE_SYS_DIR  = os.path.join(PROJECT_ROOT, "sce_sys")
-BUILD_DIR    = os.path.join(PROJECT_ROOT, "build")
-DIST_DIR     = os.path.join(PROJECT_ROOT, "dist")
-CONF_FILE    = os.path.join(PROJECT_ROOT, "soulima.conf")
+PROJECT_ROOT   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCE_SYS_DIR    = os.path.join(PROJECT_ROOT, "sce_sys")
+SCE_MODULE_DIR = os.path.join(PROJECT_ROOT, "sce_module")
+BUILD_DIR      = os.path.join(PROJECT_ROOT, "build")
+DIST_DIR       = os.path.join(PROJECT_ROOT, "dist")
+CONF_FILE      = os.path.join(PROJECT_ROOT, "soulima.conf")
 
-CONTENT_ID   = "IV0000-SOULM0001_00-SOULIMA000000000"
-FINAL_PKG    = os.path.join(DIST_DIR, "Soulima.pkg")
+CONTENT_ID     = "IV0000-SOUL00001_00-SOULIMA000000000"
+FINAL_PKG      = os.path.join(DIST_DIR, "Soulima.pkg")
 
 def check_file(path, desc):
     if not os.path.isfile(path):
@@ -99,12 +100,31 @@ def build():
     print(" Soulima PS4 PKG Assembler")
     print("=" * 60)
     
-    sfo_path   = os.path.join(SCE_SYS_DIR, "param.sfo")
-    icon0_path = os.path.join(SCE_SYS_DIR, "icon0.png")
-    pic1_path  = os.path.join(SCE_SYS_DIR, "pic1.png")
-    right_path = os.path.join(SCE_SYS_DIR, "about", "right.sprx")
-    eboot_path = os.path.join(BUILD_DIR, "eboot.bin")
+    sfo_path      = os.path.join(SCE_SYS_DIR, "param.sfo")
+    icon0_path    = os.path.join(SCE_SYS_DIR, "icon0.png")
+    pic1_path     = os.path.join(SCE_SYS_DIR, "pic1.png")
+    right_path    = os.path.join(SCE_SYS_DIR, "about", "right.sprx")
+    eboot_path    = os.path.join(BUILD_DIR, "eboot.bin")
+    libc_path     = os.path.join(SCE_MODULE_DIR, "libc.prx")
+    fios2_path    = os.path.join(SCE_MODULE_DIR, "libSceFios2.prx")
     
+    # Ensure module PRXs are populated from toolchain if not already present
+    env = setup_env()
+    oo_toolchain = env.get("OO_PS4_TOOLCHAIN")
+    if oo_toolchain:
+        if not os.path.isfile(libc_path):
+            for cand in [os.path.join(oo_toolchain, "src/modules/libc.prx"), os.path.join(oo_toolchain, "samples/hello_world/sce_module/libc.prx")]:
+                if os.path.isfile(cand):
+                    os.makedirs(SCE_MODULE_DIR, exist_ok=True)
+                    shutil.copy2(cand, libc_path)
+                    break
+        if not os.path.isfile(fios2_path):
+            for cand in [os.path.join(oo_toolchain, "src/modules/libSceFios2.prx"), os.path.join(oo_toolchain, "samples/hello_world/sce_module/libSceFios2.prx")]:
+                if os.path.isfile(cand):
+                    os.makedirs(SCE_MODULE_DIR, exist_ok=True)
+                    shutil.copy2(cand, fios2_path)
+                    break
+
     # 1. Verification
     print("[1/5] Verifying input artifacts...")
     assert check_file(sfo_path, "param.sfo"), "Missing param.sfo"
@@ -112,6 +132,8 @@ def build():
     assert check_file(pic1_path, "pic1.png"), "Missing pic1.png"
     assert check_file(right_path, "right.sprx"), "Missing sce_sys/about/right.sprx"
     assert check_file(eboot_path, "eboot.bin"), "Missing eboot.bin"
+    assert check_file(libc_path, "libc.prx"), "Missing sce_module/libc.prx"
+    assert check_file(fios2_path, "libSceFios2.prx"), "Missing sce_module/libSceFios2.prx"
     
     verify_sfo(sfo_path)
     print("  -> param.sfo magic verified (\\x00PSF)")
@@ -122,18 +144,22 @@ def build():
     verify_eboot(eboot_path)
     print("  -> eboot.bin verified (valid FSELF/ELF)")
     print("  -> right.sprx verified (rights module)")
+    print("  -> sce_module (libc.prx, libSceFios2.prx) verified")
     
     # 2. Stage files
     staging_dir = os.path.join(BUILD_DIR, "pkg_staging")
     if os.path.exists(staging_dir):
         shutil.rmtree(staging_dir)
     os.makedirs(os.path.join(staging_dir, "sce_sys", "about"), exist_ok=True)
+    os.makedirs(os.path.join(staging_dir, "sce_module"), exist_ok=True)
     
     shutil.copy2(eboot_path, os.path.join(staging_dir, "eboot.bin"))
     shutil.copy2(sfo_path, os.path.join(staging_dir, "sce_sys", "param.sfo"))
     shutil.copy2(icon0_path, os.path.join(staging_dir, "sce_sys", "icon0.png"))
     shutil.copy2(pic1_path, os.path.join(staging_dir, "sce_sys", "pic1.png"))
     shutil.copy2(right_path, os.path.join(staging_dir, "sce_sys", "about", "right.sprx"))
+    shutil.copy2(libc_path, os.path.join(staging_dir, "sce_module", "libc.prx"))
+    shutil.copy2(fios2_path, os.path.join(staging_dir, "sce_module", "libSceFios2.prx"))
     if os.path.isfile(CONF_FILE):
         shutil.copy2(CONF_FILE, os.path.join(staging_dir, "soulima.conf"))
         
@@ -150,7 +176,7 @@ def build():
     # 4. Create GP4 project
     print("[3/5] Generating GP4 project descriptor...")
     gp4_path = os.path.join(staging_dir, "project.gp4")
-    files_to_pack = "eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png"
+    files_to_pack = "eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png sce_module/libc.prx sce_module/libSceFios2.prx"
     if os.path.isfile(CONF_FILE):
         files_to_pack += " soulima.conf"
         

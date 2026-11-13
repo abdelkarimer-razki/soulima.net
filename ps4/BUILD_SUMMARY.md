@@ -7,8 +7,8 @@ This document provides a comprehensive report of the verification, compilation, 
 ## 1. Project Overview
 
 - **Application Name**: Soulima
-- **Title ID**: `SOULM0001`
-- **Content ID**: `IV0000-SOULM0001_00-SOULIMA000000000`
+- **Title ID**: `SOUL00001`
+- **Content ID**: `IV0000-SOUL00001_00-SOULIMA000000000`
 - **Target OS**: Sony OrbisOS (PlayStation 4, Firmwares 5.05 - 11.00+)
 - **Environment**: Jailbroken console running GoldHEN / Mira
 - **Packaging Format**: Fake PKG (FPKG) container (`0x7F434E54` magic)
@@ -22,7 +22,7 @@ All input components were verified for structural and specification compliance:
 
 | Artifact | Location | Specifications | Verification Status |
 |---|---|---|---|
-| **SFO Metadata** | `ps4/sce_sys/param.sfo` | SFO v1.1, starts with `\x00PSF` (0x00505346) | **PASS** — Magic verified, contains valid Title ID `SOULM0001` and Title `Soulima`. |
+| **SFO Metadata** | `ps4/sce_sys/param.sfo` | SFO v1.1, starts with `\x00PSF` (0x00505346) | **PASS** — Magic verified, contains valid Title ID `SOUL00001` and Title `Soulima`. |
 | **App Icon** | `ps4/sce_sys/icon0.png` | PNG 512×512, 8-bit RGB | **PASS** — Verified dimensions and format with libpng header parser. |
 | **Splash / Background**| `ps4/sce_sys/pic1.png` | PNG 1920×1080, 8-bit RGB | **PASS** — Verified dimensions and format with libpng header parser. |
 | **Launcher Source** | `ps4/src/main.c` | C11, OrbisOS system service hooks | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
