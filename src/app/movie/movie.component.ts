@@ -78,8 +78,13 @@ export class MovieComponent implements OnInit {
     private subtitleService: SubtitleService
   ) {
     this.route.params.subscribe(params => {
-      this.id = Number(params['id']);
-      this.updateLink();
+      const newId = Number(params['id']);
+      if (newId && newId !== this.id) {
+        this.id = newId;
+        this.loadMovie();
+      } else if (newId) {
+        this.id = newId;
+      }
     });
   }
 
@@ -342,6 +347,46 @@ export class MovieComponent implements OnInit {
     this.saveReliability(data);
   }
 
+  loadMovie() {
+    this.loading = true;
+    this.updateLink();
+    this.showPlayerControls();
+
+    this.moviedbAPIService.getMovieDetails(this.id).subscribe({
+      next: (response: any) => {
+        this.movie = response;
+        this.loading = false;
+
+        const movieTitle = this.movie?.title || this.movie?.original_title || "Movie";
+        const movieYear = this.movie?.release_date ? ` (${this.movie.release_date.split('-')[0]})` : "";
+        const rawYear = (this.movie?.release_date || '').slice(0, 4);
+        const movieDesc = this.movie?.overview || `Stream '${movieTitle}'${movieYear} in HD for free on Soulima. Watch with multiple fast server mirrors and high-speed magnet download links.`;
+        const movieImg = this.movie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.movie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
+        const movieUrl = `https://soulima.net/#/movie/${this.id}`;
+
+        this.seoService.updateMeta({
+          title: `Watch ${movieTitle}${movieYear} Free - Soulima`,
+          description: movieDesc,
+          keywords: `${movieTitle}, watch ${movieTitle}, watch ${movieTitle} free, streaming ${movieTitle}, Soulima movies`,
+          image: movieImg,
+          url: movieUrl,
+          type: 'video.movie',
+        });
+
+        this.getRecentlyWatched();
+        this.fetchTorrentSources(movieTitle, rawYear);
+      },
+      error: () => {
+        this.loading = false;
+        this.fetchTorrentSources();
+      }
+    });
+
+    this.subtitleService.getSubtitles(this.id).then(tracks => {
+      this.subtitleTracks = tracks;
+    });
+  }
+
   ngOnInit(): void {
     this.serverConfig.getServers().then(remote => {
       if (remote && remote.length >= this.servers.length) {
@@ -350,66 +395,36 @@ export class MovieComponent implements OnInit {
       }
     });
 
-    this.moviedbAPIService.getMovieDetails(this.id).subscribe((response: any) => {
-      this.movie = response;
-      this.loading = false;
+    this.loadMovie();
+  }
 
-      const movieTitle = this.movie?.title || this.movie?.original_title || "Movie";
-      const movieYear = this.movie?.release_date ? ` (${this.movie.release_date.split('-')[0]})` : "";
-      const movieDesc = this.movie?.overview || `Stream '${movieTitle}'${movieYear} in HD for free on Soulima. Watch with multiple fast server mirrors and high-speed magnet download links.`;
-      const movieImg = this.movie?.backdrop_path ? `https://image.tmdb.org/t/p/w500${this.movie.backdrop_path}` : 'https://www.soulima.net/assets/soulima.png';
-      const movieUrl = `https://soulima.net/#/movie/${this.id}`;
+  fetchTorrentSources(title?: string, year?: string) {
+    this.torrentSourcesLoading = true;
+    const t = title || this.movie?.title || this.movie?.original_title || '';
+    const y = year || (this.movie?.release_date || '').slice(0, 4);
+    this.fetchSourcesWithRetry(0, t, y);
+  }
 
-      this.seoService.updateMeta({
-        title: `Watch ${movieTitle}${movieYear} Free - Soulima`,
-        description: movieDesc,
-        keywords: `${movieTitle}, watch ${movieTitle}, watch ${movieTitle} free, streaming ${movieTitle}, Soulima movies`,
-        image: movieImg,
-        url: movieUrl,
-        type: 'video.movie',
-        schema: {
-          "@context": "https://schema.org",
-          "@type": "Movie",
-          "name": movieTitle,
-          "image": movieImg,
-          "description": movieDesc,
-          "dateCreated": this.movie?.release_date || "",
-          "url": movieUrl,
-          "aggregateRating": this.movie?.vote_average ? {
-            "@type": "AggregateRating",
-            "ratingValue": this.movie.vote_average,
-            "bestRating": "10",
-            "worstRating": "1",
-            "ratingCount": this.movie.vote_count || 10
-          } : undefined
+  private fetchSourcesWithRetry(attempt: number, title?: string, year?: string) {
+    this.torrentService.fetchSources(this.id, 'movie', undefined, undefined, title, year)
+      .then(sources => {
+        if (sources && sources.length) {
+          this.torrentSources = sources;
+          this.torrentSourcesLoading = false;
+        } else if (attempt < 2) {
+          setTimeout(() => this.fetchSourcesWithRetry(attempt + 1, title, year), 1500);
+        } else {
+          this.torrentSources = [];
+          this.torrentSourcesLoading = false;
+        }
+      })
+      .catch(() => {
+        if (attempt < 2) {
+          setTimeout(() => this.fetchSourcesWithRetry(attempt + 1, title, year), 1500);
+        } else {
+          this.torrentSourcesLoading = false;
         }
       });
-
-      this.getRecentlyWatched();
-      this.updateLink();
-    });
-    this.showPlayerControls();
-    this.fetchTorrentSources();
-    this.subtitleService.getSubtitles(this.id).then(tracks => {
-      this.subtitleTracks = tracks;
-    });
-  }
-
-  switchMode(mode: 'server' | 'torrent') {
-    this.playerMode = 'torrent';
-    if (!this.torrentSources.length && this.id) {
-      this.fetchTorrentSources();
-    }
-  }
-
-  onTorrentUnplayable() {}
-
-  fetchTorrentSources() {
-    this.torrentSourcesLoading = true;
-    this.torrentService.fetchSources(this.id, 'movie').then(sources => {
-      this.torrentSources = sources;
-      this.torrentSourcesLoading = false;
-    });
   }
 
   getRecentlyWatched() {

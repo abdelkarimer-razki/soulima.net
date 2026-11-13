@@ -905,6 +905,12 @@ app-root
 }
 
 /* Premium Footer Styling */
+
+/* The desktop app (PC version) doesn't need the web footer. */
+html[data-desktop="1"] .app-footer {
+	display: none !important;
+}
+
 .app-footer {
 	background: linear-gradient(to top, rgba(10, 10, 10, 0.95) 0%, rgba(20, 20, 20, 0.8) 100%);
 	backdrop-filter: var(--glass-blur);
@@ -1170,4 +1176,30 @@ video::cue(strong) {
 
 video::cue(i) {
 	font-style: italic !important;
+}
+
+/* ─── Cinema Mode (App-Fullscreen, toggled by player F key / button) ─────── */
+body.soulima-cinema {
+	overflow: hidden;
+}
+
+body.soulima-cinema .playerContainer,
+body.soulima-cinema .moviePlayer {
+	padding: 0;
+}
+
+body.soulima-cinema .torrentPlayerWrapper {
+	max-width: 100%;
+	width: 100vw;
+	height: 100vh;
+	height: 100dvh;
+	border-radius: 0;
+	border: none;
+	box-shadow: none;
+}
+
+body.soulima-cinema .torrentPlayer {
+	aspect-ratio: auto;
+	height: 100vh;
+	height: 100dvh;
 }

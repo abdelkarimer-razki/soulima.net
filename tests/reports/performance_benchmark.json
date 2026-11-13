@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-11-12T17:21:54.989Z",
+  "metrics": {
+    "Homepage Load": {
+      "durationMs": 456,
+      "targetMs": 2500,
+      "status": "PASSED"
+    }
+  },
+  "slaResults": {},
+  "passedSla": false,
+  "errors": [
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Error fetching homepage movies: [object HttpErrorResponse]"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "browser_error",
+      "text": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "type": "fatal_benchmark_error",
+      "message": "Waiting for selector `.search-card, .moviesSearch, .searchResutls a` failed"
+    }
+  ]
+}

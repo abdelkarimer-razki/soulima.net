@@ -34,6 +34,8 @@ function resolveFfmpegPath() {
   const candidates = [];
   if (process.env.FFMPEG_PATH) candidates.push(process.env.FFMPEG_PATH);
   candidates.push(path.join(os.homedir(), '.local', 'bin', 'ffmpeg'));
+  candidates.push(path.join(__dirname, '../desktop/dist/linux-unpacked/resources/ffmpeg/ffmpeg'));
+  candidates.push(path.join(__dirname, '../desktop/resources/ffmpeg/ffmpeg'));
   const imgioDir = path.join(os.homedir(), '.local', 'lib', 'python3.12', 'site-packages', 'imageio_ffmpeg', 'binaries');
   try {
     for (const f of fs.readdirSync(imgioDir)) {
@@ -66,13 +68,16 @@ function resolveFfsubsyncPath() {
 const ffsubsyncPath = resolveFfsubsyncPath();
 console.log('[sync] ffsubsync:', ffsubsyncPath || 'NOT FOUND');
 
+const CACHE_BASE_DIR = process.env.SOULIMA_CACHE_DIR || path.join(os.homedir(), '.cache', 'soulima');
+try { fs.mkdirSync(CACHE_BASE_DIR, { recursive: true }); } catch {}
+
 // Auto-sync a subtitle buffer against a video file using ffsubsync.
 // Returns the synced VTT text, or null on failure.
 async function autoSyncSubtitle(subBuf, videoPath) {
   if (!ffsubsyncPath) return null;
   if (!fs.existsSync(videoPath)) return null;
 
-  const tmpDir = path.join(os.tmpdir(), 'soulima-sync');
+  const tmpDir = path.join(CACHE_BASE_DIR, 'sync');
   await fs.promises.mkdir(tmpDir, { recursive: true });
   const pid = process.pid;
   const ts = Date.now();
@@ -140,6 +145,7 @@ const BOOTSTRAP_TRACKERS = [
 ];
 
 const app = express();
+const PORT = process.env.PORT || 3030;
 app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 
@@ -158,28 +164,58 @@ const client = new WebTorrent({
 const streams = new Map();
 
 function getTempDir(id) {
-  return path.join(os.tmpdir(), 'soulima-stream', id);
+  return path.join(CACHE_BASE_DIR, 'stream', id);
 }
 
-function pickVideoFile(files) {
-  return files.find(f => f.name.toLowerCase().endsWith('.mp4'))
-      || files.find(f => f.name.toLowerCase().endsWith('.webm'))
-      || files.find(f => f.name.toLowerCase().endsWith('.mkv'));
+function pickVideoFile(files, season, episode) {
+  if (!Array.isArray(files) || !files.length) return null;
+  const videoExts = ['.mp4', '.mkv', '.webm', '.avi', '.mov'];
+  const videoFiles = files.filter(f => videoExts.some(ext => f.name.toLowerCase().endsWith(ext)));
+  if (!videoFiles.length) return null;
+
+  // Filter out samples, extras, and featurettes unless no main files exist
+  const nonSamples = videoFiles.filter(f => {
+    const n = f.name.toLowerCase();
+    return !n.includes('sample') && !n.includes('trailer') && !n.includes('featurette') &&
+           !n.includes('bonus') && !n.includes('behind the scenes') && (f.length > 40 * 1024 * 1024 || videoFiles.length === 1);
+  });
+  const candidates = nonSamples.length ? nonSamples : videoFiles;
+
+  // If season and episode are specified, match specific episode
+  if (season != null && episode != null) {
+    const s = Number(season);
+    const e = Number(episode);
+    const patterns = [
+      new RegExp(`s0*${s}e0*${e}\\b`, 'i'),
+      new RegExp(`\\b${s}x0*${e}\\b`, 'i'),
+      new RegExp(`\\bepisode[ ._-]*0*${e}\\b`, 'i'),
+      new RegExp(`\\b0*${e}[ ._-]+of[ ._-]+`, 'i'),
+      new RegExp(`\\be0*${e}\\b`, 'i'),
+    ];
+    for (const pat of patterns) {
+      const match = candidates.find(f => pat.test(f.name));
+      if (match) return match;
+    }
+  }
+
+  // Default: Choose the largest video file (the main feature)
+  return candidates.sort((a, b) => b.length - a.length)[0];
 }
 
 app.post('/api/stream', async (req, res) => {
-  const { magnet } = req.body;
+  const { magnet, season, episode } = req.body;
   if (!magnet) return res.status(400).json({ error: 'magnet required' });
   console.log('[stream] POST received magnet:', magnet.slice(0, 80));
   if (!magnet.startsWith('magnet:?xt=urn:btih:')) {
     return res.status(400).json({ error: 'invalid magnet link' });
   }
 
-  // Ensure magnet has tracker parameters for instant peer discovery
+  // Ensure magnet has all bootstrap tracker parameters for instant peer discovery
   let enrichedMagnet = magnet;
-  if (!magnet.includes('&tr=')) {
-    const trStr = BOOTSTRAP_TRACKERS.map(t => `tr=${encodeURIComponent(t)}`).join('&');
-    enrichedMagnet += (magnet.includes('?') ? '&' : '?') + trStr;
+  const missingTrackers = BOOTSTRAP_TRACKERS.filter(tr => !magnet.includes(encodeURIComponent(tr)));
+  if (missingTrackers.length) {
+    const trStr = missingTrackers.map(t => `tr=${encodeURIComponent(t)}`).join('&');
+    enrichedMagnet += (enrichedMagnet.includes('?') ? '&' : '?') + trStr;
   }
 
   const id = crypto.randomBytes(6).toString('hex');
@@ -188,7 +224,10 @@ app.post('/api/stream', async (req, res) => {
   const infoHash = infoHashMatch ? infoHashMatch[1].toLowerCase() : null;
 
   try {
-    const existing = infoHash ? await client.get(`magnet:?xt=urn:btih:${infoHash}`) : null;
+    let existing = infoHash ? await client.get(`magnet:?xt=urn:btih:${infoHash}`) : null;
+    if (existing && (existing.destroyed || existing._destroyed)) {
+      existing = null;
+    }
     if (existing) {
       if (!existing.files.length) {
         await new Promise((resolve, reject) => {
@@ -198,7 +237,7 @@ app.post('/api/stream', async (req, res) => {
           existing.once('error', onErr);
         });
       }
-      const file = pickVideoFile(existing.files);
+      const file = pickVideoFile(existing.files, season, episode);
       if (!file) {
         return res.status(404).json({ error: 'no playable video file in torrent' });
       }
@@ -207,13 +246,15 @@ app.post('/api/stream', async (req, res) => {
         if (existing.pieces?.length) {
           existing.deselect(0, existing.pieces.length - 1, 0);
           file.select();
-          const n = existing.pieces.length;
-          existing.critical(0, Math.min(20, n - 1));
-          if (n > 20) existing.critical(Math.max(0, n - 8), n - 1);
+          const startP = typeof file._startPiece === 'number' ? file._startPiece : 0;
+          const endP = typeof file._endPiece === 'number' ? file._endPiece : (existing.pieces.length - 1);
+          existing.critical(startP, Math.min(startP + 25, endP));
+          if (endP - startP > 25) existing.critical(Math.max(startP, endP - 8), endP);
         }
       } catch {}
 
-      streams.set(id, { torrent: existing, file, createdAt: Date.now() });
+      streams.set(id, { id, torrent: existing, file, createdAt: Date.now(), duration: 0 });
+      startDurationProbe(id);
       const base = `${req.protocol}://${req.get('host')}`;
       return res.json({
         id,
@@ -224,7 +265,7 @@ app.post('/api/stream', async (req, res) => {
       });
     }
 
-    const timeoutMs = 25000;
+    const timeoutMs = 12000;
     const torrent = await new Promise((resolve, reject) => {
       let t;
       try {
@@ -238,9 +279,31 @@ app.post('/api/stream', async (req, res) => {
         reject(new Error('failed to add torrent'));
         return;
       }
-      const onMeta = () => { clearTimeout(timeout); resolve(t); };
-      const onErr = (err) => { clearTimeout(timeout); t.destroy(); reject(err); };
+      let earlyTimer = null;
+      const onMeta = () => {
+        clearTimeout(timeout);
+        if (earlyTimer) clearTimeout(earlyTimer);
+        resolve(t);
+      };
+      const onErr = (err) => {
+        clearTimeout(timeout);
+        if (earlyTimer) clearTimeout(earlyTimer);
+        t.destroy();
+        reject(err);
+      };
+
+      // Fast failover if torrent has 0 peers after 6.5s
+      earlyTimer = setTimeout(() => {
+        if (!t.metadata && t.numPeers === 0) {
+          t.removeListener('metadata', onMeta);
+          t.removeListener('error', onErr);
+          t.destroy();
+          reject(new Error('no peers found (fast failover)'));
+        }
+      }, 6500);
+
       const timeout = setTimeout(() => {
+        if (earlyTimer) clearTimeout(earlyTimer);
         t.removeListener('metadata', onMeta);
         t.removeListener('error', onErr);
         t.destroy();
@@ -251,7 +314,7 @@ app.post('/api/stream', async (req, res) => {
       t.on('warning', () => {});
     });
 
-    const file = pickVideoFile(torrent.files);
+    const file = pickVideoFile(torrent.files, season, episode);
 
     if (!file) {
       torrent.destroy();
@@ -262,14 +325,15 @@ app.post('/api/stream', async (req, res) => {
       if (torrent.pieces?.length) {
         torrent.deselect(0, torrent.pieces.length - 1, 0);
         file.select();
-        const n = torrent.pieces.length;
-        // Priority download for start of video (first 20 pieces) & end of video (moov atom)
-        torrent.critical(0, Math.min(20, n - 1));
-        if (n > 20) torrent.critical(Math.max(0, n - 8), n - 1);
+        const startP = typeof file._startPiece === 'number' ? file._startPiece : 0;
+        const endP = typeof file._endPiece === 'number' ? file._endPiece : (torrent.pieces.length - 1);
+        torrent.critical(startP, Math.min(startP + 25, endP));
+        if (endP - startP > 25) torrent.critical(Math.max(startP, endP - 8), endP);
       }
     } catch {}
 
-    streams.set(id, { torrent, file, createdAt: Date.now() });
+    streams.set(id, { id, torrent, file, createdAt: Date.now(), duration: 0 });
+    startDurationProbe(id);
     const base = `${req.protocol}://${req.get('host')}`;
 
     res.json({
@@ -303,7 +367,7 @@ app.post('/api/stream/prefetch', async (req, res) => {
         enrichedMagnet += (magnet.includes('?') ? '&' : '?') + trStr;
       }
       existing = client.add(enrichedMagnet, {
-        path: path.join(os.tmpdir(), 'soulima-prefetch', infoHash),
+        path: path.join(CACHE_BASE_DIR, 'prefetch', infoHash),
         announce: BOOTSTRAP_TRACKERS,
         maxConns: 300,
         strategy: 'sequential',
@@ -315,31 +379,282 @@ app.post('/api/stream/prefetch', async (req, res) => {
   }
 });
 
-app.get('/api/stream/:id', (req, res) => {
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// ─── On-the-fly MKV remux ────────────────────────────────────────────────────
+// Chromium's <video> element can't decode several codecs commonly found in
+// series MKV files (DTS/EAC3 audio, HEVC video). We remux MKV -> fragmented MP4
+// through ffmpeg: copy the video when possible (fast), transcode audio to AAC
+// (or video to H.264 when the codec is unsupported). The partially-downloaded
+// torrent file is fed to ffmpeg via stdin so playback starts immediately.
+
+let ffmpegUsable = null;
+async function ensureFfmpegUsable() {
+  if (ffmpegUsable !== null) return ffmpegUsable;
+  ffmpegUsable = await new Promise((resolve) => {
+    try {
+      const p = spawn(ffmpegPath, ['-version'], { stdio: 'ignore' });
+      const to = setTimeout(() => { try { p.kill(); } catch {} resolve(true); }, 4000);
+      p.once('error', () => { clearTimeout(to); resolve(false); });
+      p.once('spawn', () => { clearTimeout(to); try { p.kill(); } catch {} resolve(true); });
+    } catch { resolve(false); }
+  });
+  console.log('[mkv] ffmpeg usable:', ffmpegUsable);
+  return ffmpegUsable;
+}
+
+const FFMPEG_VIDEO_COPY = new Set(['h264', 'vp9', 'vp8', 'av1']);
+const FFMPEG_AUDIO_COPY = new Set(['aac', 'mp3']);
+
+function fileBytesOnDisk(sourcePath) {
+  try { return fs.statSync(sourcePath).size; } catch { return 0; }
+}
+
+async function waitForFileSize(sourcePath, minBytes, timeoutMs) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (fileBytesOnDisk(sourcePath) >= minBytes) return true;
+    await sleep(500);
+  }
+  return false;
+}
+
+// Probe the real total duration once enough of the file is on disk, so the
+// player can show the full runtime even though remuxed (fragmented MP4) video
+// only exposes a progressive duration to the browser.
+function startDurationProbe(id) {
+  const s = streams.get(id);
+  if (!s) return;
+  const sourcePath = path.join(s.torrent.path, s.file.path);
+  waitForFileSize(sourcePath, 2 * 1024 * 1024, 20000).then(() =>
+    probeCodecs(sourcePath).then(cfg => {
+      const cur = streams.get(id);
+      if (cur && cfg && cfg.duration > 0) cur.duration = cfg.duration;
+    }).catch(() => {})
+  );
+}
+
+// Probe codecs from the (possibly partial) file header using `ffmpeg -i`.
+async function probeCodecs(sourcePath) {
+  try {
+    const { stderr } = await execFileAsync(
+      ffmpegPath,
+      ['-hide_banner', '-probesize', '4M', '-analyzeduration', '4M', '-i', sourcePath],
+      { timeout: 20000 }
+    ).catch(e => ({ stderr: e.stderr || e.message || '' }));
+    const video = stderr.match(/Stream #\d+:\d+[^\n]*: Video: (\S+)/i);
+    const audio = stderr.match(/Stream #\d+:\d+[^\n]*: Audio: (\S+)/i);
+    const dur = stderr.match(/Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/);
+    return {
+      videoCodec: (video ? video[1] : '').toLowerCase(),
+      audioCodec: (audio ? audio[1] : '').toLowerCase(),
+      hasAudio: !!audio,
+      duration: dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function spawnRemux(res, s, startTime, cfg, sourceName) {
+  const isHevc = /hevc|x265|h265|265/i.test(sourceName) || cfg.videoCodec === 'hevc';
+  const copyVideo = !isHevc && !!cfg.videoCodec && FFMPEG_VIDEO_COPY.has(cfg.videoCodec);
+  // Only copy audio when the probe positively identified a browser-safe codec.
+  // If the probe could not detect audio (common on partially-downloaded files),
+  // transcoding to AAC guarantees audible sound; copying DTS/EAC3/AC3/Opus into
+  // an MP4 yields silent video in Chromium.
+  const copyAudio = !!cfg.hasAudio && FFMPEG_AUDIO_COPY.has(cfg.audioCodec);
+
+  const inputUrl = `http://127.0.0.1:${PORT}/api/raw-stream/${s.id}`;
+  const args = [
+    '-hide_banner',
+    '-loglevel', 'error',
+    '-probesize', '4M',
+    '-analyzeduration', '4M',
+    '-seekable', '1',
+    '-multiple_requests', '1',
+  ];
+
+  if (startTime > 0) {
+    args.push('-ss', String(startTime));
+    if (cfg.duration > 0 && s.torrent?.pieceLength) {
+      const fileOffset = s.file.offset || 0;
+      const pLen = s.torrent.pieceLength;
+      const approxByte = Math.floor((startTime / cfg.duration) * s.file.length);
+      const targetPiece = Math.floor((approxByte + fileOffset) / pLen);
+      try {
+        s.torrent.critical(targetPiece, Math.min(targetPiece + 30, s.file._endPiece || (s.torrent.pieces.length - 1)));
+      } catch {}
+    }
+  }
+
+  args.push('-i', inputUrl);
+
+  if (copyVideo) args.push('-c:v', 'copy');
+  else args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p');
+
+  if (copyAudio) args.push('-c:a', 'copy');
+  else args.push('-c:a', 'aac', '-b:a', '192k');
+
+  args.push('-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-f', 'mp4', 'pipe:1');
+
+  console.log(`[mkv] remux ${sourceName} startTime=${startTime}s video=${cfg.videoCodec || '?'} audio=${cfg.audioCodec || '?'} (${copyVideo ? 'copy' : 'h264'} / ${copyAudio ? 'copy' : 'aac'})`);
+
+  const proc = spawn(ffmpegPath, args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => {
+    const t = d.toString().trim();
+    if (t && !/^frame=/.test(t)) console.log('[mkv]', t);
+  });
+  proc.on('error', (err) => {
+    console.error('[mkv] spawn error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'transcode unavailable' });
+    } else {
+      res.destroy();
+    }
+  });
+  proc.on('close', (code) => {
+    if (code !== 0 && !res.writableEnded) res.destroy();
+  });
+  res.on('close', () => {
+    try { proc.kill('SIGKILL'); } catch {}
+  });
+
+  // Fragmented MP4 gives the browser a progressive duration; expose the real
+  // total so the client can show the full length even before it's buffered.
+  const headers = {
+    'Content-Type': 'video/mp4',
+    'Accept-Ranges': 'none',
+    'Cache-Control': 'no-store, no-cache',
+  };
+  if (cfg.duration > 0) headers['X-Media-Duration'] = String(cfg.duration);
+  if (startTime > 0) headers['X-Stream-Start-Time'] = String(startTime);
+  res.writeHead(200, headers);
+  return true;
+}
+
+async function handleMkvStream(req, res, s, startTime) {
+  const { file, torrent } = s;
+  const sourcePath = path.join(torrent.path, file.path);
+
+  if (!s.mkvConfig) {
+    await waitForFileSize(sourcePath, 1024 * 1024, 15000);
+    s.mkvConfig = (await probeCodecs(sourcePath)) || { videoCodec: '', audioCodec: '', hasAudio: true, duration: 0 };
+  }
+  return spawnRemux(res, s, startTime, s.mkvConfig, file.name);
+}
+
+// Non-MKV containers (mp4/avi/webm): remux when the probe positively
+// identified a non-browser-safe audio codec (AC3/DTS/EAC3/TrueHD).
+async function handleUnsafeAudioStream(req, res, s, startTime) {
+  const { file, torrent } = s;
+  const sourcePath = path.join(torrent.path, file.path);
+
+  if (!s.mkvConfig) {
+    if (!fs.existsSync(sourcePath) || fs.statSync(sourcePath).size < 1024 * 1024) {
+      return false;
+    }
+    s.mkvConfig = (await probeCodecs(sourcePath)) || null;
+  }
+  const cfg = s.mkvConfig;
+  if (!cfg || !cfg.hasAudio) return false;
+  if (['aac', 'mp3', 'opus', 'vorbis'].includes(cfg.audioCodec)) return false;
+  return spawnRemux(res, s, startTime, cfg, file.name);
+}
+
+// Raw torrent byte stream with full HTTP Range request support for FFmpeg and direct consumers
+app.get('/api/raw-stream/:id', (req, res) => {
+  const s = streams.get(req.params.id);
+  if (!s || !s.file || !s.torrent) return res.status(404).json({ error: 'stream not found' });
+
+  const { file, torrent } = s;
+  const range = req.headers.range;
+  const pLen = torrent.pieceLength || 1048576;
+  const fileOffset = file.offset || 0;
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : file.length - 1;
+
+    // Critical piece prioritization for seeks
+    const startPiece = Math.floor((start + fileOffset) / pLen);
+    const endPiece = Math.floor((Math.min(end, file.length - 1) + fileOffset) / pLen);
+    try {
+      torrent.critical(startPiece, Math.min(endPiece, startPiece + 25));
+    } catch {}
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${file.length}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': end - start + 1,
+      'Content-Type': 'application/octet-stream',
+      'Cache-Control': 'no-cache',
+    });
+    const rs = file.createReadStream({ start, end });
+    rs.pipe(res);
+    res.on('close', () => { rs.destroy(); });
+  } else {
+    res.writeHead(200, {
+      'Content-Length': file.length,
+      'Content-Type': 'application/octet-stream',
+      'Accept-Ranges': 'bytes',
+    });
+    const rs = file.createReadStream();
+    rs.pipe(res);
+    res.on('close', () => { rs.destroy(); });
+  }
+});
+
+app.get('/api/stream/:id', async (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
 
   const { file, torrent } = s;
+  const id = req.params.id;
+  const startTime = Math.max(0, parseFloat(req.query.startTime || req.query.t || 0) || 0);
+
+  const isMkv = file.name.toLowerCase().endsWith('.mkv');
+  if (ffmpegUsable === null) await ensureFfmpegUsable();
+  if (ffmpegUsable) {
+    const handled = isMkv
+      ? await handleMkvStream(req, res, s, startTime).catch(() => false)
+      : await handleUnsafeAudioStream(req, res, s, startTime).catch(() => false);
+    if (handled) return;
+  }
+
   const range = req.headers.range;
   const mime = file.name.endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4';
-  const id = req.params.id;
 
   console.log(`[stream] GET /api/stream/${id} range=${range || '(none)'} downloaded=${(torrent.downloaded / 1048576).toFixed(1)}MB peers=${torrent.numPeers}`);
 
   let sent = 0;
 
   const pipeStream = (start, end) => {
-    res.writeHead(206, {
-      'Content-Range': `bytes ${start}-${end}/${file.length}`,
-      'Accept-Ranges': 'bytes',
-      'Content-Length': end - start + 1,
-      'Content-Type': mime,
-      'Cache-Control': 'no-cache',
-    });
-    const rs = file.createReadStream({ start, end });
-    rs.on('data', (chunk) => { sent += chunk.length; });
-    rs.on('error', () => {});
-    rs.pipe(res);
+    try {
+      if (file._destroyed || file.destroyed || !torrent || torrent.destroyed) {
+        if (!res.headersSent) res.status(410).end();
+        return;
+      }
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${file.length}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': end - start + 1,
+        'Content-Type': mime,
+        'Cache-Control': 'no-cache',
+      });
+      const rs = file.createReadStream({ start, end });
+      rs.on('data', (chunk) => { sent += chunk.length; });
+      rs.on('error', () => {
+        if (!res.writableEnded) res.end();
+      });
+      rs.pipe(res);
+      res.on('close', () => { rs.destroy(); });
+    } catch (err) {
+      console.warn(`[stream] pipeStream error: ${err.message}`);
+      if (!res.headersSent) res.status(500).end();
+    }
   };
 
   const done = () => {
@@ -355,10 +670,11 @@ app.get('/api/stream/:id', (req, res) => {
     // Critical piece prioritization for seeks
     if (torrent && torrent.pieceLength) {
       const pLen = torrent.pieceLength;
-      const startPiece = Math.floor(start / pLen);
-      const endPiece = Math.floor(Math.min(end, file.length - 1) / pLen);
+      const fileOffset = file.offset || 0;
+      const startPiece = Math.floor((start + fileOffset) / pLen);
+      const endPiece = Math.floor((Math.min(end, file.length - 1) + fileOffset) / pLen);
       try {
-        torrent.critical(startPiece, Math.min(endPiece, startPiece + 15));
+        torrent.critical(startPiece, Math.min(endPiece, startPiece + 25));
       } catch {}
     }
 
@@ -377,8 +693,7 @@ app.get('/api/stream/:id', (req, res) => {
 });
 
 function toSrt(buf) {
-  let text = buf.toString('utf8');
-  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  let text = decodeSubtitleText(buf);
   const isVtt = /^\s*WEBVTT/i.test(text);
   text = sanitizeSubtitleText(text);
   if (isVtt) {
@@ -408,6 +723,7 @@ async function muxWithSubtitle(req, res, s, fileId, lang) {
       '-i', tmpSub,
       '-map', '0:v:0', '-map', '0:a:0?', '-map', '1:0',
       '-c', 'copy', '-c:s', 'srt',
+      '-disposition:s:0', 'default',
       '-metadata:s:s:0', `language=${lang || 'und'}`,
       '-f', 'matroska', 'pipe:1',
     ];
@@ -439,6 +755,212 @@ async function muxWithSubtitle(req, res, s, fileId, lang) {
   }
 }
 
+/* ─── Tracked downloads with progress ──────────────────────────────────────── */
+const downloads = new Map();          // downloadId -> state
+const downloadsByStream = new Map();  // streamId -> Set<downloadId>
+const DOWNLOADS_DIR = path.join(CACHE_BASE_DIR, 'downloads');
+
+/* ─── Persistent media library (private folder inside the app) ─────────────── */
+// Desktop app passes MEDIA_DIR = userData/media via env. Falls back to a
+// per-user hidden folder so completed downloads live on disk instead of only
+// in the browser cache.
+const MEDIA_DIR = process.env.MEDIA_DIR || path.join(os.homedir(), '.soulima', 'media');
+const MEDIA_KEEP_MS = 60 * 60 * 1000; // keep finished downloads around long enough to move into library
+
+/* ─── Daily download budget ──────────────────────────────────────────────────── */
+// Total bytes that may be downloaded per calendar day. Configurable via the
+// DOWNLOAD_BUDGET_GB env var (desktop app / user preference). Usage persists in
+// the media folder so the budget survives server restarts.
+const DOWNLOAD_BUDGET_GB = parseFloat(process.env.DOWNLOAD_BUDGET_GB || '15');
+const DOWNLOAD_BUDGET_BYTES = Math.max(0, DOWNLOAD_BUDGET_GB * 1024 * 1024 * 1024);
+const BUDGET_FILE = path.join(MEDIA_DIR, 'usage.json');
+
+function budgetDayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+let budgetState = { date: budgetDayKey(), bytes: 0 };
+
+async function loadBudget() {
+  try {
+    const raw = await fs.promises.readFile(BUDGET_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.date === budgetDayKey()) {
+      budgetState = { date: parsed.date, bytes: Number(parsed.bytes) || 0 };
+    }
+  } catch {}
+}
+
+function saveBudget() {
+  fs.promises.mkdir(MEDIA_DIR, { recursive: true })
+    .then(() => fs.promises.writeFile(BUDGET_FILE, JSON.stringify(budgetState)))
+    .catch(() => {});
+}
+
+function budgetUsed() {
+  if (budgetState.date !== budgetDayKey()) {
+    budgetState = { date: budgetDayKey(), bytes: 0 };
+    saveBudget();
+  }
+  return budgetState.bytes;
+}
+
+function budgetRemaining() {
+  return Math.max(0, DOWNLOAD_BUDGET_BYTES - budgetUsed());
+}
+
+function addBudget(bytes) {
+  if (budgetState.date !== budgetDayKey()) budgetState = { date: budgetDayKey(), bytes: 0 };
+  budgetState.bytes += Math.max(0, bytes);
+  saveBudget();
+}
+
+async function waitForFileDone(s, state) {
+  const { file } = s;
+  if (file.downloaded >= file.length) return true;
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(false), 60 * 60 * 1000);
+    const update = () => {
+      state.downloaded = file.downloaded;
+      state.progress = file.length ? Math.min(99, (file.downloaded / file.length) * 100) : 0;
+      if (file.downloaded >= file.length) {
+        clearTimeout(timeout); clearInterval(iv);
+        resolve(true);
+      }
+    };
+    const iv = setInterval(update, 1000);
+    file.once('done', () => {
+      clearTimeout(timeout); clearInterval(iv);
+      state.downloaded = file.length; state.progress = 99;
+      resolve(true);
+    });
+  });
+}
+
+async function copyToFile(s, state) {
+  const { file } = s;
+  return new Promise((resolve, reject) => {
+    const rs = file.createReadStream();
+    const ws = fs.createWriteStream(state.outFile);
+    rs.on('error', reject);
+    ws.on('error', reject);
+    rs.on('data', () => {
+      state.downloaded = file.downloaded;
+      state.progress = file.length ? Math.min(100, (file.downloaded / file.length) * 100) : 0;
+    });
+    ws.on('finish', resolve);
+    rs.pipe(ws);
+  });
+}
+
+// Mux a subtitle into a complete copy of the video, writing to outFile.
+async function muxToFile(s, outFile, subtitleId, lang, onProgress) {
+  const { torrent, file } = s;
+  const sourcePath = path.join(torrent.path, file.path);
+  const subBuf = await resolveSubtitleBuffer(subtitleId);
+  if (!subBuf) throw new Error('subtitle fetch failed');
+  const srt = toSrt(subBuf);
+  if (!srt.trim()) throw new Error('empty subtitle');
+  const tmpSub = path.join(getTempDir(s.id), `.soulima-mux-subs-${process.pid}-${Date.now()}.srt`);
+  await fs.promises.writeFile(tmpSub, srt);
+
+  const baseName = file.name.replace(/\.(mkv|mp4|webm|avi)$/i, '') || 'video';
+  const outName = `${baseName} (${(lang || 'und').toUpperCase()}).mkv`.replace(/[^\w.\- ()]/g, '_');
+  const outPath = path.join(path.dirname(outFile), outName);
+  const probed = await probeCodecs(sourcePath).catch(() => null);
+  const duration = probed?.duration || 0;
+
+  return new Promise((resolve, reject) => {
+    const args = [
+      '-y', '-hide_banner', '-loglevel', 'error', '-nostats',
+      '-progress', 'pipe:1',
+      '-i', sourcePath,
+      '-i', tmpSub,
+      '-map', '0:v:0', '-map', '0:a:0?', '-map', '1:0',
+      '-c', 'copy', '-c:s', 'srt',
+      '-disposition:s:0', 'default',
+      '-metadata:s:s:0', `language=${lang || 'und'}`,
+      '-f', 'matroska',
+      outPath,
+    ];
+    const proc = spawn(ffmpegPath, args);
+    let progressBuf = '';
+    proc.stdout.on('data', (d) => {
+      progressBuf += d.toString();
+      let idx;
+      while ((idx = progressBuf.indexOf('\n')) !== -1) {
+        const line = progressBuf.slice(0, idx).trim();
+        progressBuf = progressBuf.slice(idx + 1);
+        const m = line.match(/^out_time_us=(\d+)$/);
+        if (m && onProgress && duration > 0) {
+          onProgress(Math.min(100, (Number(m[1]) / 1e6 / duration) * 100));
+        }
+      }
+    });
+    proc.stderr.on('data', (d) => {
+      const t = d.toString().trim();
+      if (t) console.error('[mux]', t);
+    });
+    proc.on('error', (err) => {
+      fs.promises.unlink(tmpSub).catch(() => {});
+      reject(err);
+    });
+    proc.on('close', (code) => {
+      fs.promises.unlink(tmpSub).catch(() => {});
+      if (code !== 0) reject(new Error(`ffmpeg mux exited ${code}`));
+      else resolve(outPath);
+    });
+  });
+}
+
+async function startDownloadTask(s, state, subtitleId, lang) {
+  if (subtitleId) {
+    state.status = 'downloading';
+    state.message = 'Downloading video…';
+    const done = await waitForFileDone(s, state);
+    if (!done) throw new Error('Source download timed out');
+    state.status = 'muxing';
+    state.message = 'Embedding subtitles…';
+    state.progress = 0;
+    const outPath = await muxToFile(s, state.outFile, subtitleId, lang, (p) => {
+      state.progress = p;
+    });
+    state.outFile = outPath;
+  } else {
+    state.status = 'downloading';
+    state.message = 'Downloading…';
+    await copyToFile(s, state);
+  }
+  state.status = 'complete';
+  state.progress = 100;
+  state.message = 'Download complete';
+  addBudget(state.total || 0);
+  finishDownload(state);
+}
+
+function finishDownload(state) {
+  const set = downloadsByStream.get(state.streamId);
+  if (set) {
+    set.delete(state.downloadId);
+    if (!set.size) downloadsByStream.delete(state.streamId);
+  }
+  const s = streams.get(state.streamId);
+  if (s) {
+    s.downloading = false;
+    if (s.pendingDestroy) {
+      try { s.torrent.destroy(); } catch {}
+      streams.delete(state.streamId);
+    }
+  }
+  // Clean the temp files after a grace period so the user can still fetch them
+  // (or the app can move them into the persistent media library).
+  setTimeout(() => {
+    fs.promises.rm(path.dirname(state.outFile), { recursive: true, force: true }).catch(() => {});
+    downloads.delete(state.downloadId);
+  }, MEDIA_KEEP_MS);
+}
+
 app.get('/api/stream/:id/download', async (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
@@ -446,6 +968,49 @@ app.get('/api/stream/:id/download', async (req, res) => {
   const { file } = s;
   const subtitleId = req.query.subtitle ? String(req.query.subtitle) : '';
   const lang = req.query.lang ? String(req.query.lang) : '';
+
+  if (req.query.tracked === '1') {
+    const used = budgetUsed();
+    if (used + file.length > DOWNLOAD_BUDGET_BYTES) {
+      return res.status(429).json({
+        error: 'Daily download budget exceeded',
+        budget: {
+          limit: DOWNLOAD_BUDGET_BYTES,
+          used,
+          remaining: budgetRemaining(),
+          date: budgetState.date,
+        },
+      });
+    }
+    const downloadId = crypto.randomBytes(6).toString('hex');
+    const outFile = path.join(DOWNLOADS_DIR, downloadId, file.name.replace(/[^\w.\- ]/g, '_'));
+    await fs.promises.mkdir(path.dirname(outFile), { recursive: true });
+    const state = {
+      downloadId,
+      streamId: req.params.id,
+      outFile,
+      status: 'starting',
+      progress: 0,
+      downloaded: 0,
+      total: file.length,
+      message: 'Preparing…',
+      error: null,
+      startedAt: Date.now(),
+    };
+    downloads.set(downloadId, state);
+    if (!downloadsByStream.has(req.params.id)) downloadsByStream.set(req.params.id, new Set());
+    downloadsByStream.get(req.params.id).add(downloadId);
+    s.downloading = true;
+
+    startDownloadTask(s, state, subtitleId, lang).catch((err) => {
+      console.error('[download] failed:', err.message);
+      state.status = 'error';
+      state.error = err.message;
+      state.message = 'Download failed';
+      finishDownload(state);
+    });
+    return res.json({ downloadId });
+  }
 
   if (subtitleId && s.torrent.done) {
     try {
@@ -471,12 +1036,258 @@ app.get('/api/stream/:id/download', async (req, res) => {
   rs.pipe(res);
 });
 
+app.get('/api/downloads/:id/status', (req, res) => {
+  const d = downloads.get(req.params.id);
+  if (!d) return res.status(404).json({ error: 'download not found' });
+  res.json({
+    downloadId: d.downloadId,
+    status: d.status,
+    progress: Math.round(d.progress),
+    downloaded: d.downloaded,
+    total: d.total,
+    message: d.message,
+    error: d.error,
+  });
+});
+
+app.get('/api/budget', (req, res) => {
+  const nextReset = new Date();
+  nextReset.setHours(24, 0, 0, 0);
+  res.json({
+    limit: DOWNLOAD_BUDGET_BYTES,
+    used: budgetUsed(),
+    remaining: budgetRemaining(),
+    date: budgetState.date,
+    resetsAt: nextReset.toISOString(),
+    limitGb: DOWNLOAD_BUDGET_GB,
+  });
+});
+
+app.get('/api/downloads/:id/file', (req, res) => {
+  const d = downloads.get(req.params.id);
+  if (!d) return res.status(404).json({ error: 'download not found' });
+  if (d.status !== 'complete') return res.status(409).json({ error: 'download not complete' });
+  if (!fs.existsSync(d.outFile)) return res.status(404).json({ error: 'file missing' });
+  const name = path.basename(d.outFile);
+  res.set('Content-Disposition', `attachment; filename="${name}"`);
+  res.set('Content-Type', d.outFile.endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4');
+  res.sendFile(d.outFile, { dotfiles: 'deny' }, (err) => {
+    if (err && !res.headersSent) res.status(500).json({ error: 'send failed' });
+  });
+});
+
+app.delete('/api/downloads/:id', (req, res) => {
+  const d = downloads.get(req.params.id);
+  if (!d) return res.status(404).json({ error: 'download not found' });
+  d.status = 'cancelled';
+  d.message = 'Cancelled';
+  downloads.delete(d.downloadId);
+  const set = downloadsByStream.get(d.streamId);
+  if (set) {
+    set.delete(d.downloadId);
+    if (!set.size) downloadsByStream.delete(d.streamId);
+  }
+  const s = streams.get(d.streamId);
+  if (s) s.downloading = false;
+  fs.promises.rm(path.dirname(d.outFile), { recursive: true, force: true }).catch(() => {});
+  res.json({ ok: true });
+});
+
+/* ─── Media library API (persistent private folder) ────────────────────────── */
+
+function safeMediaId(input) {
+  const clean = String(input || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80);
+  return clean || `media_${Date.now().toString(36)}`;
+}
+
+function mediaDirFor(id) {
+  return path.join(MEDIA_DIR, safeMediaId(id));
+}
+
+function ensureMediaDir() {
+  return fs.promises.mkdir(MEDIA_DIR, { recursive: true });
+}
+
+function mediaMime(filePath) {
+  return filePath.toLowerCase().endsWith('.mkv') ? 'video/x-matroska' : 'video/mp4';
+}
+
+// Move a finished tracked download into the persistent media library, storing
+// its metadata alongside so the offline experience can be richer.
+app.post('/api/media', async (req, res) => {
+  try {
+    const { downloadId, meta } = req.body || {};
+    const d = downloadId && downloads.get(downloadId);
+    if (!d || d.status !== 'complete') {
+      return res.status(409).json({ error: 'download not complete or not found' });
+    }
+    if (!d.outFile || !fs.existsSync(d.outFile)) {
+      return res.status(404).json({ error: 'file missing' });
+    }
+
+    const id = safeMediaId((meta && (meta.id || meta.serverId)) || d.downloadId);
+    await ensureMediaDir();
+    const destDir = mediaDirFor(id);
+    await fs.promises.mkdir(destDir, { recursive: true });
+
+    const fileName = path.basename(d.outFile);
+    const destFile = path.join(destDir, fileName);
+    if (!fs.existsSync(destFile)) {
+      await fs.promises.copyFile(d.outFile, destFile);
+    }
+    const stat = await fs.promises.stat(destFile);
+
+    // The file is complete, so probing gives the exact runtime. This is what
+    // lets the offline player show the full duration for remuxed (fragmented
+    // MP4) playback where the browser only learns the total progressively.
+    const probed = await probeCodecs(destFile).catch(() => null);
+
+    const record = {
+      id,
+      fileName,
+      fileSize: stat.size,
+      mimeType: mediaMime(destFile),
+      duration: probed ? probed.duration : 0,
+      downloadDate: new Date().toISOString(),
+      meta: meta || {},
+    };
+    await fs.promises.writeFile(path.join(destDir, 'meta.json'), JSON.stringify(record, null, 2));
+
+    // Free the temp download now that the file lives in the library.
+    downloads.delete(d.downloadId);
+    fs.promises.rm(path.dirname(d.outFile), { recursive: true, force: true }).catch(() => {});
+
+    return res.json({
+      id,
+      streamUrl: `/api/media/${id}/stream`,
+      fileSize: record.fileSize,
+      duration: record.duration,
+      downloadDate: record.downloadDate,
+    });
+  } catch (err) {
+    console.error('[media] save failed:', err.message);
+    res.status(500).json({ error: 'save failed' });
+  }
+});
+
+app.get('/api/media', async (req, res) => {
+  try {
+    await ensureMediaDir();
+    const entries = await fs.promises.readdir(MEDIA_DIR, { withFileTypes: true });
+    const items = [];
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const metaPath = path.join(MEDIA_DIR, e.name, 'meta.json');
+      try {
+        const raw = await fs.promises.readFile(metaPath, 'utf8');
+        items.push(JSON.parse(raw));
+      } catch {}
+    }
+    items.sort((a, b) => String(b.downloadDate || '').localeCompare(String(a.downloadDate || '')));
+    res.json({ items });
+  } catch {
+    res.status(500).json({ error: 'list failed' });
+  }
+});
+
+app.get('/api/media/:id/meta', async (req, res) => {
+  try {
+    const dir = mediaDirFor(req.params.id);
+    const metaPath = path.join(dir, 'meta.json');
+    const record = JSON.parse(await fs.promises.readFile(metaPath, 'utf8'));
+    // Items saved before the duration probe existed: fill it lazily (and cache)
+    // so the player can still show the full runtime.
+    if (!record.duration) {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      const fileEntry = entries.find((f) => f.isFile() && f.name !== 'meta.json');
+      if (fileEntry) {
+        const probed = await probeCodecs(path.join(dir, fileEntry.name)).catch(() => null);
+        if (probed && probed.duration > 0) {
+          record.duration = probed.duration;
+          await fs.promises.writeFile(metaPath, JSON.stringify(record, null, 2));
+        }
+      }
+    }
+    res.json(record);
+  } catch {
+    res.status(404).json({ error: 'not found' });
+  }
+});
+
+app.get('/api/media/:id/stream', async (req, res) => {
+  try {
+    const dir = mediaDirFor(req.params.id);
+    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+    const fileEntry = entries.find((f) => f.isFile() && f.name !== 'meta.json');
+    if (!fileEntry) return res.status(404).json({ error: 'file missing' });
+    const filePath = path.join(dir, fileEntry.name);
+    const stat = await fs.promises.stat(filePath);
+    const mime = mediaMime(filePath);
+    const lowerName = fileEntry.name.toLowerCase();
+
+    // Downloaded files are often MKV (or carry DTS/EAC3 audio) which Chromium
+    // can't play. Remux them to fragmented MP4 on the fly, exactly like the
+    // online streaming path, so offline playback works and the source duration
+    // is advertised via X-Media-Duration.
+    const needsRemux = lowerName.endsWith('.mkv') || lowerName.endsWith('.avi') || lowerName.endsWith('.webm');
+    if (needsRemux || lowerName.endsWith('.mp4')) {
+      if (ffmpegUsable === null) await ensureFfmpegUsable();
+      if (ffmpegUsable) {
+        const cfg = await probeCodecs(filePath).catch(() => null);
+        if (cfg) {
+          const unsafeAudio = cfg.hasAudio && !['aac', 'mp3', 'opus', 'vorbis'].includes(cfg.audioCodec);
+          if (needsRemux || unsafeAudio) {
+            const handled = await spawnRemux(res, () => fs.createReadStream(filePath), cfg, fileEntry.name)
+              .catch(() => false);
+            if (handled) return;
+          }
+        }
+      }
+    }
+
+    const headers = {
+      'Content-Type': mime,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=86400',
+    };
+    const range = req.headers.range;
+    if (range) {
+      const m = /bytes=(\d+)-(\d*)/.exec(range);
+      const start = m ? parseInt(m[1], 10) : 0;
+      const end = m && m[2] ? parseInt(m[2], 10) : stat.size - 1;
+      res.writeHead(206, {
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Content-Length': end - start + 1,
+        ...headers,
+      });
+      fs.createReadStream(filePath, { start, end }).pipe(res);
+    } else {
+      res.writeHead(200, {
+        'Content-Length': stat.size,
+        ...headers,
+      });
+      fs.createReadStream(filePath).pipe(res);
+    }
+  } catch (err) {
+    res.status(404).json({ error: 'not found' });
+  }
+});
+
+app.delete('/api/media/:id', async (req, res) => {
+  try {
+    await fs.promises.rm(mediaDirFor(req.params.id), { recursive: true, force: true });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'delete failed' });
+  }
+});
+
 app.get('/api/stream/:id/status', (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
 
   const { torrent } = s;
-  const ready = torrent.done || torrent.progress > 0.01;
+  const ready = torrent.done || torrent.progress > 0.005 || torrent.downloaded > 2 * 1024 * 1024;
   res.json({
     downloaded: torrent.downloaded,
     total: torrent.length,
@@ -484,15 +1295,23 @@ app.get('/api/stream/:id/status', (req, res) => {
     speed: torrent.downloadSpeed,
     peers: torrent.numPeers,
     ready,
+    duration: s.duration || 0,
   });
 });
 
 app.delete('/api/stream/:id', (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
-  s.torrent.destroy();
   streams.delete(req.params.id);
   res.json({ ok: true });
+});
+
+app.get('/api/servers', (req, res) => {
+  res.json({ servers: [] });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', streams: streams.size });
 });
 
 /* ─── Series torrent search (TPB proxy) ───────────────────────────────────── */
@@ -588,42 +1407,144 @@ function formatSize(bytes) {
   return `${v.toFixed(1)} ${u[i]}`;
 }
 
-async function tmdbTitle(tmdbId) {
-  const url = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_API_KEY}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`tmdb lookup failed (${res.status})`);
-  const d = await res.json();
-  let imdbId = d.imdb_id || '';
-  if (!imdbId) {
-    const extRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`);
-    if (extRes.ok) {
-      const ext = await extRes.json();
-      imdbId = ext.imdb_id || '';
+const searchCache = new Map();
+
+async function tmdbMediaInfo(tmdbId, isMovie = true, fallbackMeta = {}) {
+  const type = isMovie ? 'movie' : 'tv';
+  const url = `https://api.themoviedb.org/3/${type}/${tmdbId}?api_key=${TMDB_API_KEY}`;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error(`tmdb lookup failed (${res.status})`);
+    const d = await res.json();
+    let imdbId = d.imdb_id || '';
+    if (!imdbId) {
+      try {
+        const extRes = await fetch(`https://api.themoviedb.org/3/${type}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`, { signal: AbortSignal.timeout(3000) });
+        if (extRes.ok) {
+          const ext = await extRes.json();
+          imdbId = ext.imdb_id || '';
+        }
+      } catch {}
     }
+    const year = (d.release_date || d.first_air_date || '').slice(0, 4);
+    return {
+      title: d.title || d.name || d.original_title || d.original_name || fallbackMeta.title || '',
+      imdbId: (imdbId || fallbackMeta.imdbId || '').replace(/^tt/, ''),
+      year: year || fallbackMeta.year || '',
+    };
+  } catch (err) {
+    if (fallbackMeta.title) {
+      return {
+        title: fallbackMeta.title,
+        imdbId: (fallbackMeta.imdbId || '').replace(/^tt/, ''),
+        year: fallbackMeta.year || '',
+      };
+    }
+    throw err;
   }
-  return {
-    title: d.name || d.original_name || '',
-    imdbId: imdbId.replace(/^tt/, ''),
-  };
 }
 
-async function bitSearchSources(title, season, episode) {
-  const tag = seriesEpiTag(season, episode);
-  const query = `${title} ${tag}`;
+async function tmdbTitle(tmdbId) {
+  return tmdbMediaInfo(tmdbId, false);
+}
+
+async function fetchTorrentioSources(imdbId, season = null, episode = null) {
+  if (!imdbId) return [];
+  const cleanImdb = imdbId.startsWith('tt') ? imdbId : `tt${imdbId}`;
+  const pathPart = (season != null && episode != null)
+    ? `series/${cleanImdb}:${season}:${episode}.json`
+    : `movie/${cleanImdb}.json`;
+  const url = `https://torrentio.strem.fun/stream/${pathPart}`;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': SUBTITLE_UA }, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const streams = data.streams || [];
+    return streams.filter(s => s.infoHash).map(s => {
+      const seedMatch = s.title?.match(/👤\s*(\d+)/);
+      const seeds = seedMatch ? parseInt(seedMatch[1], 10) : 10;
+      const sizeMatch = s.title?.match(/💾\s*([0-9.]+\s*(?:GB|MB|TB))/i);
+      const size = sizeMatch ? sizeMatch[1] : '';
+      const quality = s.name?.replace('Torrentio\n', '').trim() || qualityFromName(s.title || '');
+      return {
+        quality,
+        magnet: magnetFromHash(s.infoHash, s.title?.split('\n')[0] || 'stream'),
+        size,
+        seeds,
+      };
+    });
+  } catch (err) {
+    console.warn(`[search] torrentio failed: ${err.message}`);
+    return [];
+  }
+}
+
+async function fetchYtsMovieSources(imdbId, title = '') {
+  const domains = ['yts.gg', 'yts.rs', 'yts.do', 'yts.ag'];
+  const numId = imdbId ? imdbId.replace('tt', '') : null;
+  const urls = [];
+  for (const d of domains) {
+    if (numId) urls.push(`https://${d}/api/v2/movie_details.json?imdb_id=${numId}`);
+    if (title) urls.push(`https://${d}/api/v2/list_movies.json?query_term=${encodeURIComponent(title)}&limit=5`);
+  }
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { headers: { 'User-Agent': SUBTITLE_UA }, signal: AbortSignal.timeout(3500) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const movie = data?.data?.movie || data?.data?.movies?.[0];
+      const torrents = movie?.torrents;
+      if (!torrents || !torrents.length) continue;
+      const movieTitle = movie.title || title || 'Movie';
+      const results = torrents.filter(t => t.hash).map(t => ({
+        quality: `${t.quality} ${t.type || ''}`.trim(),
+        magnet: magnetFromHash(t.hash, `${movieTitle} ${t.quality}`),
+        size: t.size || '',
+        seeds: Number(t.seeds || 10),
+      }));
+      if (results.length) return results;
+    } catch {}
+  }
+  return [];
+}
+
+async function solidTorrentsSearch(query) {
+  try {
+    const url = `https://solidtorrents.to/api/v1/search?q=${encodeURIComponent(query)}&category=video`;
+    const res = await fetch(url, { headers: { 'User-Agent': SUBTITLE_UA }, signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const list = data.results || [];
+    return list.filter(r => r.infohash && r.title).map(r => ({
+      quality: qualityFromName(r.title),
+      magnet: magnetFromHash(r.infohash, r.title),
+      size: formatSize(Number(r.size) || 0),
+      seeds: Number(r.seeders || 0),
+    }));
+  } catch (err) {
+    console.warn(`[search] solidtorrents error: ${err.message}`);
+    return [];
+  }
+}
+
+async function bitSearchSources(title, season = null, episode = null, year = '') {
+  const isTv = season != null && episode != null;
+  const tag = isTv ? seriesEpiTag(season, episode) : '';
+  const query = isTv ? `${title} ${tag}` : (year ? `${title} ${year} 1080p` : `${title} 1080p`);
   const out = [];
   const url = `https://bitsearch.to/search?q=${encodeURIComponent(query)}`;
   let stdout = '';
-  for (let attempt = 1; attempt <= 3 && !stdout; attempt++) {
+  for (let attempt = 1; attempt <= 2 && !stdout; attempt++) {
     try {
       const res = await execFileAsync(
         'curl',
-        ['-s', '-L', '-m', '25', '-A', SUBTITLE_UA, url],
-        { timeout: 30000 }
+        ['-s', '-L', '-m', '15', '-A', SUBTITLE_UA, url],
+        { timeout: 20000 }
       );
       stdout = res.stdout;
     } catch (err) {
-      console.warn(`[search] bitsearch attempt ${attempt} failed: ${err.message.slice(0, 100)}`);
-      await new Promise(r => setTimeout(r, 1000 * attempt));
+      await new Promise(r => setTimeout(r, 600));
     }
   }
   try {
@@ -646,7 +1567,8 @@ async function bitSearchSources(title, season, episode) {
       const seedMatch = [...before.matchAll(/<span class="font-medium">(\d+)<\/span>\s*<span>seeders<\/span>/g)];
       const seeds = seedMatch.length ? Number(seedMatch[seedMatch.length - 1][1]) : 0;
 
-      if (!name || !name.toLowerCase().includes(tag) || !showNameMatches(title, name, tag)) continue;
+      if (!name) continue;
+      if (isTv && (!name.toLowerCase().includes(tag) || !showNameMatches(title, name, tag))) continue;
       out.push({
         quality: qualityFromName(name),
         magnet,
@@ -654,7 +1576,6 @@ async function bitSearchSources(title, season, episode) {
         seeds,
       });
     }
-    console.log(`[search] bitsearch: ${title} ${tag} -> ${out.length} sources`);
   } catch (err) {
     console.warn(`[search] bitsearch failed: ${err.message}`);
   }
@@ -663,48 +1584,110 @@ async function bitSearchSources(title, season, episode) {
 
 app.get('/api/search', async (req, res) => {
   const tmdbId = Number(req.query.tmdbId);
-  const season = Number(req.query.season);
-  const episode = Number(req.query.episode);
-  if (!tmdbId || !season || !episode) {
-    return res.status(400).json({ error: 'tmdbId, season, episode required' });
+  const season = req.query.season != null && !isNaN(Number(req.query.season)) ? Number(req.query.season) : null;
+  const episode = req.query.episode != null && !isNaN(Number(req.query.episode)) ? Number(req.query.episode) : null;
+  const isMovie = season == null || episode == null;
+  const clientTitle = req.query.title ? String(req.query.title).trim() : '';
+  const clientYear = req.query.year ? String(req.query.year).trim() : '';
+  const clientImdb = req.query.imdbId ? String(req.query.imdbId).trim() : '';
+
+  if (!tmdbId && !clientTitle) {
+    return res.status(400).json({ error: 'tmdbId or title required' });
+  }
+
+  const cacheKey = `${tmdbId || clientTitle}:${season || ''}:${episode || ''}`;
+  const cached = searchCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 3600000 && cached.sources.length) {
+    return res.json({ title: cached.title, season, episode, isMovie, sources: cached.sources, cached: true });
   }
 
   try {
-    const { title, imdbId } = await tmdbTitle(tmdbId);
-    const tag = seriesEpiTag(season, episode);
-    console.log(`[search] ${title} ${tag} -> apibay + bitsearch`);
+    const meta = await tmdbMediaInfo(tmdbId, isMovie, { title: clientTitle, year: clientYear, imdbId: clientImdb }).catch(() => ({
+      title: clientTitle,
+      imdbId: clientImdb.replace(/^tt/, ''),
+      year: clientYear,
+    }));
 
-    const [tpbList, bitList] = await Promise.allSettled([
-      apibaySearch(title),
-      bitSearchSources(title, season, episode),
-    ]);
+    const title = meta.title || clientTitle || 'Video';
+    const imdbId = meta.imdbId || clientImdb.replace(/^tt/, '');
+    const year = meta.year || clientYear;
 
-    const tpb = [];
-    const list = tpbList.status === 'fulfilled' ? tpbList.value : [];
-    const filtered = (list || []).filter(t =>
-      t.info_hash && t.name && t.name.toLowerCase().includes(tag) && showNameMatches(title, t.name, tag)
-    );
-    const seeded = filtered.filter(t => Number(t.seeders || 0) > 0);
-    tpb.push(...(seeded.length ? seeded : filtered).map(t => ({
-      quality: qualityFromName(t.name),
-      magnet: magnetFromHash(t.info_hash, t.name),
-      size: formatSize(Number(t.size) || 0),
-      seeds: Number(t.seeders || 0),
-    })));
+    console.log(`[search] ${isMovie ? 'Movie' : 'Series'}: ${title} (IMDb: ${imdbId || 'none'}, Year: ${year || 'none'})`);
 
+    const requests = [];
+
+    if (isMovie) {
+      // 1. Torrentio stream aggregator (TPB, 1337x, TGx, YTS, EZTV)
+      if (imdbId) requests.push(fetchTorrentioSources(imdbId));
+      // 2. YTS direct mirrors (by IMDb and by Title)
+      requests.push(fetchYtsMovieSources(imdbId, title));
+      // 3. PirateBay search (with year, and fallback without year)
+      const movieQuery = year ? `${title} ${year}` : title;
+      requests.push(apibaySearch(movieQuery).then(async list => {
+        if (!Array.isArray(list) || !list.length) {
+          list = await apibaySearch(title);
+        }
+        if (!Array.isArray(list)) return [];
+        return list.filter(t => t.info_hash && t.name).map(t => ({
+          title: t.name,
+          quality: qualityFromName(t.name),
+          magnet: magnetFromHash(t.info_hash, t.name),
+          size: formatSize(Number(t.size) || 0),
+          seeds: Number(t.seeders || 0),
+        }));
+      }));
+      // 4. SolidTorrents video search
+      requests.push(solidTorrentsSearch(movieQuery));
+      // 5. BitSearch
+      requests.push(bitSearchSources(title, null, null, year));
+    } else {
+      // Series
+      const tag = seriesEpiTag(season, episode);
+      if (imdbId) requests.push(fetchTorrentioSources(imdbId, season, episode));
+      requests.push(apibaySearch(`${title} ${tag}`).then(async list => {
+        if (!Array.isArray(list) || !list.length) {
+          list = await apibaySearch(title);
+        }
+        if (!Array.isArray(list)) return [];
+        const filtered = list.filter(t =>
+          t.info_hash && t.name && t.name.toLowerCase().includes(tag) && showNameMatches(title, t.name, tag)
+        );
+        const seeded = filtered.filter(t => Number(t.seeders || 0) > 0);
+        return (seeded.length ? seeded : filtered).map(t => ({
+          title: t.name,
+          quality: qualityFromName(t.name),
+          magnet: magnetFromHash(t.info_hash, t.name),
+          size: formatSize(Number(t.size) || 0),
+          seeds: Number(t.seeders || 0),
+        }));
+      }));
+      requests.push(solidTorrentsSearch(`${title} ${tag}`));
+      requests.push(bitSearchSources(title, season, episode));
+    }
+
+    const settled = await Promise.allSettled(requests);
     const merged = new Map();
-    for (const s of [...tpb, ...(bitList.status === 'fulfilled' ? bitList.value : [])]) {
-      const m = (s.magnet || '').match(/btih:([a-f0-9]{40})/i);
-      const key = m ? m[1] : s.magnet;
-      const prev = merged.get(key);
-      if (!prev || s.seeds > prev.seeds) merged.set(key, s);
+
+    for (const result of settled) {
+      if (result.status !== 'fulfilled' || !Array.isArray(result.value)) continue;
+      for (const s of result.value) {
+        if (!s || !s.magnet) continue;
+        const m = (s.magnet || '').match(/btih:([a-f0-9]{40})/i);
+        const key = m ? m[1].toLowerCase() : s.magnet;
+        const prev = merged.get(key);
+        if (!prev || (s.seeds || 0) > (prev.seeds || 0)) {
+          merged.set(key, s);
+        }
+      }
     }
 
     const sources = [...merged.values()]
-      .sort((a, b) => b.seeds - a.seeds)
-      .slice(0, 4);
+      .sort((a, b) => (b.seeds || 0) - (a.seeds || 0))
+      .slice(0, 10);
 
-    res.json({ title, season, episode, sources });
+    console.log(`[search] Returning ${sources.length} sources for ${title}`);
+    searchCache.set(cacheKey, { title, sources, timestamp: Date.now() });
+    res.json({ title, season, episode, isMovie, sources });
   } catch (err) {
     console.error('[search] error:', err.message);
     res.status(502).json({ error: err.message });
@@ -754,8 +1737,8 @@ function extractSrtFromZip(buf) {
       const dataEnd = cdIndex === -1 ? buf.length : cdIndex;
       if (/\.srt$/i.test(name)) {
         const data = buf.slice(dataStart, dataEnd);
-        if (method === 0) return data.toString('utf8');
-        if (method === 8) return zlib.inflateRawSync(data).toString('utf8');
+        if (method === 0) return data;
+        if (method === 8) return zlib.inflateRawSync(data);
       }
       offset = dataEnd;
     } else {
@@ -815,9 +1798,75 @@ function sanitizeSubtitleText(text) {
     .replace(/color="[^"]*"/gi, '');
 }
 
+// Strict UTF-8 validator. Many Arabic/SRT files are actually Windows-1256 or
+// ISO-8859-6; decoding those as UTF-8 produces mojibake ("garbage signs").
+function isValidUtf8(buf) {
+  let i = 0;
+  const n = buf.length;
+  while (i < n) {
+    const b = buf[i];
+    if (b < 0x80) { i++; continue; }
+    if (b >= 0xc2 && b <= 0xdf) {
+      if (i + 1 >= n || (buf[i + 1] & 0xc0) !== 0x80) return false;
+      i += 2;
+    } else if (b === 0xe0) {
+      if (i + 2 >= n || buf[i + 1] < 0xa0 || buf[i + 1] > 0xbf || (buf[i + 2] & 0xc0) !== 0x80) return false;
+      i += 3;
+    } else if ((b >= 0xe1 && b <= 0xec) || (b >= 0xee && b <= 0xef)) {
+      if (i + 2 >= n || (buf[i + 1] & 0xc0) !== 0x80 || (buf[i + 2] & 0xc0) !== 0x80) return false;
+      i += 3;
+    } else if (b === 0xed) {
+      if (i + 2 >= n || buf[i + 1] < 0x80 || buf[i + 1] > 0x9f || (buf[i + 2] & 0xc0) !== 0x80) return false;
+      i += 3;
+    } else if (b === 0xef) {
+      if (i + 2 >= n || buf[i + 1] < 0x80 || buf[i + 1] > 0xbf || (buf[i + 2] & 0xc0) !== 0x80) return false;
+      i += 3;
+    } else if (b >= 0xf0 && b <= 0xf4) {
+      if (i + 3 >= n) return false;
+      const b1 = buf[i + 1];
+      if ((b === 0xf0 && (b1 < 0x90 || b1 > 0xbf)) || (b === 0xf4 && (b1 < 0x80 || b1 > 0x8f)) || (b1 & 0xc0) !== 0x80) return false;
+      if ((buf[i + 2] & 0xc0) !== 0x80 || (buf[i + 3] & 0xc0) !== 0x80) return false;
+      i += 4;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
+function hasArabic(text) {
+  return /[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+}
+
+// Decode a subtitle buffer into text, auto-detecting legacy encodings.
+function decodeSubtitleText(buf) {
+  if (!buf || !buf.length) return '';
+  let b = buf;
+  if (b.length >= 3 && b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF) b = b.slice(3); // UTF-8 BOM
+  else if (b.length >= 2 && b[0] === 0xFF && b[1] === 0xFE) {
+    try { return new TextDecoder('utf-16le').decode(b.slice(2)); } catch {}
+  } else if (b.length >= 2 && b[0] === 0xFE && b[1] === 0xFF) {
+    try { return new TextDecoder('utf-16be').decode(b.slice(2)); } catch {}
+  }
+
+  if (isValidUtf8(b)) return b.toString('utf8');
+
+  // Not valid UTF-8 — try legacy encodings, preferring ones that yield Arabic.
+  for (const enc of ['windows-1256', 'iso-8859-6', 'windows-1252', 'latin1']) {
+    try {
+      const text = new TextDecoder(enc).decode(b);
+      if (hasArabic(text)) return text;
+    } catch {}
+  }
+  try {
+    return new TextDecoder('windows-1256').decode(b);
+  } catch {
+    return b.toString('utf8');
+  }
+}
+
 function sendSubtitle(res, buf) {
-  let text = buf.toString('utf8');
-  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  let text = decodeSubtitleText(buf);
   if (!/^\s*WEBVTT/i.test(text)) {
     text = text.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
     text = 'WEBVTT\n\n' + text;
@@ -1377,7 +2426,7 @@ app.get('/api/subtitles/content/:fileId', async (req, res) => {
 setInterval(() => {
   const now = Date.now();
   for (const [id, s] of streams) {
-    if (now - s.createdAt > 3600000) {
+    if (now - s.createdAt > 3600000 && !s.downloading) {
       s.torrent.destroy();
       streams.delete(id);
     }
@@ -1395,5 +2444,22 @@ process.on('unhandledRejection', (err) => {
   console.error('unhandledRejection:', err);
 });
 
-const PORT = process.env.PORT || 3030;
+const staticPath = path.join(__dirname, '../docs');
+if (fs.existsSync(staticPath)) {
+  app.use(express.static(staticPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    const basename = path.basename(req.path);
+    const assetFile = path.join(staticPath, basename);
+    if (basename.includes('.') && !basename.endsWith('.html') && fs.existsSync(assetFile)) {
+      return res.sendFile(assetFile);
+    }
+    if (basename.includes('.') && !basename.endsWith('.html')) {
+      return res.status(404).end();
+    }
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+}
+
+loadBudget().catch(() => {});
 app.listen(PORT, () => console.log(`soulima streaming server running on :${PORT}`));

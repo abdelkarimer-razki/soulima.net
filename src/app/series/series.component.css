@@ -17,41 +17,9 @@
 	width: 100%;
 }
 
-/* ─── Player Tab Switcher ────────────────────────────────────────────────── */
-.playerTabs {
-	display: flex;
-	gap: 6px;
-	margin-bottom: 10px;
-	max-width: 1000px;
+.torrentPlayerWrapper {
 	width: 100%;
-	box-sizing: border-box;
-}
-
-.playerTab {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	color: rgba(255, 255, 255, 0.6);
-	font-size: 13px;
-	font-weight: 600;
-	padding: 8px 16px;
-	border-radius: var(--radius-button);
-	cursor: pointer;
-	transition: all 0.2s ease;
-}
-
-.playerTab:hover {
-	background: rgba(255, 255, 255, 0.12);
-	border-color: rgba(255, 255, 255, 0.2);
-	color: #fff;
-}
-
-.playerTab.active {
-	background: rgba(255, 255, 255, 0.15);
-	border-color: rgba(255, 255, 255, 0.3);
-	color: #fff;
+	max-width: 1000px;
 }
 
 .torrentPlayerWrapper {

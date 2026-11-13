@@ -1,13 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnChanges, OnDestroy, SimpleChanges, ViewChild, ElementRef, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnDestroy, AfterViewInit, SimpleChanges, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { TorrentService, TorrentSource } from '../../services/torrent.service';
 import { SubtitleService, SubtitleTrack } from '../../services/subtitle.service';
+import { OfflineStorageService } from '../../services/offline-storage.service';
 
 @Component({
   selector: 'app-torrent-player',
   templateUrl: './torrent-player.component.html',
   styleUrls: ['./torrent-player.component.css']
 })
-export class TorrentPlayerComponent implements OnChanges, OnDestroy {
+export class TorrentPlayerComponent implements OnChanges, OnDestroy, AfterViewInit {
   @Input() sources: TorrentSource[] = [];
   @Input() sourcesLoading = false;
   @Input() title: string = '';
@@ -23,12 +24,19 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   @Input() episodes: any[] = [];
   @Input() currentSeason = 1;
   @Input() currentEpisode = 1;
+  @Input() resumeKey: string = '';
+  @Input() directUrl: string | null = null;
+  @Input() directSubtitleUrl: string | null = null;
+  @Input() directSubtitleName: string | null = null;
+  @Input() showBack = true;
+  @Input() knownDuration = 0;
 
   @Output() prevEpisode = new EventEmitter<void>();
   @Output() nextEpisode = new EventEmitter<void>();
   @Output() selectEpisode = new EventEmitter<number>();
   @Output() selectSeason = new EventEmitter<number>();
   @Output() unplayable = new EventEmitter<void>();
+  @Output() retrySources = new EventEmitter<void>();
 
   @ViewChild('videoPlayer') videoRef!: ElementRef<HTMLVideoElement>;
   @ViewChild('playerHost') playerHostRef!: ElementRef<HTMLElement>;
@@ -48,6 +56,7 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   currentTime = 0;
   duration = 0;
   bufferedTime = 0;
+  streamStartTime = 0;
   showControls = true;
   muted = false;
   volume = 1;
@@ -59,8 +68,17 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   subtitleOffset = 0;
   activeSubtitleText = '';
   toastMessage: string | null = null;
+  showResumeDialog = false;
+  resumePosition = 0;
+  downloadState: { status: string; progress: number; message: string; downloaded: number; total: number } | null = null;
 
   private currentStreamId: string | null = null;
+  private refreshAttempts = 0;
+  private seekDebounceTimer: any = null;
+  // True total runtime reported by the server (probed from the file). Fragmented
+  // MP4 remuxes only give the browser a progressive duration, so this is used
+  // for the HUD instead of the growing video.duration.
+  private sourceDuration = 0;
   private controlsTimeout: any = null;
   private progressSub: any = null;
   private stallWatcher: any = null;
@@ -73,20 +91,43 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   private parsedCues: Array<{ start: number; end: number; text: string }> = [];
   private toastTimeout: any = null;
   private syncPollTimer: any = null;
-  private static readonly STALL_TIMEOUT = 25000;
+  private downloadPollTimer: any = null;
+  private currentDownloadId: string | null = null;
+  private resumeTimer: any = null;
+  private resumeHandled = false;
+  private static readonly STALL_TIMEOUT = 18000;
   private readonly SUBTITLE_PREF_KEY = 'soulima_subtitle_lang';
+  private readonly RESUME_PREFIX = 'soulima_resume:';
 
   constructor(
     private torrentService: TorrentService,
     private subtitleService: SubtitleService,
+    private offlineStorage: OfflineStorageService
   ) {}
 
   get bufferedRatio(): number {
-    return this.duration ? (this.bufferedTime / this.duration) * 100 : 0;
+    const total = this.displayDuration;
+    return total ? (this.bufferedTime / total) * 100 : 0;
   }
 
   get playedRatio(): number {
-    return this.duration ? (this.currentTime / this.duration) * 100 : 0;
+    const total = this.displayDuration;
+    return total ? (this.currentTime / total) * 100 : 0;
+  }
+
+  get isUnreleased(): boolean {
+    if (!this.info) return false;
+    const yearMatch = this.info.match(/\b(20\d\d)\b/);
+    if (!yearMatch) return false;
+    const year = parseInt(yearMatch[1], 10);
+    const currentYear = new Date().getFullYear();
+    return year > currentYear;
+  }
+
+  get displayDuration(): number {
+    const known = this.knownDuration > 0 ? this.knownDuration : this.sourceDuration;
+    if (known > 0) return known;
+    return isFinite(this.duration) && this.duration > 0 ? this.duration : 0;
   }
 
   @HostListener('document:fullscreenchange')
@@ -185,21 +226,34 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   }
 
   skip(seconds: number) {
-    const video = this.videoRef?.nativeElement;
-    if (!video || !this.duration) return;
-    video.currentTime = Math.max(0, Math.min(this.duration, video.currentTime + seconds));
-    this.onTimeUpdate();
+    const total = this.displayDuration;
+    if (!total) return;
+    const target = Math.max(0, Math.min(total, this.currentTime + seconds));
+    this.performSeek(target);
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['sources'] && this.sources?.length) {
-      if (!this.selectedSource || !this.sources.includes(this.selectedSource)) {
+    const episodeChanged = !!(changes['currentEpisode'] && !changes['currentEpisode'].firstChange);
+    const seasonChanged = !!(changes['currentSeason'] && !changes['currentSeason'].firstChange);
+    if (episodeChanged || seasonChanged) {
+      this.selectedSource = null;
+      this.stopStream();
+      this.triedSources.clear();
+      this.loading = true;
+      this.ready = false;
+    }
+
+    if (changes['sources'] || ((episodeChanged || seasonChanged) && this.sources?.length)) {
+      if (!this.sources?.length) {
+        this.loading = false;
+        this.ready = false;
+      } else if (!this.selectedSource || !this.sources.includes(this.selectedSource) || episodeChanged || seasonChanged) {
         this.triedSources.clear();
         this.selectedSource = this.pickBestSource(this.sources);
         // Prefetch secondary sources in background for instant fallback
         this.sources.slice(0, 3).forEach(s => {
           if (s.magnet && s !== this.selectedSource) {
-            this.torrentService.prefetchStream(s.magnet);
+            this.torrentService.prefetchStream(s.magnet, this.currentSeason, this.currentEpisode);
           }
         });
         this.startStream();
@@ -218,6 +272,45 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
           || null;
       }
       this.applySubtitle();
+    }
+    if (changes['knownDuration']) {
+      if (this.knownDuration > 0) {
+        this.sourceDuration = this.knownDuration;
+      }
+    }
+    if (changes['directUrl']) {
+      this.stopStream();
+      this.triedSources.clear();
+      this.showResumeDialog = false;
+      this.resumePosition = 0;
+      this.resumeHandled = false;
+      if (this.directUrl) {
+        this.playDirect();
+      } else {
+        this.loading = false;
+        this.ready = false;
+        this.error = null;
+        this.currentTime = 0;
+        this.duration = 0;
+        this.bufferedTime = 0;
+      }
+    }
+    if (changes['directSubtitleUrl']) {
+      if (this.directUrl && this.directSubtitleUrl) {
+        this.activeSubtitle = {
+          lang: 'custom',
+          langName: this.directSubtitleName || 'Custom Subtitles',
+          fileId: this.directSubtitleUrl,
+        };
+        this.activeSubtitleText = '';
+        this.parsedCues = [];
+        this.applySubtitle();
+      } else if (this.directUrl && !this.directSubtitleUrl) {
+        this.activeSubtitle = null;
+        this.activeSubtitleText = '';
+        this.parsedCues = [];
+        this.applySubtitle();
+      }
     }
   }
 
@@ -252,8 +345,30 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   }
 
   pickEpisode(episodeNumber: number) {
-    this.showEpisodeMenu = false;
-    this.showSeasonDropdown = false;
+    this.closeEpisodeMenu();
+    this.cancelDownload();
+    this.tearDownForEpisodeSwitch();
+    this.selectEpisode.emit(episodeNumber);
+  }
+
+  goToNextEpisode() {
+    this.closeEpisodeMenu();
+    this.cancelDownload();
+    this.tearDownForEpisodeSwitch();
+    this.nextEpisode.emit();
+  }
+
+  goToPrevEpisode() {
+    this.closeEpisodeMenu();
+    this.cancelDownload();
+    this.tearDownForEpisodeSwitch();
+    this.prevEpisode.emit();
+  }
+
+  private tearDownForEpisodeSwitch() {
+    // Persist current position before tearing down the video element
+    this.saveResume();
+    this.stopResumeTimer();
 
     // Instantly reset video element and stop old stream for fast episode switching
     const video = this.videoRef?.nativeElement;
@@ -267,12 +382,14 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     this.ready = false;
     this.error = null;
     this.currentTime = 0;
+    this.streamStartTime = 0;
     this.duration = 0;
     this.bufferedTime = 0;
     this.activeSubtitleText = '';
     this.parsedCues = [];
-
-    this.selectEpisode.emit(episodeNumber);
+    this.resumeHandled = false;
+    this.showResumeDialog = false;
+    this.resumePosition = 0;
   }
 
   episodeThumb(episode: any): string {
@@ -303,7 +420,11 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     const fileId = this.activeSubtitle.fileId;
     const streamId = this.currentStreamId;
 
-    this.subtitleService.getSubtitleText(fileId, streamId).then(text => {
+    const textPromise: Promise<string> = this.directUrl
+      ? fetch(fileId).then(r => r.text()).catch(() => '')
+      : this.subtitleService.getSubtitleText(fileId, streamId);
+
+    textPromise.then(text => {
       if (seq !== this.applySubtitleSeq || !text) return;
       this.loadCuesIntoPlayer(v, seq, text);
 
@@ -438,10 +559,16 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     this.error = null;
     this.ready = false;
     this.currentTime = 0;
+    this.streamStartTime = 0;
     this.duration = 0;
     this.bufferedTime = 0;
     this.lastDownloaded = 0;
     this.lastProgressAt = Date.now();
+    this.refreshAttempts = 0;
+    this.sourceDuration = 0;
+    this.resumeHandled = false;
+    this.showResumeDialog = false;
+    this.resumePosition = 0;
 
     const video = this.videoRef?.nativeElement;
     if (video) {
@@ -450,34 +577,18 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     }
 
     try {
-      const info = await this.torrentService.requestStream(this.selectedSource.magnet);
+      const info = await this.torrentService.requestStream(this.selectedSource.magnet, this.currentSeason, this.currentEpisode);
       if (seq !== this.streamSeq) {
         this.torrentService.stopStream(info.id);
         return;
       }
       this.currentStreamId = info.id;
       this.total = info.size;
+      if (info.duration && info.duration > 0) this.sourceDuration = info.duration;
 
       this.torrentService.startPolling(info.id);
 
-      this.progressSub = this.torrentService.progress$.subscribe(p => {
-        this.progress = p.progress;
-        this.speed = p.speed;
-        this.peers = p.peers;
-        this.downloaded = p.downloaded;
-        this.ready = this.ready || p.ready;
-        this.loading = this.loading && !p.ready;
-        if (p.error) {
-          this.tryNextSource();
-        } else if (!this.ready) {
-          if (p.downloaded > this.lastDownloaded) {
-            this.lastDownloaded = p.downloaded;
-            this.lastProgressAt = Date.now();
-          } else if (Date.now() - this.lastProgressAt > TorrentPlayerComponent.STALL_TIMEOUT) {
-            this.tryNextSource();
-          }
-        }
-      });
+      this.subscribeProgress(seq);
 
       const videoReady = this.videoRef?.nativeElement;
       if (videoReady && info.streamUrl) {
@@ -490,6 +601,79 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
       if (seq !== this.streamSeq) return;
       this.tryNextSource();
     }
+  }
+
+  private subscribeProgress(seq: number) {
+    if (this.progressSub) { this.progressSub.unsubscribe(); this.progressSub = null; }
+    this.progressSub = this.torrentService.progress$.subscribe(p => {
+      if (seq !== this.streamSeq) return;
+      this.progress = p.progress;
+      this.speed = p.speed;
+      this.peers = p.peers;
+      this.downloaded = p.downloaded;
+      if (p.duration && p.duration > 0) this.sourceDuration = p.duration;
+      this.ready = this.ready || p.ready;
+      this.loading = this.loading && !p.ready;
+      if (p.error) {
+        // 'expired' = the server cleaned up our stream (idle timeout); grab a
+        // fresh URL for the same source and resume where we were.
+        if (p.error === 'expired') this.refreshCurrentStream();
+        else this.tryNextSource();
+      } else if (!this.ready) {
+        if (p.downloaded > this.lastDownloaded) {
+          this.lastDownloaded = p.downloaded;
+          this.lastProgressAt = Date.now();
+        } else if (Date.now() - this.lastProgressAt > (p.peers > 0 ? 30000 : TorrentPlayerComponent.STALL_TIMEOUT)) {
+          this.tryNextSource();
+        }
+      }
+    });
+  }
+
+  // Re-request the same torrent after the server expired the old stream URL.
+  private refreshCurrentStream() {
+    if (!this.selectedSource) return;
+    if (this.refreshAttempts >= 2) { this.tryNextSource(); return; }
+    this.refreshAttempts++;
+    const seq = ++this.streamSeq;
+    this.stopStream();
+    this.loading = true;
+    this.error = null;
+    this.ready = false;
+    this.lastDownloaded = 0;
+    this.lastProgressAt = Date.now();
+
+    const video = this.videoRef?.nativeElement;
+    const resumePos = this.currentTime > 0 ? this.currentTime : 0;
+    if (video) {
+      video.removeAttribute('src');
+      video.load();
+    }
+
+    this.torrentService.requestStream(this.selectedSource.magnet, this.currentSeason, this.currentEpisode).then(info => {
+      if (seq !== this.streamSeq) {
+        this.torrentService.stopStream(info.id);
+        return;
+      }
+      this.currentStreamId = info.id;
+      this.total = info.size;
+      if (info.duration && info.duration > 0) this.sourceDuration = info.duration;
+      this.torrentService.startPolling(info.id);
+      this.subscribeProgress(seq);
+      const v = this.videoRef?.nativeElement;
+      if (v && info.streamUrl) {
+        this.applySubtitle(v);
+        if (resumePos > 0) {
+          this.performSeek(resumePos);
+        } else {
+          v.src = info.streamUrl;
+          v.load();
+          v.play().catch(() => {});
+        }
+      }
+    }).catch(() => {
+      if (seq === this.streamSeq) this.tryNextSource();
+    });
   }
 
   private tryNextSource() {
@@ -540,24 +724,92 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     return list.slice().sort((a, b) => this.computePlayabilityScore(b) - this.computePlayabilityScore(a))[0];
   }
 
+  private playDirect() {
+    if (!this.directUrl) return;
+    this.loading = false;
+    this.ready = true;
+    this.error = null;
+    this.currentTime = 0;
+    this.streamStartTime = 0;
+    this.duration = 0;
+    this.bufferedTime = 0;
+    this.lastDownloaded = 0;
+    this.showResumeDialog = false;
+    this.resumePosition = 0;
+    this.resumeHandled = false;
+    this.refreshAttempts = 0;
+    this.sourceDuration = this.knownDuration > 0 ? this.knownDuration : 0;
+
+    if (this.directUrl.startsWith('http') && !this.sourceDuration) {
+      fetch(this.directUrl, { method: 'HEAD' })
+        .then(r => {
+          const d = r.headers.get('X-Media-Duration');
+          if (d) {
+            const parsed = parseFloat(d);
+            if (parsed > 0) this.sourceDuration = parsed;
+          }
+        })
+        .catch(() => {});
+    }
+
+    const video = this.videoRef?.nativeElement;
+    if (video) {
+      video.src = this.directUrl;
+      video.load();
+    }
+  }
+
   handleVideoError() {
     this.loading = false;
-    this.tryNextSource();
+    if (this.directUrl) {
+      this.ready = true;
+      this.error = 'Unable to play this file. The video format may not be supported by this player.';
+      return;
+    }
+    // A network error usually means the server dropped the stream (idle
+    // timeout) rather than a codec problem, so try to refresh it first.
+    if (this.currentStreamId) {
+      this.refreshCurrentStream();
+    } else {
+      this.tryNextSource();
+    }
   }
 
   onCanPlay() {
     this.loading = false;
     this.ready = true;
     this.error = null;
-    this.videoRef?.nativeElement.play().catch(() => {});
+    const video = this.videoRef?.nativeElement;
+
+    if (!this.resumeHandled) {
+      this.resumeHandled = true;
+      this.startResumeTimer();
+      const saved = this.readResume();
+      const dur = this.displayDuration || saved?.duration || 0;
+      if (saved && !saved.watched && dur > 0 && saved.position > 15 && saved.position < dur * 0.95) {
+        this.resumePosition = saved.position;
+        this.showResumeDialog = true;
+        return;
+      }
+    }
+
+    video?.play().catch(() => {});
   }
 
   private stopStream() {
+    this.saveResume();
+    this.stopResumeTimer();
+    if (this.seekDebounceTimer) {
+      clearTimeout(this.seekDebounceTimer);
+      this.seekDebounceTimer = null;
+    }
+    this.streamStartTime = 0;
     if (this.stallWatcher) { clearInterval(this.stallWatcher); this.stallWatcher = null; }
     if (this.currentStreamId) {
       this.torrentService.stopStream(this.currentStreamId);
       this.currentStreamId = null;
     }
+    this.torrentService.stopPolling();
     if (this.progressSub) {
       this.progressSub.unsubscribe();
       this.progressSub = null;
@@ -597,8 +849,24 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
   onTimeUpdate() {
     const video = this.videoRef?.nativeElement;
     if (!video) return;
-    this.currentTime = video.currentTime || 0;
-    this.duration = video.duration || 0;
+    this.currentTime = (this.streamStartTime || 0) + (video.currentTime || 0);
+    // Lock the reported duration: it must never shrink (fragmented remuxes
+    // grow it as more of the file is buffered, which makes the total flicker).
+    const vd = video.duration;
+    if (isFinite(vd) && vd > 0) {
+      const effectiveDuration = (this.streamStartTime || 0) + vd;
+      // Fragmented remuxes or webm streams return a progressive duration that
+      // trails currentTime. Don't lock that growing trailing duration if we don't have to.
+      const isTrailingProgressive = Math.abs(vd - video.currentTime) < 3.0 && video.currentTime > 2.0;
+      if (!isTrailingProgressive) {
+        if (this.duration === 0 || !isFinite(this.duration) || effectiveDuration > this.duration) {
+          this.duration = effectiveDuration;
+        }
+        if (!this.sourceDuration && effectiveDuration > this.currentTime + 10) {
+          this.sourceDuration = effectiveDuration;
+        }
+      }
+    }
     if (video.buffered.length) {
       let currentBuf = 0;
       for (let i = 0; i < video.buffered.length; i++) {
@@ -607,22 +875,92 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
           break;
         }
       }
-      this.bufferedTime = currentBuf || video.buffered.end(video.buffered.length - 1);
+      this.bufferedTime = (this.streamStartTime || 0) + (currentBuf || video.buffered.end(video.buffered.length - 1));
     }
     this.updateActiveSubtitleText();
   }
 
   seekTo(event: MouseEvent) {
-    if (!this.duration) return;
-    const bar = (event.currentTarget as HTMLElement).querySelector('.hudSeekTrack');
-    const rect = bar!.getBoundingClientRect();
+    const total = this.displayDuration;
+    if (!total) return;
+    const targetEl = event.currentTarget as HTMLElement;
+    const bar = (targetEl.querySelector('.hudSeekTrack') as HTMLElement) || targetEl;
+    const rect = bar.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    this.performSeek(ratio * total);
+  }
+
+  performSeek(targetTime: number) {
     const video = this.videoRef?.nativeElement;
-    if (video) {
-      this.currentTime = ratio * this.duration;
-      video.currentTime = this.currentTime;
-      this.updateActiveSubtitleText();
+    const total = this.displayDuration;
+    if (!video || !total) return;
+
+    targetTime = Math.max(0, Math.min(total, targetTime));
+    const relTarget = targetTime - (this.streamStartTime || 0);
+
+    // Check if target is inside currently buffered range of the active video element
+    let isBuffered = false;
+    if (relTarget >= 0 && video.buffered.length) {
+      for (let i = 0; i < video.buffered.length; i++) {
+        if (relTarget >= video.buffered.start(i) && relTarget <= video.buffered.end(i)) {
+          isBuffered = true;
+          break;
+        }
+      }
     }
+
+    // Direct MP4 (non-remuxed) range media seeking
+    if (!this.currentStreamId && video.seekable?.length) {
+      for (let i = 0; i < video.seekable.length; i++) {
+        if (targetTime >= video.seekable.start(i) && targetTime <= video.seekable.end(i)) {
+          video.currentTime = targetTime;
+          this.currentTime = targetTime;
+          this.updateActiveSubtitleText();
+          return;
+        }
+      }
+    }
+
+    if (isBuffered) {
+      try {
+        video.currentTime = relTarget;
+        this.currentTime = targetTime;
+        this.updateActiveSubtitleText();
+        return;
+      } catch {}
+    }
+
+    this.seekToStreamTime(targetTime);
+  }
+
+  seekToStreamTime(targetTime: number) {
+    const video = this.videoRef?.nativeElement;
+    if (!video) return;
+
+    if (this.seekDebounceTimer) {
+      clearTimeout(this.seekDebounceTimer);
+    }
+
+    const seekSec = Math.floor(targetTime);
+    this.currentTime = targetTime;
+    this.streamStartTime = seekSec;
+    this.updateActiveSubtitleText();
+
+    this.seekDebounceTimer = setTimeout(() => {
+      this.seekDebounceTimer = null;
+      const base = this.currentStreamId
+        ? this.torrentService.getStreamUrl(this.currentStreamId)
+        : this.directUrl;
+      if (!base) return;
+
+      const cleanBase = base.replace(/([?&])startTime=\d+/g, '').replace(/([?&])_t=\d+/g, '');
+      const sep = cleanBase.includes('?') ? '&' : '?';
+      const newUrl = `${cleanBase}${sep}startTime=${seekSec}&_t=${Date.now()}`;
+
+      video.src = newUrl;
+      video.load();
+      video.play().catch(() => {});
+    }, 120);
   }
 
   toggleFullscreen() {
@@ -635,6 +973,13 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     }
   }
 
+  ngAfterViewInit() {
+    document.body.classList.add('soulima-cinema');
+    if (typeof window !== 'undefined') {
+      (window as any).torrentPlayerComponent = this;
+    }
+  }
+
   onPlayerMouseMove() {
     this.showControls = true;
     if (this.controlsTimeout) clearTimeout(this.controlsTimeout);
@@ -643,7 +988,7 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
 
   onPlayerClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    if (target.closest('button, input, .subtitleMenu, .episodeMenu, .hudBottom, .hudTop, .subtitleSyncSection, .pauseContent')) {
+    if (target.closest('button, input, .subtitleMenu, .episodeMenu, .hudBottom, .hudTop, .subtitleSyncSection, .pauseContent, .downloadPanel')) {
       return;
     }
     this.showControls = !this.showControls;
@@ -676,27 +1021,247 @@ export class TorrentPlayerComponent implements OnChanges, OnDestroy {
     return `${v.toFixed(1)} ${u[i]}`;
   }
 
-  download() {
-    if (this.currentStreamId) {
-      let url = this.torrentService.getDownloadUrl(this.currentStreamId);
-      if (this.activeSubtitle) {
-        url += `?subtitle=${encodeURIComponent(this.activeSubtitle.fileId)}&lang=${encodeURIComponent(this.activeSubtitle.lang)}`;
+  private get resumeStorageKey(): string {
+    if (!this.resumeKey) return '';
+    if (this.seasons.length || this.episodes.length) {
+      return `${this.RESUME_PREFIX}${this.resumeKey}:s${this.currentSeason}:e${this.currentEpisode}`;
+    }
+    return `${this.RESUME_PREFIX}${this.resumeKey}`;
+  }
+
+  private readResume(): { position: number; duration: number; watched?: boolean } | null {
+    const key = this.resumeStorageKey;
+    if (!key) return null;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (typeof data.position !== 'number' || !isFinite(data.position) || data.position <= 0) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  private saveResume() {
+    const key = this.resumeStorageKey;
+    if (!key) return;
+    const total = this.displayDuration;
+    if (!total || !isFinite(total)) return;
+    const pos = this.currentTime;
+    if (!pos || !isFinite(pos) || pos < 5) return;
+    const pct = pos / total;
+    localStorage.setItem(key, JSON.stringify({
+      position: pos,
+      duration: this.duration,
+      watched: pct >= 0.95,
+      updatedAt: Date.now(),
+    }));
+  }
+
+  private clearResume() {
+    const key = this.resumeStorageKey;
+    if (key) localStorage.removeItem(key);
+  }
+
+  private startResumeTimer() {
+    this.stopResumeTimer();
+    this.resumeTimer = setInterval(() => this.saveResume(), 5000);
+  }
+
+  private stopResumeTimer() {
+    if (this.resumeTimer) {
+      clearInterval(this.resumeTimer);
+      this.resumeTimer = null;
+    }
+  }
+
+  isEpisodeWatched(episodeNumber: number): boolean {
+    if (!this.resumeKey || (!this.seasons.length && !this.episodes.length)) return false;
+    try {
+      const raw = localStorage.getItem(`${this.RESUME_PREFIX}${this.resumeKey}:s${this.currentSeason}:e${episodeNumber}`);
+      if (!raw) return false;
+      const e = JSON.parse(raw);
+      return !!e && e.duration > 0 && (!!e.watched || e.position >= e.duration * 0.92);
+    } catch {
+      return false;
+    }
+  }
+
+  resumePlayback() {
+    const pos = this.resumePosition;
+    this.showResumeDialog = false;
+    this.resumePosition = 0;
+    if (pos > 0) {
+      this.performSeek(pos);
+    }
+    this.videoRef?.nativeElement?.play().catch(() => {});
+  }
+
+  startOver() {
+    this.clearResume();
+    this.showResumeDialog = false;
+    this.resumePosition = 0;
+    this.performSeek(0);
+  }
+
+  onPause() {
+    this.isPlaying = false;
+    this.saveResume();
+  }
+
+  onEnded() {
+    this.saveResume();
+  }
+
+  async download() {
+    if (!this.currentStreamId) {
+      if (this.selectedSource?.magnet) {
+        window.open(this.selectedSource.magnet, '_blank');
       }
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '';
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
       return;
     }
-    if (this.selectedSource?.magnet) {
-      window.open(this.selectedSource.magnet, '_blank');
+    if (this.downloadState) return;
+    this.downloadState = { status: 'starting', progress: 0, message: 'Preparing download…', downloaded: 0, total: 0 };
+    try {
+      const downloadId = await this.torrentService.startTrackedDownload(
+        this.currentStreamId,
+        this.activeSubtitle?.fileId,
+        this.activeSubtitle?.lang
+      );
+      this.currentDownloadId = downloadId;
+      this.pollDownload(downloadId);
+    } catch (err: any) {
+      this.downloadState = null;
+      if (err && err.status === 429) {
+        this.showToast('Daily download limit reached — try again tomorrow');
+      } else {
+        this.showToast('Could not start download');
+      }
+    }
+  }
+
+  cancelDownload() {
+    if (this.currentDownloadId) {
+      this.torrentService.cancelDownload(this.currentDownloadId);
+    }
+    this.currentDownloadId = null;
+    if (this.downloadPollTimer) { clearInterval(this.downloadPollTimer); this.downloadPollTimer = null; }
+    this.downloadState = null;
+    this.showToast('Download cancelled');
+  }
+
+  private pollDownload(downloadId: string) {
+    if (this.downloadPollTimer) clearInterval(this.downloadPollTimer);
+    this.downloadPollTimer = setInterval(async () => {
+      try {
+        const st = await this.torrentService.getDownloadStatus(downloadId);
+        if (this.downloadState) {
+          this.downloadState.status = st.status;
+          this.downloadState.progress = st.progress;
+          this.downloadState.message = st.message;
+          this.downloadState.downloaded = st.downloaded;
+          this.downloadState.total = st.total;
+        }
+        if (st.status === 'complete') {
+          clearInterval(this.downloadPollTimer);
+          this.downloadPollTimer = null;
+          this.currentDownloadId = null;
+          const downloadFileUrl = this.torrentService.getDownloadFileUrl(downloadId);
+          if (this.isDesktopApp()) {
+            this.saveToDesktopLibrary(downloadId);
+          } else {
+            this.triggerFileDownload(downloadFileUrl);
+            this.saveToOfflineStorage(downloadFileUrl);
+          }
+          setTimeout(() => { this.downloadState = null; }, 4000);
+        } else if (st.status === 'error') {
+          clearInterval(this.downloadPollTimer);
+          this.downloadPollTimer = null;
+          this.currentDownloadId = null;
+          this.showToast(st.message || 'Download failed');
+          setTimeout(() => { this.downloadState = null; }, 4000);
+        } else if (st.status === 'cancelled') {
+          clearInterval(this.downloadPollTimer);
+          this.downloadPollTimer = null;
+          this.currentDownloadId = null;
+          this.downloadState = null;
+        }
+      } catch {
+        // transient network error; keep polling
+      }
+    }, 1000);
+  }
+
+  private triggerFileDownload(url: string) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  private isDesktopApp(): boolean {
+    return document.documentElement.dataset['desktop'] === '1';
+  }
+
+  // Desktop app: move the finished download into the on-disk media library
+  // (MEDIA_DIR) so it shows up in "My Downloads" and streams from disk.
+  private async saveToDesktopLibrary(downloadId: string) {
+    try {
+      await this.torrentService.saveToMediaLibrary(downloadId, {
+        id: this.resumeKey || undefined,
+        title: this.title || 'Downloaded Video',
+        mediaType: this.seasons.length || this.episodes.length ? 'tv' : 'movie',
+        season: this.currentSeason,
+        episode: this.currentEpisode,
+        posterUrl: this.posterUrl,
+        backdropUrl: this.backdropUrl,
+        serverTitle: this.title || undefined,
+      });
+      this.showToast('Saved to My Downloads');
+    } catch (e) {
+      console.warn('Could not save to media library:', e);
+      this.triggerFileDownload(this.torrentService.getDownloadFileUrl(downloadId));
+      this.showToast('Download complete');
+    }
+  }
+
+  private async saveToOfflineStorage(fileUrl: string) {
+    try {
+      const res = await fetch(fileUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        const itemId = `offline_${Date.now()}`;
+        await this.offlineStorage.saveMedia({
+          id: itemId,
+          title: this.title || 'Downloaded Video',
+          mediaType: this.currentSeason ? 'tv' : 'movie',
+          season: this.currentSeason,
+          episode: this.currentEpisode,
+          posterUrl: this.posterUrl,
+          backdropUrl: this.backdropUrl,
+          videoBlob: blob,
+          fileSize: blob.size,
+          mimeType: blob.type || 'video/mp4',
+          downloadDate: new Date().toISOString()
+        });
+        this.showToast('Saved to My Downloads for offline play!');
+      }
+    } catch (e) {
+      console.warn('Could not save media blob to offline storage:', e);
     }
   }
 
   ngOnDestroy() {
+    document.body.classList.remove('soulima-cinema');
+    if (this.currentDownloadId) {
+      this.torrentService.cancelDownload(this.currentDownloadId);
+    }
+    if (this.downloadPollTimer) { clearInterval(this.downloadPollTimer); this.downloadPollTimer = null; }
     this.stopStream();
+    this.stopResumeTimer();
   }
 }

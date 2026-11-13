@@ -91,10 +91,22 @@ export class SeriesComponent implements OnDestroy {
 		private subtitleService: SubtitleService
 	) {
 		this.route.params.subscribe(params => {
-			this.id      = Number(params['id']);
-			this.episode = Number(params['episode']);
-			this.season  = Number(params['season']);
-			this.updateLink();
+			const newId = Number(params['id']);
+			const newEp = Number(params['episode']);
+			const newSe = Number(params['season']);
+			if (newId && (newId !== this.id || newEp !== this.episode || newSe !== this.season)) {
+				this.id      = newId;
+				this.episode = newEp;
+				this.season  = newSe;
+				this.updateLink();
+				this.fetchTorrentSources();
+				this.fetchSubtitles();
+			} else if (newId) {
+				this.id      = newId;
+				this.episode = newEp;
+				this.season  = newSe;
+				this.updateLink();
+			}
 		});
 	}
 
@@ -146,19 +158,80 @@ export class SeriesComponent implements OnDestroy {
 		return this.watchProgress.formatTime(seconds);
 	}
 
-	switchMode(mode: 'server' | 'torrent') {
-		this.playerMode = 'torrent';
-		this.fetchTorrentSources();
-	}
+	private prefetchedNextEpisode: { season: number; episode: number; sources: TorrentSource[]; subtitles: SubtitleTrack[] } | null = null;
 
-	onTorrentUnplayable() {}
+	prefetchNextEpisode() {
+		const currentSeason = this.getCurrentSeasonData();
+		if (!currentSeason) return;
+
+		let nextS = this.season;
+		let nextE = this.episode + 1;
+
+		if (this.episode >= currentSeason.episode_count) {
+			const seasonIndex = this.seasons.findIndex(s => s.season_number === this.season);
+			if (seasonIndex !== -1 && seasonIndex < this.seasons.length - 1) {
+				const nextSeasonData = this.seasons[seasonIndex + 1];
+				nextS = nextSeasonData.season_number;
+				nextE = 1;
+			} else {
+				return;
+			}
+		}
+
+		const title = this.serie?.name || this.serie?.original_name || '';
+		this.torrentService.fetchSources(this.id, 'tv', nextS, nextE, title)
+			.then(sources => {
+				if (sources && sources.length) {
+					this.torrentService.prefetchStream(sources[0].magnet, nextS, nextE);
+					if (sources.length > 1) {
+						this.torrentService.prefetchStream(sources[1].magnet, nextS, nextE);
+					}
+					this.subtitleService.getSubtitles(this.id, nextS, nextE)
+						.then(subtitles => {
+							this.prefetchedNextEpisode = { season: nextS, episode: nextE, sources, subtitles };
+						}).catch(() => {});
+				}
+			}).catch(() => {});
+	}
 
 	fetchTorrentSources() {
 		this.torrentSourcesLoading = true;
-		this.torrentService.fetchSources(this.id, 'tv', this.season, this.episode).then(sources => {
-			this.torrentSources = sources;
+		this.fetchSourcesWithRetry(0);
+	}
+
+	private fetchSourcesWithRetry(attempt: number) {
+		if (this.prefetchedNextEpisode && this.prefetchedNextEpisode.season === this.season && this.prefetchedNextEpisode.episode === this.episode) {
+			this.torrentSources = this.prefetchedNextEpisode.sources;
 			this.torrentSourcesLoading = false;
-		});
+			if (this.prefetchedNextEpisode.subtitles?.length) {
+				this.subtitleTracks = this.prefetchedNextEpisode.subtitles;
+			}
+			this.prefetchedNextEpisode = null;
+			this.prefetchNextEpisode();
+			return;
+		}
+
+		const title = this.serie?.name || this.serie?.original_name || '';
+		this.torrentService.fetchSources(this.id, 'tv', this.season, this.episode, title)
+			.then(sources => {
+				if (sources && sources.length) {
+					this.torrentSources = sources;
+					this.torrentSourcesLoading = false;
+					this.prefetchNextEpisode();
+				} else if (attempt < 2) {
+					setTimeout(() => this.fetchSourcesWithRetry(attempt + 1), 1500);
+				} else {
+					this.torrentSources = [];
+					this.torrentSourcesLoading = false;
+				}
+			})
+			.catch(() => {
+				if (attempt < 2) {
+					setTimeout(() => this.fetchSourcesWithRetry(attempt + 1), 1500);
+				} else {
+					this.torrentSourcesLoading = false;
+				}
+			});
 	}
 
 	fetchSubtitles() {

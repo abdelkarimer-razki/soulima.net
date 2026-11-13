@@ -334,27 +334,49 @@ export class TvshowsComponent implements OnInit {
         }
         this.recentlyWatched = unique;
       }
-      forkJoin(
-        [
-          this.moviedbAPIService.getTrendingSeries(),
-          this.moviedbAPIService.getTopRatedSeries(),
-          this.moviedbAPIService.getNewReleaseSeries(),
-        ]
-      ).subscribe(
-        (responses:any[]) =>
-        {
-          this.trendingSeries = responses[0].results;
-          this.topRatedSeries = responses[1].results;
-          this.newReleasedSeries = responses[2].results;
+
+      // Safety fallback: Never stay stuck on loading screen longer than 3.5 seconds
+      setTimeout(() => {
+        if (this.loading || this.showLoadingScreen) {
+          this.loading = false;
+          this.showLoadingScreen = false;
+        }
+      }, 3500);
+
+      if (!navigator.onLine) {
+        this.loading = false;
+        this.showLoadingScreen = false;
+        return;
+      }
+
+      forkJoin([
+        this.moviedbAPIService.getTrendingSeries(),
+        this.moviedbAPIService.getTopRatedSeries(),
+        this.moviedbAPIService.getNewReleaseSeries(),
+      ]).subscribe({
+        next: (responses: any[]) => {
+          this.trendingSeries = responses[0]?.results || [];
+          this.topRatedSeries = responses[1]?.results || [];
+          this.newReleasedSeries = responses[2]?.results || [];
 
           // Seed search corrector service
-          this.searchCorrector.addMediaItems(responses[0].results);
-          this.searchCorrector.addMediaItems(responses[1].results);
-          this.searchCorrector.addMediaItems(responses[2].results);
+          this.searchCorrector.addMediaItems(this.trendingSeries);
+          this.searchCorrector.addMediaItems(this.topRatedSeries);
+          this.searchCorrector.addMediaItems(this.newReleasedSeries);
 
-          this.getSerieImage()
+          if (this.trendingSeries.length > 0) {
+            this.getSerieImage();
+          } else {
+            this.loading = false;
+            this.showLoadingScreen = false;
+          }
+        },
+        error: (err) => {
+          console.error("Error fetching tv series:", err);
+          this.loading = false;
+          this.showLoadingScreen = false;
         }
-      )
+      });
     }
 
     ngOnDestroy()

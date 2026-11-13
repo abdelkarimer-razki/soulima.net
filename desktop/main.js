@@ -5,6 +5,11 @@ const fs = require('fs');
 const path = require('path');
 const net = require('net');
 
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('disable-gpu-sandbox');
+}
+
 const HOST = '127.0.0.1';
 const STREAM_PORT = Number(process.env.STREAM_PORT || 3030);
 const WEB_PORT = Number(process.env.WEB_PORT || 4210);
@@ -131,6 +136,9 @@ function startStreamServer() {
     ...process.env,
     ELECTRON_RUN_AS_NODE: '1',
     PORT: String(STREAM_PORT),
+    // Downloads live in a private folder inside the app's user data directory
+    // (e.g. ~/.config/Soulima/media) instead of the browser cache.
+    MEDIA_DIR: path.join(app.getPath('userData'), 'media'),
   };
   const ffmpeg = resolveFfmpeg();
   if (ffmpeg) env.FFMPEG_PATH = ffmpeg;
@@ -173,7 +181,25 @@ function createWindow() {
     },
   });
 
-  win.loadURL(`http://${HOST}:${WEB_PORT}`);
+  // The web bundle hashes change on every build. A stale service worker cache
+  // (from an older build) served old index.html and rendered a blank window, so
+  // wipe service-worker/cache data on every launch. IndexedDB (offline library)
+  // is intentionally left untouched.
+  win.webContents.session.clearStorageData({ storages: ['serviceworkers', 'caches'] })
+    .then(() => win.loadURL(`http://${HOST}:${WEB_PORT}`))
+    .catch((err) => {
+      console.warn('[main] storage clear failed:', err);
+      win.loadURL(`http://${HOST}:${WEB_PORT}`);
+    });
+
+  // Tag the page as desktop so the web app can hide web-only chrome (footer)
+  // and use the desktop media library.
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.executeJavaScript(
+      "document.documentElement.dataset.desktop = '1';",
+      true
+    ).catch(() => {});
+  });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {

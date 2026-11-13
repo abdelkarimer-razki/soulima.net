@@ -21,6 +21,8 @@ import { NotifComponent } from './notif/notif.component';
 import { CustomPlayerComponent } from './components/custom-player/custom-player.component';
 import { TorrentPlayerComponent } from './components/torrent-player/torrent-player.component';
 import { PlayerLoaderComponent } from './components/player-loader/player-loader.component';
+import { OfflineLibraryComponent } from './offline-library/offline-library.component';
+import { OfflinePlayerComponent } from './offline-player/offline-player.component';
 
 
 @NgModule({
@@ -36,7 +38,9 @@ import { PlayerLoaderComponent } from './components/player-loader/player-loader.
     NotifComponent,
     CustomPlayerComponent,
     TorrentPlayerComponent,
-    PlayerLoaderComponent
+    PlayerLoaderComponent,
+    OfflineLibraryComponent,
+    OfflinePlayerComponent
   ],
   imports: [
     BrowserModule,

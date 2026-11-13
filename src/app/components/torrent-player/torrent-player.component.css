@@ -747,6 +747,7 @@
   border-radius: 6px;
   overflow: hidden;
   background: #1c1c1c;
+  position: relative;
 }
 
 .episodeMenuThumb img {
@@ -978,4 +979,261 @@ video::-webkit-media-text-track-cue {
 @keyframes toastFadeIn {
   from { opacity: 0; transform: translate(-50%, -10px); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ─── Download Progress Panel (non-blocking) ─────────────────────────────── */
+.downloadPanel {
+  position: absolute;
+  right: 20px;
+  bottom: 92px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: 320px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(15, 15, 19, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.55);
+  animation: pauseOverlayIn 0.25s ease both;
+}
+
+.downloadHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.downloadIcon {
+  color: #e50914;
+  flex-shrink: 0;
+}
+
+.downloadTitle {
+  flex: 1;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.downloadClose {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.downloadClose:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.downloadStatus {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.downloadBar {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.downloadBarFill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #e50914, #ff5c62);
+  transition: width 0.3s ease;
+}
+
+.downloadMeta {
+  display: flex;
+  justify-content: space-between;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Resume Playback Dialog ─────────────────────────────────────────────── */
+.torrentResumeOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.82) 100%);
+  cursor: pointer;
+  animation: pauseOverlayIn 0.35s ease both;
+}
+
+.resumeContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 560px;
+  width: 88%;
+  padding: 28px;
+}
+
+.resumeTitle {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+}
+
+.resumeDesc {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 8px 0;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+.resumeDesc b {
+  color: #fff;
+}
+
+.resumeActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.resumeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s;
+}
+
+.resumeBtn:hover {
+  transform: translateY(-1px);
+}
+
+.resumePrimary {
+  background: rgba(255, 255, 255, 0.95);
+  color: #000;
+}
+
+.resumePrimary:hover {
+  background: #fff;
+}
+
+.resumeSecondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.resumeSecondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ─── Episode Watched / Now Badges ───────────────────────────────────────── */
+.episodeMenuNumber {
+  position: relative;
+}
+
+.episodeWatchedBadge,
+.episodeNowBadge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.episodeWatchedBadge {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.episodeNowBadge {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+}
+
+.episodeMenuItem.watched .episodeMenuName {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.episodeMenuItem.watched .episodeMenuThumb img {
+  opacity: 0.55;
+}
+
+.episodeMenuItem.watched .episodeMenuThumb::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  font-size: 22px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Back button shown on error / no-sources overlays */
+.overlayBackLink {
+  margin-top: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  padding: 9px 18px;
+  font-size: 13.5px;
+}
+
+.overlayBackLink:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.overlayBackLink + .overlayBackLink {
+  margin-top: 8px;
+}
+
+.retryIcon {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 6px;
 }
