@@ -96,10 +96,11 @@ Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Jailbroke
 - Standalone desktop bundle with embedded Node.js streaming server and static FFmpeg binary.
 - Full desktop integration with AppArmor compliance, icon badges, and system tray lifecycle.
 
-### 🕹️ PlayStation 4 Homebrew (OpenOrbis FPKG)
-- Custom native C launcher (`ps4/src/main.c`) targeting `x86_64-scei-ps4` using the OpenOrbis Toolchain.
-- 100% compliant `param.sfo` descriptor generated via `PkgTool.Core` with `CATEGORY="gd"` and valid `CONTENT_ID`.
-- Integrates `sceSystemServiceLaunchWebBrowser` to run Soulima in full-screen hardware-accelerated WebKit on jailbroken PS4 firmware (GoldHEN 5.05 - 11.00).
+### 🕹️ PlayStation 4 Native Homebrew (OpenOrbis FPKG)
+- **True Native C++17 OrbisOS Application:** Renders directly to 1080p display buffers at 60 FPS using `libSceVideoOut` direct video memory mapping and flip queue vsync.
+- **DualShock 4 Controller Input:** Native wireless/USB controller support via `libScePad` and `libSceUserService` with edge-detection and hold-to-repeat D-pad navigation.
+- **Interactive Cinema Dashboard:** Real-time BSD socket ping & latency measurement to the streaming server, interactive on-screen IP configurator (adjust octets via D-Pad), configuration persistence to `/data/soulima.conf`, live system logs, and hardware diagnostics.
+- **100% Compliant FPKG:** Verified Title ID `SOUL00001`, Content ID `IV0000-SOUL00001_00-SOULIMA000000000`, containing required `libc.prx` and `libSceFios2.prx` runtime modules for seamless installation across GoldHEN 5.05 - 11.00+.
 
 ---
 
@@ -178,8 +179,8 @@ Outputs `ps4/dist/Soulima.pkg`, ready to install via GoldHEN Package Installer.
 ├── desktop/                      # Electron Linux Desktop Wrapper
 │   ├── main.js                   # Main Electron process with embedded daemon management
 │   └── build.mjs                 # Packaging & static binary bundling scripts
-├── ps4/                          # PlayStation 4 Homebrew Port
-│   ├── src/                      # Native C launcher (sceSystemService)
+├── ps4/                          # PlayStation 4 Native Homebrew Port
+│   ├── src/                      # Native C++17 engine (libSceVideoOut, libScePad, BSD sockets)
 │   ├── scripts/                  # OpenOrbis SFO & PKG automation scripts
 │   ├── sce_sys/                  # PS4 icons, splash art, and parameter metadata
 │   └── sce_module/               # Runtime PRX modules (libc, libSceFios2)
@@ -199,7 +200,7 @@ Outputs `ps4/dist/Soulima.pkg`, ready to install via GoldHEN Package Installer.
 | **Transcoding** | FFmpeg 7.x, fragmented MP4, libx264, AAC, ffsubsync |
 | **Metadata & Subtitles** | TMDB API, SubDL REST API, YIFY Subtitles API |
 | **Desktop** | Electron 43, Electron Builder |
-| **Console Port** | C, OpenOrbis PS4 Toolchain, OrbisOS WebKit, PkgTool.Core |
+| **Console Port** | C++17, OpenOrbis PS4 Toolchain, libSceVideoOut, libScePad, PkgTool.Core |
 | **Testing & CI** | Puppeteer Headless Browser, E2E Latency Benchmarking |
 
 ---

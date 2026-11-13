@@ -36,7 +36,7 @@ $(ICON0) $(PIC1): $(SCRIPTS_DIR)/make_icons.py
 ## Compile eboot.bin (FSELF)
 eboot: $(EBOOT_BIN)
 
-$(EBOOT_BIN): src/main.c
+$(EBOOT_BIN): src/main.cpp src/renderer.cpp src/controller.cpp src/network.cpp
 	@echo "[EBOOT] Compiling eboot.bin..."
 	$(MAKE) -C src
 
