@@ -32,9 +32,11 @@ HAS_OO := $(shell test -f "$(OO_PS4_TOOLCHAIN)/link.x" && echo yes || echo no)
 ifneq ($(LLVM_DIR),)
 	export LD_LIBRARY_PATH := $(HOME)/llvm18/lib:$(LD_LIBRARY_PATH)
 	CC  := $(LLVM_DIR)/bin/clang
+	CXX := $(LLVM_DIR)/bin/clang++
 	LD  := $(LLVM_DIR)/bin/ld.lld
 else
 	CC  ?= clang
+	CXX ?= clang++
 	LD  ?= ld.lld
 endif
 
@@ -44,34 +46,31 @@ FSELF := $(shell \
 	else echo "create-fself"; fi)
 
 # --- Source / output ----------------------------------------------------
-ifeq ($(FULL),1)
-SRC      := main_full.c
-else
-SRC      := main.c
-endif
-
 SRCDIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 BUILDDIR := $(abspath $(SRCDIR)/../build)
 
-TARGET_OBJ  := $(BUILDDIR)/main.o
+CXX_SOURCES := main.cpp renderer.cpp controller.cpp network.cpp
+CXX_OBJS    := $(patsubst %.cpp,$(BUILDDIR)/%.o,$(CXX_SOURCES))
+
 TARGET_ELF  := $(BUILDDIR)/eboot.elf
 TARGET_OELF := $(BUILDDIR)/eboot.oelf
 TARGET_BIN  := $(BUILDDIR)/eboot.bin
 
 # --- Compile-time URL ---------------------------------------------------
-SOULIMA_URL ?= http://192.168.1.100:3030
+SOULIMA_URL ?= http://192.168.1.68:3030
 
 # --- Flags --------------------------------------------------------------
-CFLAGS := \
+CXXFLAGS := \
 	--target=x86_64-pc-freebsd12-elf \
 	-fPIC \
 	-funwind-tables \
 	-c \
 	-O2 \
-	-std=c11 \
+	-std=c++17 \
 	-DSOULIMA_URL=\"$(SOULIMA_URL)\" \
 	-isysroot $(OO_PS4_TOOLCHAIN) \
-	-isystem $(OO_PS4_TOOLCHAIN)/include
+	-isystem $(OO_PS4_TOOLCHAIN)/include \
+	-isystem $(OO_PS4_TOOLCHAIN)/include/c++/v1
 
 LDFLAGS := \
 	-m elf_x86_64 \
@@ -79,7 +78,8 @@ LDFLAGS := \
 	--script $(OO_PS4_TOOLCHAIN)/link.x \
 	--eh-frame-hdr \
 	-L$(OO_PS4_TOOLCHAIN)/lib \
-	-lc -lkernel -lSceSystemService \
+	-lc -lkernel -lc++ \
+	-lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet \
 	$(OO_PS4_TOOLCHAIN)/lib/crt1.o
 
 .PHONY: all clean stub fself check
@@ -91,13 +91,13 @@ all: $(TARGET_BIN)
 $(BUILDDIR):
 	mkdir -p $(BUILDDIR)
 
-$(TARGET_OBJ): $(SRCDIR)/$(SRC) | $(BUILDDIR)
-	@echo "[CC]    $(SRC) -> main.o"
-	$(CC) $(CFLAGS) -o $@ $<
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp | $(BUILDDIR)
+	@echo "[CXX]   $< -> $@"
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
-$(TARGET_ELF): $(TARGET_OBJ)
-	@echo "[LD]    main.o -> eboot.elf"
-	$(LD) $< $(LDFLAGS) -o $@
+$(TARGET_ELF): $(CXX_OBJS)
+	@echo "[LD]    $(CXX_OBJS) -> eboot.elf"
+	$(LD) $(CXX_OBJS) $(LDFLAGS) -o $@
 
 $(TARGET_BIN): $(TARGET_ELF)
 	@echo "[FSELF] eboot.elf -> eboot.bin"
