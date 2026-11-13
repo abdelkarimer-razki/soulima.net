@@ -14,10 +14,10 @@ OUT_SFO      = os.path.join(SCE_SYS_DIR, "param.sfo")
 OO_TOOLCHAIN = os.environ.get("OO_PS4_TOOLCHAIN", os.path.expanduser("~/openorbis/OpenOrbis/PS4Toolchain"))
 PKG_TOOL     = os.path.join(OO_TOOLCHAIN, "bin/linux/PkgTool.Core")
 
-CONTENT_ID   = "IV0000-SOULM0001_00-SOULIMA000000000"
-TITLE_ID     = "SOULM0001"
+CONTENT_ID   = "IV0000-SOUL00001_00-SOULIMA000000000"
+TITLE_ID     = "SOUL00001"
 TITLE        = "Soulima"
-VERSION      = "01.00"
+VERSION      = "1.00"
 
 def run_cmd(args):
     env = os.environ.copy()

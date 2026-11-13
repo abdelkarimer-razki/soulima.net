@@ -181,7 +181,8 @@ Outputs `ps4/dist/Soulima.pkg`, ready to install via GoldHEN Package Installer.
 ├── ps4/                          # PlayStation 4 Homebrew Port
 │   ├── src/                      # Native C launcher (sceSystemService)
 │   ├── scripts/                  # OpenOrbis SFO & PKG automation scripts
-│   └── sce_sys/                  # PS4 icons, splash art, and parameter metadata
+│   ├── sce_sys/                  # PS4 icons, splash art, and parameter metadata
+│   └── sce_module/               # Runtime PRX modules (libc, libSceFios2)
 ├── tests/                        # Automated Multi-Agent E2E Verification
 │   └── e2e/                      # Headless Puppeteer benchmarks and seeking test loops
 └── docs/                         # Compiled production web bundle

@@ -25,8 +25,8 @@
 #define SOULIMA_URL "http://192.168.1.100:3030"
 #endif
 
-#define SOULIMA_APP_VERSION  "01.00"
-#define SOULIMA_TITLE_ID     "SOULM0001"
+#define SOULIMA_APP_VERSION  "1.00"
+#define SOULIMA_TITLE_ID     "SOUL00001"
 
 /* ------------------------------------------------------------------ */
 /* PS4 / OrbisOS type aliases                                          */

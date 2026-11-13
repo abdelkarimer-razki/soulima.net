@@ -24,7 +24,7 @@ The goal is to convert **Soulima** into an installable `.pkg` app that appears o
 ```
 ┌──────────────────────────────────────────────┐       LAN       ┌─────────────────────────────────────────────────────────┐
 │              PlayStation 4                   │ ──────────────> │                Host Machine (Laptop / PC)               │
-│  [Soulima PKG on XMB] (Title: SOULM0001)     │  HTTP Stream    │  • Streaming Server: Express + WebTorrent (:3030)       │
+│  [Soulima PKG on XMB] (Title: SOUL00001)     │  HTTP Stream    │  • Streaming Server: Express + WebTorrent (:3030)       │
 │  • param.sfo + icon0.png + pic1.png          │ <────────────── │  • Subtitle Fetcher / SubDL API                         │
 │  • eboot.bin -> sceSystemServiceLaunchBrowser│                 │  • ffmpeg transcoding (H.264/AAC for PS4 compatibility) │
 │  • PS4 WebKit Browser (fullscreen UI)        │                 │  • Angular Web UI (:4200 or bundled static build)       │
@@ -46,7 +46,7 @@ The goal is to convert **Soulima** into an installable `.pkg` app that appears o
 
 ### B. PS4 Assets & Metadata (Completed ✅)
 Located in `/home/abdelkarim/Desktop/karim/labs/soulima.net/ps4/`:
-- `ps4/sce_sys/param.sfo`: Validated binary SFO file (Title ID: `SOULM0001`, Title: `Soulima`, App Type: 1, System FW: 5.05+).
+- `ps4/sce_sys/param.sfo`: Validated binary SFO file (Title ID: `SOUL00001`, Title: `Soulima`, App Type: 1, System FW: 5.05+).
 - `ps4/sce_sys/icon0.png`: 512x512 XMB application icon.
 - `ps4/sce_sys/pic1.png`: 1920x1080 background splash.
 - `ps4/scripts/make_sfo.py`: Python generator for PS4 SFO format.
@@ -170,7 +170,7 @@ ps4/pkg_staging/
 Use `orbis-pub-cmd` or open-source `PkgTool.Core` / `LibOrbisPkg`:
 
 1. **Generate `.gp4` project file (`ps4/scripts/make_gp4.py`):**
-   Defines volume title, passcode (`00000000000000000000000000000000`), Content ID (`IV0000-SOULM0001_00-SOULIMAPLAYER0001`), and files list.
+   Defines volume title, passcode (`00000000000000000000000000000000`), Content ID (`IV0000-SOUL00001_00-SOULIMA000000000`), and files list.
 2. **Compile final PKG:**
    ```bash
    orbis-pub-cmd img_create ps4/project.gp4 ps4/dist/Soulima.pkg
