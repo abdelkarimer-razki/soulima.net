@@ -11,6 +11,6 @@ export class HelloworldComponent {
 
   constructor(private router:Router){}
   ngOnInit(): void {
-    window.location.href = "https://www.linkedin.com/in/abdelkarimer-razki/"
+    this.router.navigate(['/']);
   }
 }

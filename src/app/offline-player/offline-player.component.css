@@ -1,0 +1,149 @@
+/* ─── Offline Player Page (mirrors the online movie/series player page) ─── */
+
+[hidden] {
+	display: none !important;
+}
+
+.offlinePlayerContainer {
+	background-color: var(--bg-color);
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 80px 24px 60px 24px;
+	box-sizing: border-box;
+	width: 100%;
+	animation: fadeIn 0.45s ease both;
+}
+
+.torrentPlayerWrapper {
+	width: 100%;
+	max-width: 1000px;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+	border: 1px solid var(--border-light);
+	animation: scaleIn 0.55s 0.05s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* Subtitle loader bar under the player */
+.downloadsControls {
+	display: flex;
+	justify-content: center;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding: 18px 0 0 0;
+	max-width: 1000px;
+	width: 100%;
+	box-sizing: border-box;
+	animation: fadeSlideUp 0.5s 0.15s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.subtitleBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid var(--border-light);
+	color: var(--text-secondary);
+	padding: 8px 18px;
+	border-radius: var(--radius-button);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	max-width: 100%;
+}
+
+.subtitleBtn:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--text-primary);
+	border-color: rgba(255, 255, 255, 0.25);
+}
+
+.subtitleBtn svg {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+.subtitleBtn span {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Loading / error states */
+.offlineLoading,
+.offlineError {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
+	margin-top: 60px;
+	text-align: center;
+	animation: fadeIn 0.45s ease both;
+}
+
+.offlineLoadingText {
+	color: var(--text-muted);
+	font-size: 14px;
+	font-weight: 500;
+	letter-spacing: 0.5px;
+	animation: pulse-slogan-text 2s ease-in-out infinite;
+}
+
+.offlineErrorIcon {
+	font-size: 2rem;
+}
+
+.offlineErrorText {
+	color: var(--text-secondary);
+	font-size: 14px;
+	max-width: 420px;
+	line-height: 1.5;
+}
+
+.offlineBackBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--text-secondary);
+	font-size: 13px;
+	font-weight: 600;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid var(--border-light);
+	padding: 8px 16px;
+	border-radius: var(--radius-button);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.offlineBackBtn:hover {
+	color: var(--text-primary);
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(255, 255, 255, 0.25);
+	transform: translateY(-1px);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+	.offlinePlayerContainer {
+		padding: 0 0 70px 0;
+		align-items: stretch;
+	}
+	.torrentPlayerWrapper {
+		max-width: 100%;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
+		box-shadow: none;
+	}
+	.downloadsControls {
+		padding: 12px 16px 0 16px;
+	}
+	.subtitleBtn {
+		padding: 7px 14px;
+		font-size: 12px;
+	}
+}

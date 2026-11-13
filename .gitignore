@@ -41,3 +41,36 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Secrets
+.env
+streaming-server/.env
+
+# Installers & Binary Packages
+*.pkg
+*.deb
+*.AppImage
+*.rpm
+*.dmg
+*.exe
+*.zip
+*.tar.gz
+*.sprx
+*.bin
+*.elf
+*.o
+*.a
+
+# Electron desktop dist & bundled ffmpeg binary
+desktop/dist/
+desktop/resources/ffmpeg/
+
+# PS4 build & dist artifacts
+ps4/dist/
+ps4/build/
+ps4/sce_sys/about/
+
+# Session logs
+session-*.md
+
+streaming-server/*.log

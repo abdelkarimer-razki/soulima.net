@@ -1,7 +1,7 @@
 import { Component,Renderer2,OnInit, ViewChild, HostListener, ElementRef  } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
 import { forkJoin, Subject } from 'rxjs';
@@ -80,6 +80,7 @@ export class Exercice2Component implements OnInit
 	constructor(
 		private moviedbAPIService: MoviedbAPIService,
 		private router:Router,
+		private route: ActivatedRoute,
 		private renderer: Renderer2,
 		private cookie: CookieService,
 		private titleService: Title,
@@ -510,6 +511,11 @@ export class Exercice2Component implements OnInit
 
 	ngOnInit(): void
 	{
+		const urlSearch = this.route.snapshot.queryParamMap.get('search');
+		if (urlSearch) {
+			this.searchQuery = urlSearch;
+			this.searchMovies();
+		}
 		this.searchSubject.pipe(
 			debounceTime(300),
 			distinctUntilChanged()
@@ -547,24 +553,48 @@ export class Exercice2Component implements OnInit
 			}
 			this.recentlyWatched = unique;
 		}
+		// Safety fallback: Never stay stuck on loading screen longer than 3.5 seconds
+		setTimeout(() => {
+			if (this.loading || this.showLoadingScreen) {
+				this.loading = false;
+				this.showLoadingScreen = false;
+			}
+		}, 3500);
+
+		if (!navigator.onLine) {
+			this.loading = false;
+			this.showLoadingScreen = false;
+			return;
+		}
+
 		forkJoin([
 			this.moviedbAPIService.getTrendingMovies(),
 			this.moviedbAPIService.getTopRatedMovies(),
 			this.moviedbAPIService.getNewRelease()
-		]).subscribe((responses:any[]) =>
-			{
-				this.trendingMovies = responses[0].results;
-				this.topRatedMovies = responses[1].results;
-				this.newReleasedMovies = responses[2].results;
+		]).subscribe({
+			next: (responses: any[]) => {
+				this.trendingMovies = responses[0]?.results || [];
+				this.topRatedMovies = responses[1]?.results || [];
+				this.newReleasedMovies = responses[2]?.results || [];
 				
 				// Seed search corrector service
-				this.searchCorrector.addMediaItems(responses[0].results);
-				this.searchCorrector.addMediaItems(responses[1].results);
-				this.searchCorrector.addMediaItems(responses[2].results);
+				this.searchCorrector.addMediaItems(this.trendingMovies);
+				this.searchCorrector.addMediaItems(this.topRatedMovies);
+				this.searchCorrector.addMediaItems(this.newReleasedMovies);
 				
-				this.getMovieImage();
+				if (this.trendingMovies.length > 0) {
+					this.getMovieImage();
+				} else {
+					this.loading = false;
+					this.showLoadingScreen = false;
+				}
+			},
+			error: (err) => {
+				console.error("Error fetching homepage movies:", err);
+				this.loading = false;
+				this.showLoadingScreen = false;
 			}
-		)
+		});
 	}
 
 	switchDivs(): void {

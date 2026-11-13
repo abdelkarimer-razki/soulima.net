@@ -23,6 +23,14 @@
 			</svg>
 			<span>TV Shows</span>
 		</a>
+		<a routerLink="/downloads" routerLinkActive="active" class="navLink">
+			<svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+				<polyline points="7 10 12 15 17 10"></polyline>
+				<line x1="12" y1="15" x2="12" y2="3"></line>
+			</svg>
+			<span>Downloads</span>
+		</a>
 	</div>
 	<div class="searchBarContainer">
 		<div class="searchBarRow">
@@ -217,15 +225,8 @@
 			<ul class="footer-links-list">
 				<li><a (click)="this.searchQuery = ''; clearGenre()" routerLink="/" class="footer-link">Movies</a></li>
 				<li><a (click)="this.searchQuery = ''" routerLink="/tvshows" class="footer-link">TV Shows</a></li>
+				<li><a routerLink="/downloads" class="footer-link">Offline Downloads</a></li>
 			</ul>
-		</div>
-		<div class="footer-author">
-			<h4 class="footer-section-title">Developer</h4>
-			<p class="footer-developer-text">Created by</p>
-			<a href="https://abdelkarimerrazki.vercel.app/" target="_blank" rel="noopener noreferrer" class="footer-portfolio-link">
-				<span>Abdelkarim Er-razki</span>
-				<svg class="portfolio-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-			</a>
 		</div>
 	</div>
 	<div class="footer-divider"></div>

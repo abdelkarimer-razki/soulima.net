@@ -1,0 +1,195 @@
+.playerLoader {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.loaderBackdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(6px) brightness(0.45);
+  transform: scale(1.05);
+  animation: loaderBackdropIn 1.2s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+.loaderBackdrop.noBackdrop {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(229, 9, 20, 0.28) 0%, rgba(0, 0, 0, 0) 55%),
+    linear-gradient(160deg, #17141f 0%, #0b0b0f 60%, #0b0b0f 100%);
+  filter: none;
+}
+
+.loaderShade {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.75) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.85) 100%);
+}
+
+.loaderContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  max-width: 780px;
+  width: 90%;
+  padding: 0 24px;
+  animation: loaderContentIn 0.7s cubic-bezier(0.25, 1, 0.5, 1) 0.15s both;
+}
+
+.loaderPosterWrap {
+  flex-shrink: 0;
+  width: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.loaderPoster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.loaderPosterPlaceholder {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.loaderTextBlock {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.loaderInfo {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+
+.loaderTitle {
+  color: #fff;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 12px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+}
+
+.loaderOverview {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+.loaderFooter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px 40px;
+  animation: loaderContentIn 0.7s cubic-bezier(0.25, 1, 0.5, 1) 0.3s both;
+}
+
+.loaderSpinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loaderStatus {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.loaderProgressTrack {
+  width: 220px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loaderProgressFill {
+  height: 100%;
+  background: #ffffff;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loaderBackdropIn {
+  from { opacity: 0; transform: scale(1.15); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes loaderContentIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 640px) {
+  .loaderContent {
+    flex-direction: column;
+    gap: 18px;
+    text-align: center;
+    transform: translateY(-8%);
+  }
+
+  .loaderPosterWrap {
+    width: 140px;
+  }
+
+  .loaderTextBlock {
+    text-align: center;
+  }
+
+  .loaderTitle {
+    font-size: 22px;
+  }
+
+  .loaderOverview {
+    -webkit-line-clamp: 2;
+  }
+}

@@ -25,7 +25,8 @@
               "src/assets",
               "src/robots.txt",
               "src/sitemap.xml",
-              "src/vercel.json"
+              "src/vercel.json",
+              "src/sw.js"
             ],
             "styles": [
               "src/styles.css"

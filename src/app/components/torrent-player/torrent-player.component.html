@@ -1,0 +1,270 @@
+<div class="torrentPlayer" #playerHost (mousemove)="onPlayerMouseMove()" (click)="onPlayerClick($event)" [class.controlsActive]="showControls">
+
+  <div class="torrentLoaderOverlay" *ngIf="(sourcesLoading && !sources.length) || (loading && !ready)">
+    <app-player-loader [title]="title" [info]="info" [overview]="overview"
+      [backdropUrl]="backdropUrl" [posterUrl]="posterUrl"
+      [status]="sourcesLoading && !sources.length ? 'Finding torrent sources…' : (isPlaying ? 'Buffering…' : 'Loading…')"
+      [progress]="sourcesLoading && !sources.length ? 0 : progress * 100" [showProgress]="true">
+    </app-player-loader>
+  </div>
+
+  <div class="torrentErrorOverlay" *ngIf="error">
+    <span class="errorIcon">⚠️</span>
+    <span class="errorText">{{ error }}</span>
+    <div class="errorActions" style="display: flex; gap: 10px; margin-top: 15px;">
+      <button class="hudBackBtn overlayBackLink" style="background: #e50914;" (click)="retrySources.emit()">
+        <svg class="retryIcon" height="16" width="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Retry
+      </button>
+      <a [routerLink]="backLink" class="hudBackBtn overlayBackLink">
+        <svg class="backIcon" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <div class="torrentEmptyOverlay" *ngIf="!sources.length && !sourcesLoading && !loading && !ready && !error">
+    <span class="errorIcon">{{ isUnreleased ? '🎬' : '🔍' }}</span>
+    <span class="emptyText" *ngIf="isUnreleased">
+      Scheduled for {{ info }} — Theatrical Release.<br>
+      <small style="opacity: 0.8; font-size: 13px;">Digital streams become available once released on home media.</small>
+    </span>
+    <span class="emptyText" *ngIf="!isUnreleased">
+      No high-speed torrent sources found for this title.
+    </span>
+    <div class="emptyActions" style="display: flex; gap: 10px; margin-top: 15px;">
+      <button class="hudBackBtn overlayBackLink" style="background: #e50914;" (click)="retrySources.emit()">
+        <svg class="retryIcon" height="16" width="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Retry
+      </button>
+      <a [routerLink]="backLink" class="hudBackBtn overlayBackLink">
+        <svg class="backIcon" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+        Back
+      </a>
+    </div>
+  </div>
+
+  <div class="torrentResumeOverlay" *ngIf="showResumeDialog && resumePosition > 0">
+    <div class="resumeContent" (click)="$event.stopPropagation()">
+      <h2 class="resumeTitle">Welcome back</h2>
+      <p class="resumeDesc">You were watching <b>{{ formatTime(resumePosition) }}</b> of {{ title || 'this title' }}. Continue where you left off?</p>
+      <div class="resumeActions">
+        <button class="resumeBtn resumePrimary" (click)="resumePlayback()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Resume from {{ formatTime(resumePosition) }}
+        </button>
+        <button class="resumeBtn resumeSecondary" (click)="startOver()">Start from beginning</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="downloadPanel" *ngIf="downloadState" (click)="$event.stopPropagation()">
+    <div class="downloadHeader">
+      <svg class="downloadIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="downloadTitle">Downloading…</span>
+      <button class="downloadClose" (click)="cancelDownload()" title="Cancel download">✕</button>
+    </div>
+    <span class="downloadStatus">{{ downloadState.message }}</span>
+    <div class="downloadBar">
+      <div class="downloadBarFill" [style.width.%]="downloadState.progress"></div>
+    </div>
+    <div class="downloadMeta">
+      <span>{{ downloadState.progress }}%</span>
+      <span>{{ formatSize(downloadState.downloaded) }} / {{ formatSize(downloadState.total) }}</span>
+    </div>
+  </div>
+
+  <div class="torrentPauseOverlay" *ngIf="ready && !isPlaying && !error && !showResumeDialog">
+    <div class="pauseContent" (click)="$event.stopPropagation()">
+      <span class="pauseInfo" *ngIf="info">{{ info }}</span>
+      <h2 class="pauseTitle">{{ title || 'This title' }}</h2>
+      <p class="pauseOverview" *ngIf="overview">{{ overview }}</p>
+      <button class="pausePlayBtn" (click)="togglePlay()">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <span class="pauseHint">Press Space or click play button</span>
+    </div>
+  </div>
+
+  <video #videoPlayer
+         class="torrentVideo"
+         (play)="isPlaying = true"
+         (pause)="onPause()"
+         (ended)="onEnded()"
+         (timeupdate)="onTimeUpdate()"
+         (volumechange)="syncVolume()"
+         (canplay)="onCanPlay()"
+         (error)="handleVideoError()"
+         preload="auto"
+         playsinline>
+  </video>
+
+  <div class="netflixSubtitleOverlay" *ngIf="activeSubtitle && activeSubtitleText && ready && !error">
+    <div class="netflixSubtitleText">{{ activeSubtitleText }}</div>
+  </div>
+
+  <div class="playerToast" *ngIf="toastMessage">
+    {{ toastMessage }}
+  </div>
+
+  <div class="torrentHud" *ngIf="ready && !error">
+    <div class="hudTop">
+      <a [routerLink]="backLink" class="hudBackBtn" *ngIf="showBack">
+        <svg class="backIcon" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M21 11H6.414l5.293-5.293-1.414-1.414L2.586 12l7.707 7.707 1.414-1.414L6.414 13H21z"/></svg>
+        Back
+      </a>
+
+      <div class="hudTopTitle">
+        <h1 class="hudMovieTitle">Watch {{ title || 'This title' }}</h1>
+        <span class="hudMovieInfo" *ngIf="info">{{ info }}</span>
+      </div>
+
+      <div class="hudTopRight">
+        <button class="hudBtn hudEpiBtn" *ngIf="seasons.length" (click)="toggleEpisodeMenu($event)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
+          <span class="hudEpiLabel">Episodes</span>
+          <span class="hudEpiCount">S{{ currentSeason }} · E{{ currentEpisode }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="hudBottom" (click)="$event.stopPropagation()">
+      <div class="hudSeekBar" (click)="seekTo($event)">
+        <div class="hudSeekTrack">
+          <div class="hudSeekBuffered" [style.width.%]="bufferedRatio"></div>
+          <div class="hudSeekPlayed" [style.width.%]="playedRatio"></div>
+          <div class="hudSeekThumb" [style.left.%]="playedRatio"></div>
+        </div>
+      </div>
+
+      <div class="hudControlsRow">
+        <button class="hudBtn" (click)="togglePlay()" [title]="isPlaying ? 'Pause' : 'Play'">
+          <svg *ngIf="!isPlaying" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          <svg *ngIf="isPlaying" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+
+        <span class="hudTime">{{ formatTime(currentTime) }} / {{ formatTime(displayDuration) }}</span>
+
+        <button class="hudBtn hudNavBtn" *ngIf="hasPrev" (click)="goToPrevEpisode()" title="Previous Episode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          <span>Previous</span>
+        </button>
+
+        <div class="hudSpacer"></div>
+
+        <button class="hudBtn hudNavBtn" *ngIf="hasNext" (click)="goToNextEpisode()" title="Next Episode">
+          <span>Next</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+
+        <button class="hudBtn hudIconBtn" (click)="toggleMute()" [title]="muted ? 'Unmute' : 'Mute'">
+          <svg *ngIf="muted || volume === 0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          <svg *ngIf="!muted && volume > 0 && volume < 0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg *ngIf="!muted && volume >= 0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        </button>
+
+        <input class="hudVolume" type="range" min="0" max="1" step="0.05"
+               [value]="volume"
+               (input)="setVolume(+$any($event.target).value)"
+               (change)="setVolume(+$any($event.target).value)">
+
+        <button class="hudBtn hudIconBtn hudCcBtn" [class.ccOn]="!!activeSubtitle"
+                (click)="toggleSubtitleMenu($event)" title="Subtitles">
+          CC
+        </button>
+
+        <button class="hudBtn hudIconBtn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'">
+          <svg *ngIf="!isFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          <svg *ngIf="isFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+        </button>
+
+        <button class="hudBtn hudIconBtn" *ngIf="!directUrl" (click)="download()" title="Download video with subtitles">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="subtitleMenuBackdrop" *ngIf="showSubtitleMenu" (click)="showSubtitleMenu = false"></div>
+  <div class="subtitleMenu" *ngIf="showSubtitleMenu">
+    <div class="subtitleMenuHeader">
+      <span class="subtitleMenuTitle">Subtitles</span>
+      <button class="subtitleMenuClose" (click)="showSubtitleMenu = false">✕</button>
+    </div>
+
+    <!-- Subtitle Sync / Delay Section -->
+    <div class="subtitleSyncSection" *ngIf="activeSubtitle">
+      <div class="subtitleSyncHeader">
+        <span class="subtitleSyncTitle">Subtitle Delay / Sync</span>
+        <span class="subtitleSyncBadge">{{ formatOffset(subtitleOffset) }}</span>
+      </div>
+      <div class="subtitleSyncRow">
+        <button class="syncStepBtn" (click)="adjustSubtitleOffset(-0.5)" title="Subtitles 0.5s earlier">-0.5s</button>
+        <button class="syncStepBtn" (click)="adjustSubtitleOffset(-0.1)" title="Subtitles 0.1s earlier">-0.1s</button>
+        <button class="syncResetBtn" [disabled]="subtitleOffset === 0" (click)="resetSubtitleOffset()" title="Reset delay">0.0s</button>
+        <button class="syncStepBtn" (click)="adjustSubtitleOffset(0.1)" title="Subtitles 0.1s later">+0.1s</button>
+        <button class="syncStepBtn" (click)="adjustSubtitleOffset(0.5)" title="Subtitles 0.5s later">+0.5s</button>
+      </div>
+      <div class="subtitleSyncHint">Keyboard shortcuts: <b>G</b> (-0.5s) | <b>H</b> (+0.5s)</div>
+    </div>
+
+    <div class="subtitleMenuList">
+      <button class="subtitleMenuItem" [class.active]="!activeSubtitle" (click)="selectSubtitle(null)">
+        <span>Off</span>
+        <span class="subtitleCheck" *ngIf="!activeSubtitle">✓</span>
+      </button>
+      <div class="subtitleMenuEmpty" *ngIf="!subtitles.length">No subtitles available for this title.</div>
+      <button *ngFor="let sub of subtitles"
+              class="subtitleMenuItem"
+              [class.active]="activeSubtitle?.fileId === sub.fileId"
+              (click)="selectSubtitle(sub)">
+        <span>{{ sub.langName }}</span>
+        <span class="subtitleCheck" *ngIf="activeSubtitle?.fileId === sub.fileId">✓</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="episodeMenuBackdrop" *ngIf="showEpisodeMenu" (click)="closeEpisodeMenu()"></div>
+  <div class="episodeMenu" *ngIf="showEpisodeMenu">
+    <div class="episodeMenuHeader">
+      <div class="episodeMenuHeadingWrap">
+        <span class="episodeMenuHeading">Episodes</span>
+        <button class="episodeSeasonBtn" *ngIf="seasons.length > 1" (click)="toggleSeasonDropdown($event)">
+          <span>Season {{ currentSeason }}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="episodeSeasonDropdown" *ngIf="showSeasonDropdown" (click)="$event.stopPropagation()">
+          <button *ngFor="let s of seasons; index as i"
+                  class="episodeSeasonItem"
+                  [class.active]="s.season_number === currentSeason"
+                  (click)="pickSeason(i)">
+            Season {{ s.season_number }}
+          </button>
+        </div>
+      </div>
+      <button class="episodeMenuClose" (click)="closeEpisodeMenu()">✕</button>
+    </div>
+    <div class="episodeMenuList">
+      <button *ngFor="let episode of episodes"
+              class="episodeMenuItem"
+              [class.active]="episode.episode_number === currentEpisode"
+              [class.watched]="isEpisodeWatched(episode.episode_number)"
+              (click)="pickEpisode(episode.episode_number)">
+        <span class="episodeMenuNumber">
+          {{ episode.episode_number }}
+          <span class="episodeWatchedBadge" *ngIf="isEpisodeWatched(episode.episode_number)">✓</span>
+          <span class="episodeNowBadge" *ngIf="episode.episode_number === currentEpisode">Now</span>
+        </span>
+        <span class="episodeMenuThumb">
+          <img [src]="episodeThumb(episode)" loading="lazy" alt="">
+        </span>
+        <span class="episodeMenuMeta">
+          <span class="episodeMenuName">{{ episode.name }}</span>
+          <span class="episodeMenuOverview" *ngIf="episode.overview">{{ episode.overview }}</span>
+        </span>
+      </button>
+      <div class="episodeMenuEmpty" *ngIf="!episodes.length">Loading episodes…</div>
+    </div>
+  </div>
+
+</div>

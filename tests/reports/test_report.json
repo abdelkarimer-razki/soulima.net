@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-11-12T20:14:03.220Z",
+  "targetUrl": "http://127.0.0.1:4200",
+  "streamingUrl": "http://127.0.0.1:3030",
+  "steps": [
+    {
+      "name": "Open Homepage",
+      "status": "running",
+      "time": "2026-11-12T20:14:03.553Z",
+      "details": {}
+    },
+    {
+      "name": "Test Execution",
+      "status": "failed",
+      "time": "2026-11-12T20:14:04.775Z",
+      "details": {
+        "error": "Navigating frame was detached",
+        "stack": "Error: Navigating frame was detached\n    at <instance_members_initializer> (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/node_modules/puppeteer-core/lib/puppeteer/cdp/LifecycleWatcher.js:33:14)\n    at new LifecycleWatcher (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/node_modules/puppeteer-core/lib/puppeteer/cdp/LifecycleWatcher.js:37:16)\n    at CdpFrame.goto (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/node_modules/puppeteer-core/lib/puppeteer/cdp/Frame.js:152:29)\n    at CdpFrame.<anonymous> (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/node_modules/puppeteer-core/lib/puppeteer/util/decorators.js:101:27)\n    at CdpPage.goto (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/node_modules/puppeteer-core/lib/puppeteer/api/Page.js:587:43)\n    at runRealUserTest (file:///home/abdelkarim/Desktop/karim/labs/soulima.net/tests/e2e/user_flow.mjs:69:16)"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "type": "fatal_test_error",
+      "message": "Navigating frame was detached"
+    }
+  ],
+  "success": false
+}

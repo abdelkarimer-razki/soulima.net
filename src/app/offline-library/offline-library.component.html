@@ -1,0 +1,148 @@
+<div class="offline-container">
+  <!-- Shared site navbar (identical to Home / TV Shows) -->
+  <nav class="navBar">
+    <a routerLink="/" class="logoLink">
+      <img src="assets/soulimaWhiteLogo.png" width="44px" alt="Soulima Logo" class="logoImg">
+    </a>
+    <div class="navLinks">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+          <line x1="17" y1="2" x2="17" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <line x1="2" y1="7" x2="7" y2="7"></line>
+          <line x1="2" y1="17" x2="7" y2="17"></line>
+          <line x1="17" y1="17" x2="22" y2="17"></line>
+          <line x1="17" y1="7" x2="22" y2="7"></line>
+        </svg>
+        <span>Movies</span>
+      </a>
+      <a routerLink="/tvshows" routerLinkActive="active" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
+        <span>TV Shows</span>
+      </a>
+      <a routerLink="/downloads" routerLinkActive="active" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Downloads</span>
+      </a>
+    </div>
+    <div class="searchBarContainer">
+      <div class="searchBarRow">
+        <svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input class="searchBar" type="text" placeholder="Search for movies or series..." [(ngModel)]="searchQuery" (keydown.enter)="searchSite()">
+      </div>
+    </div>
+  </nav>
+
+  <article class="moviesContainer" style="padding-top: 100px;">
+
+    <!-- Downloads header -->
+    <section class="downloadsHeader">
+      <div>
+        <h1 class="categorieTitle downloadsHeading">My Downloads</h1>
+        <p class="downloadsSubtitle">
+          {{ items.length }} {{ items.length === 1 ? 'title' : 'titles' }} saved &bull; {{ storageUsedMB }} MB used of {{ storageQuotaMB }} MB
+          <span class="downloadsStatus" [class.offline]="isOffline">{{ isOffline ? 'Offline' : 'Online' }}</span>
+        </p>
+      </div>
+      <label class="downloadsImportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Import Local Video</span>
+        <input type="file" accept="video/*" (change)="onFileSelected($event)" hidden>
+      </label>
+    </section>
+
+    <!-- Empty state -->
+    <section class="downloadsEmpty" *ngIf="items.length === 0">
+      <svg class="downloadsEmptyIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <h2>No offline downloads yet</h2>
+      <p>Download movies or episodes while online and they'll appear here, or import a local video file from your device to start watching offline.</p>
+      <label class="downloadsImportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <span>Open &amp; Play Local File</span>
+        <input type="file" accept="video/*" (change)="onFileSelected($event)" hidden>
+      </label>
+    </section>
+
+    <!-- Horizontal poster row (same as the site's category rows) -->
+    <div class="categorie" *ngIf="items.length > 0">
+      <div class="moviesInCategorie">
+        <div class="downloadCard" *ngFor="let item of items" (click)="playItem(item)">
+          <img *ngIf="item.posterUrl" [src]="item.posterUrl" class="downloadsPoster" [alt]="item.title">
+          <div *ngIf="!item.posterUrl" class="downloadsPoster downloadsPlaceholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+          </div>
+          <span class="media-type-badge" [class.badge-tv]="item.mediaType === 'tv'" [class.badge-movie]="item.mediaType !== 'tv'">
+            {{ item.mediaType === 'tv' ? 'TV Show' : 'Movie' }}
+          </span>
+          <div class="downloadsOverlay">
+            <button class="downloadsPlayBtn" title="Play" (click)="playItem(item); $event.stopPropagation()">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            <button class="downloadsDeleteBtn" title="Delete download" (click)="deleteItem($event, item)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="downloadsInfo">
+            <h3 class="downloadsCardTitle">{{ item.title }}</h3>
+            <span class="downloadsCardMeta" *ngIf="item.mediaType === 'tv'">Season {{ item.season }} &bull; Episode {{ item.episode }} &bull; </span>
+            <span class="downloadsCardMeta">{{ formatBytes(item.fileSize) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Shared site footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <img src="assets/soulimaWhiteLogo.png" alt="Soulima Logo" class="footer-logo-img">
+          <span class="footer-logo-text">Soulima</span>
+        </div>
+        <p class="footer-tagline">Your ultimate hub for movies and TV series tracking.</p>
+      </div>
+      <div class="footer-links">
+        <h4 class="footer-section-title">Navigation</h4>
+        <ul class="footer-links-list">
+          <li><a routerLink="/" class="footer-link">Movies</a></li>
+          <li><a routerLink="/tvshows" class="footer-link">TV Shows</a></li>
+          <li><a routerLink="/downloads" class="footer-link">Offline Downloads</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-disclaimer">
+      <p class="disclaimer-text">
+        <strong>Legal Disclaimer:</strong> Soulima is an automated search engine indexer that indexes public URLs and metadata. We do not host, store, or upload any pirated media files or copyrighted content on our servers. All torrent links and search results are dynamically indexed from open, public platforms. Soulima does not advocate or encourage piracy in any form.
+      </p>
+      <p class="copyright-text">&copy; 2026 Soulima. All rights reserved.</p>
+    </div>
+  </footer>
+</div>

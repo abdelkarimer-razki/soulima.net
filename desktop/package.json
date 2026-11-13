@@ -1,0 +1,72 @@
+{
+  "name": "soulima-desktop",
+  "version": "1.0.1",
+  "description": "Soulima desktop app - self-contained streaming",
+  "desktopName": "Soulima",
+  "author": {
+    "name": "Soulima",
+    "email": "soulima@users.noreply.github.com"
+  },
+  "homepage": "https://soulima.net",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron . --no-sandbox",
+    "build": "node build.mjs",
+    "package": "npm run build && electron-builder",
+    "package:deb": "electron-builder --linux deb"
+  },
+  "devDependencies": {
+    "electron": "^43.3.0",
+    "electron-builder": "^26.0.0",
+    "ffmpeg-static": "^5.3.0"
+  },
+  "build": {
+    "appId": "net.soulima.desktop",
+    "productName": "Soulima",
+    "directories": {
+      "output": "dist"
+    },
+    "afterPack": "./afterPack.js",
+    "icon": "build/icons",
+    "files": [
+      "main.js"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/web",
+        "to": "web"
+      },
+      {
+        "from": "resources/streaming-server",
+        "to": "streaming-server"
+      },
+      {
+        "from": "resources/ffmpeg",
+        "to": "ffmpeg"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "AudioVideo",
+      "maintainer": "Soulima",
+      "syncDesktopName": true,
+      "executableArgs": [
+        "--no-sandbox"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    }
+  }
+}

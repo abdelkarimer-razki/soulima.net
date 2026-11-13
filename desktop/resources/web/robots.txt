@@ -1,0 +1,9 @@
+# Robots.txt for Soulima (https://soulima.net)
+# Boost search engine discovery and direct indexes
+
+User-agent: *
+Allow: /
+Disallow: /cdn-cgi/
+Disallow: /api/
+
+Sitemap: https://soulima.net/sitemap.xml

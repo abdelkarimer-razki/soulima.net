@@ -1,0 +1,29 @@
+<div class="playerLoader">
+  <div class="loaderBackdrop" [class.noBackdrop]="!backdropUrl" [style.background-image]="backdropUrl ? 'url(' + backdropUrl + ')' : null"></div>
+  <div class="loaderShade"></div>
+
+  <div class="loaderContent">
+    <div class="loaderPosterWrap" *ngIf="posterUrl; else posterPlaceholder">
+      <img class="loaderPoster" [src]="posterUrl" [alt]="title">
+    </div>
+    <ng-template #posterPlaceholder>
+      <div class="loaderPosterPlaceholder">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+      </div>
+    </ng-template>
+
+    <div class="loaderTextBlock">
+      <span class="loaderInfo" *ngIf="info">{{ info }}</span>
+      <h2 class="loaderTitle">{{ title || 'Loading…' }}</h2>
+      <p class="loaderOverview" *ngIf="overview">{{ overview }}</p>
+    </div>
+  </div>
+
+  <div class="loaderFooter">
+    <div class="loaderSpinner"></div>
+    <span class="loaderStatus">{{ status }}</span>
+    <div class="loaderProgressTrack" *ngIf="showProgress">
+      <div class="loaderProgressFill" [style.width.%]="progress"></div>
+    </div>
+  </div>
+</div>
