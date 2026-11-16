@@ -82,7 +82,7 @@ LDFLAGS := \
 	-lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet -lSceAvPlayer \
 	$(OO_PS4_TOOLCHAIN)/lib/crt1.o
 
-.PHONY: all clean stub fself check
+.PHONY: all clean stub fself check host sim
 
 ifeq ($(HAS_OO),yes)
 
@@ -123,6 +123,17 @@ $(BUILDDIR)/eboot_stub.elf: $(SRCDIR)/$(SRC) $(SRCDIR)/stub_shims.c | $(BUILDDIR
 	@echo "Stub built at: $@"
 
 endif
+
+HOST_BIN := $(BUILDDIR)/soulima_sim
+
+host sim: $(HOST_BIN)
+
+$(HOST_BIN): $(addprefix $(SRCDIR)/,$(CXX_SOURCES)) | $(BUILDDIR)
+	@echo "[HOST] Compiling host simulator with SDL2..."
+	g++ -O2 -std=c++17 -DSOULIMA_HOST -DSOULIMA_URL=\"$(SOULIMA_URL)\" \
+		$(addprefix $(SRCDIR)/,$(CXX_SOURCES)) -lSDL2 -o $@
+	@ln -sf $@ $(SRCDIR)/../soulima_sim
+	@echo "Host simulator built: ps4/soulima_sim"
 
 clean:
 	rm -rf $(BUILDDIR)
