@@ -1,39 +1,131 @@
 #include "player.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 CinemaPlayer::CinemaPlayer()
-    : state(PlayerState::Stopped), currentDurationSec(7200), currentPositionSec(0),
+    : state(PlayerState::Stopped), currentDurationSec(7500), currentPositionSec(0),
       bufferPercent(0), seeds(0), peers(0), speedKb(0), frameCounter(0),
       hudTimer(300), hudVisible(true)
 {
     memset(currentTitle, 0, sizeof(currentTitle));
     memset(currentQuality, 0, sizeof(currentQuality));
     memset(currentStreamId, 0, sizeof(currentStreamId));
+    memset(currentStreamUrl, 0, sizeof(currentStreamUrl));
+    memset(currentMagnet, 0, sizeof(currentMagnet));
+
+#ifdef SOULIMA_HOST
+    videoPipe = nullptr;
+    pipeWidth = 1280;
+    pipeHeight = 720;
+    frameRgbaBuffer = new uint8_t[pipeWidth * pipeHeight * 4];
+    currentFrameTex = new Texture();
+    currentFrameTex->width = pipeWidth;
+    currentFrameTex->height = pipeHeight;
+    currentFrameTex->pixels = new uint32_t[pipeWidth * pipeHeight];
+    memset(currentFrameTex->pixels, 0, pipeWidth * pipeHeight * sizeof(uint32_t));
+#else
+    avPlayerHandle = -1;
+#endif
+}
+
+CinemaPlayer::~CinemaPlayer()
+{
+    Stop();
+#ifdef SOULIMA_HOST
+    if (frameRgbaBuffer) {
+        delete[] frameRgbaBuffer;
+        frameRgbaBuffer = nullptr;
+    }
+    if (currentFrameTex) {
+        delete currentFrameTex;
+        currentFrameTex = nullptr;
+    }
+#endif
+}
+
+void CinemaPlayer::StartVideoDecoder(int startSec)
+{
+#ifdef SOULIMA_HOST
+    StopVideoDecoder();
+
+    if (currentStreamUrl[0]) {
+        char cmd[1024];
+        snprintf(cmd, sizeof(cmd),
+            "ffmpeg -hide_banner -loglevel quiet -ss %d -i \"%s\" -f rawvideo -pix_fmt rgba -s %dx%d -r 24 pipe:1 2>/dev/null",
+            startSec, currentStreamUrl, pipeWidth, pipeHeight);
+
+        videoPipe = popen(cmd, "r");
+        if (videoPipe) {
+            // Set non-blocking read so renderer doesn't stall if stream is buffering
+            int fd = fileno(videoPipe);
+            int flags = fcntl(fd, F_GETFL, 0);
+            fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+        }
+
+        // Spawn synchronized audio through VLC in background
+        char audioCmd[512];
+        snprintf(audioCmd, sizeof(audioCmd),
+            "cvlc --intf dummy --no-video --start-time %d \"%s\" >/dev/null 2>&1 &",
+            startSec, currentStreamUrl);
+        system(audioCmd);
+    }
+#else
+    // PS4 native AvPlayer initialization
+    // sceAvPlayerInit, sceAvPlayerAddSource(streamUrl)
+#endif
+}
+
+void CinemaPlayer::StopVideoDecoder()
+{
+#ifdef SOULIMA_HOST
+    if (videoPipe) {
+        pclose(videoPipe);
+        videoPipe = nullptr;
+    }
+    system("killall -9 vlc 2>/dev/null");
+#else
+    // sceAvPlayerStop, sceAvPlayerClose
+#endif
 }
 
 void CinemaPlayer::Start(const char *title, const char *quality, const char *magnet, NetworkManager *net)
 {
+    Stop();
+
     strncpy(currentTitle, title ? title : "Cinema Stream", sizeof(currentTitle) - 1);
     strncpy(currentQuality, quality ? quality : "1080p", sizeof(currentQuality) - 1);
-    memset(currentStreamId, 0, sizeof(currentStreamId));
+    if (magnet) {
+        strncpy(currentMagnet, magnet, sizeof(currentMagnet) - 1);
+    }
 
-    currentDurationSec = 7500; // ~2h 05m default
+    currentDurationSec = 7500;
     currentPositionSec = 0;
     bufferPercent = 5;
-    seeds = 85;
-    peers = 24;
-    speedKb = 3400;
+    seeds = 0;
+    peers = 0;
+    speedKb = 0;
     frameCounter = 0;
     hudTimer = 300;
     hudVisible = true;
     state = PlayerState::ConnectingSwarm;
 
-    // Contact backend to start torrent stream
-    if (net) {
+    // If magnet is empty, search backend for best torrent
+    if ((!currentMagnet[0] || strncmp(currentMagnet, "magnet:?", 8) != 0) && net) {
+        char resolvedMagnet[512];
+        if (net->SearchTorrent(currentTitle, resolvedMagnet, sizeof(resolvedMagnet))) {
+            strncpy(currentMagnet, resolvedMagnet, sizeof(currentMagnet) - 1);
+        }
+    }
+
+    // Call /api/stream to initialize the P2P stream
+    if (net && currentMagnet[0]) {
         char streamId[64];
-        if (net->StartStream(magnet, streamId, sizeof(streamId))) {
+        if (net->StartStream(currentMagnet, streamId, sizeof(streamId))) {
             strncpy(currentStreamId, streamId, sizeof(currentStreamId) - 1);
+            snprintf(currentStreamUrl, sizeof(currentStreamUrl), "%s/api/stream/%s", net->GetUrl(), currentStreamId);
         }
     }
 }
@@ -50,24 +142,38 @@ void CinemaPlayer::Update(NetworkManager *net)
         }
     }
 
+    // Poll stream metrics every 45 frames
+    if (net && currentStreamId[0] && (frameCounter % 45 == 0)) {
+        net->GetStreamStatus(currentStreamId, &bufferPercent, &seeds, &peers, &speedKb);
+    }
+
     if (state == PlayerState::ConnectingSwarm) {
-        // After ~1.5 seconds (90 frames), switch to buffering
-        if (frameCounter > 90) {
+        if (currentStreamId[0] || frameCounter > 60) {
             state = PlayerState::Buffering;
         }
     } else if (state == PlayerState::Buffering) {
-        bufferPercent += 2;
-        if (bufferPercent >= 100) {
-            bufferPercent = 100;
+        // Buffer up to ready threshold or after ~3 seconds
+        if (bufferPercent >= 15 || frameCounter > 180) {
             state = PlayerState::Playing;
-        }
-
-        // Poll real stream status every 60 frames if streamId is valid
-        if (net && currentStreamId[0] && (frameCounter % 60 == 0)) {
-            net->GetStreamStatus(currentStreamId, &bufferPercent, &seeds, &peers, &speedKb);
+            StartVideoDecoder(currentPositionSec);
         }
     } else if (state == PlayerState::Playing) {
-        // Advance position every 60 frames (1 second)
+#ifdef SOULIMA_HOST
+        // Read decoded video frame from pipe
+        if (videoPipe && frameRgbaBuffer && currentFrameTex) {
+            size_t frameBytes = pipeWidth * pipeHeight * 4;
+            size_t nRead = fread(frameRgbaBuffer, 1, frameBytes, videoPipe);
+            if (nRead == frameBytes) {
+                // Convert RGBA to ARGB
+                for (int i = 0; i < pipeWidth * pipeHeight; i++) {
+                    uint8_t r = frameRgbaBuffer[i * 4 + 0];
+                    uint8_t g = frameRgbaBuffer[i * 4 + 1];
+                    uint8_t b = frameRgbaBuffer[i * 4 + 2];
+                    currentFrameTex->pixels[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+                }
+            }
+        }
+#endif
         if (frameCounter % 60 == 0) {
             currentPositionSec++;
             if (currentPositionSec >= currentDurationSec) {
@@ -80,150 +186,117 @@ void CinemaPlayer::Update(NetworkManager *net)
 
 void CinemaPlayer::TogglePlayPause()
 {
+    hudVisible = true;
+    hudTimer = 240;
+
     if (state == PlayerState::Playing) {
         state = PlayerState::Paused;
-        hudVisible = true;
-        hudTimer = 600;
+#ifdef SOULIMA_HOST
+        system("killall -STOP vlc 2>/dev/null");
+#endif
     } else if (state == PlayerState::Paused) {
         state = PlayerState::Playing;
-        hudVisible = true;
-        hudTimer = 240;
+#ifdef SOULIMA_HOST
+        system("killall -CONT vlc 2>/dev/null");
+#endif
     }
 }
 
-void CinemaPlayer::SeekRelative(int seconds)
+void CinemaPlayer::SeekRelative(int seconds, NetworkManager *net)
 {
-    if (state != PlayerState::Playing && state != PlayerState::Paused) return;
+    hudVisible = true;
+    hudTimer = 300;
 
     currentPositionSec += seconds;
     if (currentPositionSec < 0) currentPositionSec = 0;
     if (currentPositionSec > currentDurationSec) currentPositionSec = currentDurationSec;
 
-    hudVisible = true;
-    hudTimer = 300;
+    // Restart video decoder with updated timestamp
+    if (state == PlayerState::Playing || state == PlayerState::Paused) {
+        StartVideoDecoder(currentPositionSec);
+    }
 }
 
 void CinemaPlayer::Stop()
 {
+    StopVideoDecoder();
     state = PlayerState::Stopped;
+    memset(currentStreamId, 0, sizeof(currentStreamId));
+    memset(currentStreamUrl, 0, sizeof(currentStreamUrl));
 }
 
 void CinemaPlayer::Render(Renderer *renderer)
 {
     if (state == PlayerState::Stopped || !renderer) return;
 
-    // Cinema Screen Background
-    renderer->Clear(Color(5, 6, 9));
+#ifdef SOULIMA_HOST
+    // Render moving video frame if texture is active
+    if (state == PlayerState::Playing && currentFrameTex && currentFrameTex->pixels) {
+        renderer->DrawTexture(currentFrameTex, 0, 0, 1920, 1080);
+    } else {
+        renderer->Clear(Color::Bg());
+    }
+#else
+    renderer->Clear(Color::Bg());
+#endif
 
-    // Cinema 2.39:1 Aspect Ratio Letterbox Bars
-    renderer->DrawRect(0, 0, 1920, 90, Color(0, 0, 0));
-    renderer->DrawRect(0, 990, 1920, 90, Color(0, 0, 0));
-
+    // If Buffering or Connecting, show elegant center loading HUD
     if (state == PlayerState::ConnectingSwarm || state == PlayerState::Buffering) {
-        // Central Loading Modal
-        int modalW = 860;
-        int modalH = 420;
-        int modalX = (1920 - modalW) / 2;
-        int modalY = (1080 - modalH) / 2;
+        renderer->DrawRect(560, 400, 800, 260, Color(18, 20, 28));
+        renderer->DrawOutlineRect(560, 400, 800, 260, 2, Color::Gold());
 
-        renderer->DrawGradientV(modalX, modalY, modalW, modalH, Color(24, 28, 40), Color(14, 16, 24));
-        renderer->DrawOutlineRect(modalX, modalY, modalW, modalH, 2, Color::Gold());
+        renderer->DrawTextCentered(currentTitle, 960, 430, 2, Color::White());
 
-        // Header
-        renderer->DrawTextCentered("SOULIMA PURE TORRENT STREAMING ENGINE", modalX + (modalW / 2), modalY + 30, 2, Color::Gold());
-        renderer->DrawHLine(modalX, modalY + 70, modalW, Color::PanelBorder());
+        const char *stateStr = (state == PlayerState::ConnectingSwarm) ? "Connecting to P2P Swarm..." : "Buffering BitTorrent Stream...";
+        renderer->DrawTextCentered(stateStr, 960, 480, 1, Color::Gold());
 
-        // Title and Quality
-        renderer->DrawTextCentered(currentTitle, modalX + (modalW / 2), modalY + 105, 2, Color::White());
-        renderer->DrawBadge(currentQuality, modalX + (modalW / 2) - 45, modalY + 150, Color::White(), Color::Crimson());
+        renderer->DrawProgressBar(620, 520, 680, 16, (float)bufferPercent / 100.0f, Color::Gold(), Color(30, 36, 50));
 
-        // Status text
-        if (state == PlayerState::ConnectingSwarm) {
-            renderer->DrawTextCentered("Connecting to BitTorrent Swarm...", modalX + (modalW / 2), modalY + 215, 1, Color::Cyan());
-            renderer->DrawTextCentered("Announcing to 20+ DHT Trackers & Initializing Peer Connections", modalX + (modalW / 2), modalY + 245, 1, Color::Gray());
+        char stats[128];
+        snprintf(stats, sizeof(stats), "Buffer: %d%%  •  Seeds: %d  •  Peers: %d  •  %d KB/s",
+                 bufferPercent, seeds, peers, speedKb);
+        renderer->DrawTextCentered(stats, 960, 560, 1, Color::Gray());
 
-            // Animated pulsing bar
-            int pulse = (frameCounter % 60) * 14;
-            renderer->DrawRect(modalX + 130 + pulse, modalY + 280, 80, 8, Color::Gold());
-            renderer->DrawOutlineRect(modalX + 130, modalY + 280, 600, 8, 1, Color::PanelBorder());
+        renderer->DrawTextCentered("Press [Circle] to Cancel", 960, 610, 1, Color::DarkGray());
+    }
+
+    // Overlay HUD during playback or pause
+    if (hudVisible) {
+        // Top HUD Header
+        renderer->DrawGradientV(0, 0, 1920, 120, Color(0, 0, 0, 220), Color(0, 0, 0, 0));
+        renderer->DrawText(currentTitle, 60, 30, 2, Color::White());
+
+        char qualBuf[32];
+        snprintf(qualBuf, sizeof(qualBuf), "HD P2P • %s", currentQuality);
+        renderer->DrawBadge(qualBuf, 60, 75, Color::Gold(), Color(30, 34, 46));
+
+        char liveBuf[64];
+        snprintf(liveBuf, sizeof(liveBuf), "Seeds: %d  |  Peers: %d  |  %d KB/s", seeds, peers, speedKb);
+        renderer->DrawText(liveBuf, 1400, 40, 1, Color::Gray());
+
+        // Bottom HUD Timeline
+        renderer->DrawGradientV(0, 920, 1920, 160, Color(0, 0, 0, 0), Color(0, 0, 0, 240));
+
+        // Time strings
+        int curM = currentPositionSec / 60;
+        int curS = currentPositionSec % 60;
+        int totM = currentDurationSec / 60;
+        int totS = currentDurationSec % 60;
+        char timeBuf[64];
+        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d / %02d:%02d", curM, curS, totM, totS);
+        renderer->DrawText(timeBuf, 60, 970, 1, Color::White());
+
+        // Progress scrub bar
+        float p = (currentDurationSec > 0) ? ((float)currentPositionSec / (float)currentDurationSec) : 0.0f;
+        renderer->DrawProgressBar(240, 974, 1440, 10, p, Color::Gold(), Color(50, 56, 70));
+
+        if (state == PlayerState::Paused) {
+            renderer->DrawBadge("PAUSED", 1720, 965, Color::White(), Color::Crimson());
         } else {
-            renderer->DrawTextCentered("Buffering Initial Fragmented MP4 Chunks...", modalX + (modalW / 2), modalY + 210, 1, Color::Green());
-
-            char prgBuf[64];
-            snprintf(prgBuf, sizeof(prgBuf), "Buffer Progress: %d%%", bufferPercent);
-            renderer->DrawTextCentered(prgBuf, modalX + (modalW / 2), modalY + 240, 1, Color::Gold());
-
-            renderer->DrawProgressBar(modalX + 130, modalY + 270, 600, 14, (float)bufferPercent / 100.0f, Color::Gold(), Color(30, 35, 48));
-
-            char statBuf[128];
-            snprintf(statBuf, sizeof(statBuf), "Active Seeds: %d  |  Peers: %d  |  Download Speed: %d KB/s", seeds, peers, speedKb);
-            renderer->DrawTextCentered(statBuf, modalX + (modalW / 2), modalY + 310, 1, Color::Cyan());
+            renderer->DrawBadge("PLAYING", 1720, 965, Color::White(), Color(20, 120, 40));
         }
 
-        renderer->DrawTextCentered("Press (O) Circle to Cancel & Return to Movie Wall", modalX + (modalW / 2), modalY + 365, 1, Color::DarkGray());
-        return;
-    }
-
-    // ==============================================================
-    // PLAYING / PAUSED STATE
-    // ==============================================================
-    // Simulated Film Frame (Dynamic Gradient Ambience)
-    int vidX = 80;
-    int vidY = 120;
-    int vidW = 1760;
-    int vidH = 840;
-
-    int animShift = (currentPositionSec % 10) * 2;
-    renderer->DrawGradientV(vidX, vidY, vidW, vidH, Color(16 + animShift, 20 + animShift, 32), Color(8, 10, 16));
-    renderer->DrawOutlineRect(vidX, vidY, vidW, vidH, 1, Color(30, 36, 50));
-
-    // Centered Cinema Watermark
-    renderer->DrawTextCentered("SOULIMA CINEMA", 960, 480, 3, Color(30, 35, 48));
-    renderer->DrawTextCentered("1080p 60Hz Hardware Acceleration Active", 960, 530, 1, Color(45, 55, 75));
-
-    if (state == PlayerState::Paused) {
-        renderer->DrawBadge("PAUSED", 910, 400, Color::White(), Color::GoldDim());
-    }
-
-    // HUD OVERLAY (when visible)
-    if (hudVisible || state == PlayerState::Paused) {
-        // Top HUD Bar
-        renderer->DrawRect(0, 0, 1920, 80, Color(12, 14, 20));
-        renderer->DrawHLine(0, 80, 1920, Color::Gold());
-
-        renderer->DrawText(currentTitle, 60, 24, 2, Color::Gold());
-        renderer->DrawBadge(currentQuality, 560, 26, Color::White(), Color::Crimson());
-        renderer->DrawBadge("PURE TORRENT REMUX", 680, 26, Color::White(), Color::Panel());
-
-        char statLine[64];
-        snprintf(statLine, sizeof(statLine), "Seeds: %d | Bitrate: %d KB/s", seeds, speedKb);
-        renderer->DrawText(statLine, 1480, 28, 1, Color::Green());
-
-        // Bottom HUD Bar
-        renderer->DrawRect(0, 920, 1920, 160, Color(12, 14, 20));
-        renderer->DrawHLine(0, 920, 1920, Color::PanelBorder());
-
-        // Timeline Progress Bar
-        float progress = (currentDurationSec > 0) ? (float)currentPositionSec / (float)currentDurationSec : 0.0f;
-        renderer->DrawProgressBar(80, 950, 1760, 10, progress, Color::Gold(), Color(35, 40, 55));
-
-        // Timestamps
-        int curH = currentPositionSec / 3600;
-        int curM = (currentPositionSec % 3600) / 60;
-        int curS = currentPositionSec % 60;
-
-        int durH = currentDurationSec / 3600;
-        int durM = (currentDurationSec % 3600) / 60;
-        int durS = currentDurationSec % 60;
-
-        char timeBuf[64];
-        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d / %02d:%02d:%02d", curH, curM, curS, durH, durM, durS);
-        renderer->DrawText(timeBuf, 80, 975, 1, Color::White());
-
-        // Controls Legend
-        renderer->DrawBadge("(X) Play / Pause", 700, 995, Color::White(), Color(28, 34, 48));
-        renderer->DrawBadge("(Left / L1) -15s", 930, 995, Color::White(), Color(28, 34, 48));
-        renderer->DrawBadge("(Right / R1) +15s", 1140, 995, Color::White(), Color(28, 34, 48));
-        renderer->DrawBadge("(O) Exit Cinema", 1370, 995, Color::White(), Color(28, 34, 48));
+        // Controls footer prompt
+        renderer->DrawTextCentered("[X] Play/Pause    [L1/R1] Seek -/+15s    [Square] Quality    [Circle] Exit to Cinema", 960, 1030, 1, Color::Gray());
     }
 }

@@ -31,6 +31,9 @@ public:
 
     // REST API communication
     bool SendHttpRequest(const char *method, const char *path, const char *body, char *responseBuf, size_t responseBufSize);
+    bool GetCatalog(char *outJson, size_t outJsonSize);
+    bool DownloadImage(const char *path, uint8_t **outData, size_t *outSize);
+    bool SearchTorrent(const char *title, char *outMagnet, size_t outMagnetSize);
     bool StartStream(const char *magnet, char *outStreamId, size_t outStreamIdSize);
     bool GetStreamStatus(const char *streamId, int *outBufferPercent, int *outSeeds, int *outPeers, int *outSpeedKb);
 };

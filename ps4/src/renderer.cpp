@@ -4,6 +4,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+static inline int clamp_i(int v, int minV, int maxV) {
+    if (v < minV) return minV;
+    if (v > maxV) return maxV;
+    return v;
+}
+
 Renderer::Renderer()
     : activeBufferIdx(0), frameId(0)
 {
@@ -327,60 +336,177 @@ void Renderer::DrawCard(int x, int y, int w, int h, const char *title, Color bor
     }
 }
 
-void Renderer::DrawMovieCard(int x, int y, int w, int h, const char *title, const char *year, const char *rating, const char *genre, const char *quality, bool isSelected)
+Texture *Renderer::LoadTextureFromMemory(const uint8_t *data, size_t size)
 {
+    if (!data || size == 0) return nullptr;
+    int w = 0, h = 0, comp = 0;
+    stbi_uc *img = stbi_load_from_memory(data, (int)size, &w, &h, &comp, 4);
+    if (!img) return nullptr;
+
+    Texture *t = new Texture();
+    t->width = w;
+    t->height = h;
+    t->pixels = new uint32_t[w * h];
+
+    for (int i = 0; i < w * h; i++) {
+        uint8_t r = img[i * 4 + 0];
+        uint8_t g = img[i * 4 + 1];
+        uint8_t b = img[i * 4 + 2];
+        uint8_t a = img[i * 4 + 3];
+        t->pixels[i] = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    }
+    stbi_image_free(img);
+    return t;
+}
+
+Texture *Renderer::LoadTexture(const char *filepath)
+{
+    if (!filepath || !filepath[0]) return nullptr;
+    FILE *f = fopen(filepath, "rb");
+    if (!f) return nullptr;
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz <= 0) { fclose(f); return nullptr; }
+
+    uint8_t *buf = new uint8_t[sz];
+    fread(buf, 1, sz, f);
+    fclose(f);
+
+    Texture *tex = LoadTextureFromMemory(buf, (size_t)sz);
+    delete[] buf;
+    return tex;
+}
+
+void Renderer::FreeTexture(Texture *tex)
+{
+    if (tex) {
+        delete tex;
+    }
+}
+
+void Renderer::DrawTexture(const Texture *tex, int x, int y, int w, int h, uint8_t alpha)
+{
+    if (!tex || !tex->pixels || w <= 0 || h <= 0) return;
+    uint32_t *buf32 = (uint32_t *)frameBuffers[activeBufferIdx];
+
+    int startY = clamp_i(y, 0, FRAME_HEIGHT);
+    int endY = clamp_i(y + h, 0, FRAME_HEIGHT);
+    int startX = clamp_i(x, 0, FRAME_WIDTH);
+    int endX = clamp_i(x + w, 0, FRAME_WIDTH);
+
+    for (int dstY = startY; dstY < endY; dstY++) {
+        int srcY = ((dstY - y) * tex->height) / h;
+        if (srcY >= tex->height) srcY = tex->height - 1;
+        uint32_t *dstRow = &buf32[dstY * FRAME_WIDTH];
+        const uint32_t *srcRow = &tex->pixels[srcY * tex->width];
+
+        for (int dstX = startX; dstX < endX; dstX++) {
+            int srcX = ((dstX - x) * tex->width) / w;
+            if (srcX >= tex->width) srcX = tex->width - 1;
+            uint32_t p = srcRow[srcX];
+            uint8_t a = (p >> 24) & 0xFF;
+            if (alpha < 255) a = (a * alpha) / 255;
+            if (a == 255) {
+                dstRow[dstX] = p;
+            } else if (a > 0) {
+                uint32_t bg = dstRow[dstX];
+                uint8_t r = (((p >> 16) & 0xFF) * a + ((bg >> 16) & 0xFF) * (255 - a)) / 255;
+                uint8_t g = (((p >> 8) & 0xFF) * a + ((bg >> 8) & 0xFF) * (255 - a)) / 255;
+                uint8_t b = ((p & 0xFF) * a + (bg & 0xFF) * (255 - a)) / 255;
+                dstRow[dstX] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+    }
+}
+
+void Renderer::DrawTextureFadedV(const Texture *tex, int x, int y, int w, int h)
+{
+    if (!tex || !tex->pixels || w <= 0 || h <= 0) return;
+    uint32_t *buf32 = (uint32_t *)frameBuffers[activeBufferIdx];
+
+    int startY = clamp_i(y, 0, FRAME_HEIGHT);
+    int endY = clamp_i(y + h, 0, FRAME_HEIGHT);
+    int startX = clamp_i(x, 0, FRAME_WIDTH);
+    int endX = clamp_i(x + w, 0, FRAME_WIDTH);
+
+    int fadeStartY = y + (int)(h * 0.35f);
+    int fadeLen = (y + h) - fadeStartY;
+    if (fadeLen <= 0) fadeLen = 1;
+
+    for (int dstY = startY; dstY < endY; dstY++) {
+        int srcY = ((dstY - y) * tex->height) / h;
+        if (srcY >= tex->height) srcY = tex->height - 1;
+        uint32_t *dstRow = &buf32[dstY * FRAME_WIDTH];
+        const uint32_t *srcRow = &tex->pixels[srcY * tex->width];
+
+        uint8_t vAlpha = 255;
+        if (dstY > fadeStartY) {
+            float t = (float)(dstY - fadeStartY) / (float)fadeLen;
+            if (t > 1.0f) t = 1.0f;
+            vAlpha = (uint8_t)((1.0f - t) * 255.0f);
+        }
+
+        for (int dstX = startX; dstX < endX; dstX++) {
+            int srcX = ((dstX - x) * tex->width) / w;
+            if (srcX >= tex->width) srcX = tex->width - 1;
+            uint32_t p = srcRow[srcX];
+            uint8_t a = (p >> 24) & 0xFF;
+            a = (a * vAlpha) / 255;
+            if (a == 255) {
+                dstRow[dstX] = p;
+            } else if (a > 0) {
+                uint32_t bg = dstRow[dstX];
+                uint8_t r = (((p >> 16) & 0xFF) * a + ((bg >> 16) & 0xFF) * (255 - a)) / 255;
+                uint8_t g = (((p >> 8) & 0xFF) * a + ((bg >> 8) & 0xFF) * (255 - a)) / 255;
+                uint8_t b = ((p & 0xFF) * a + (bg & 0xFF) * (255 - a)) / 255;
+                dstRow[dstX] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+            }
+        }
+    }
+}
+
+void Renderer::DrawMoviePosterCard(int x, int y, int w, int h, const Texture *posterTex, const char *title, const char *year, const char *rating, bool isSelected)
+{
+    // Focus glow border if selected
     if (isSelected) {
         DrawOutlineRect(x - 5, y - 5, w + 10, h + 10, 4, Color::Gold());
     }
 
-    Color topBg = isSelected ? Color(36, 44, 62) : Color(22, 26, 36);
-    Color botBg = isSelected ? Color(20, 24, 34) : Color(14, 16, 22);
-    DrawGradientV(x, y, w, h, topBg, botBg);
-    DrawOutlineRect(x, y, w, h, 1, isSelected ? Color::Gold() : Color::PanelBorder());
+    // Card background
+    DrawRect(x, y, w, h, Color::CardBg());
 
-    DrawRect(x, y, w, 28, isSelected ? Color(48, 56, 80) : Color(28, 32, 44));
-    DrawHLine(x, y + 28, w, isSelected ? Color::Gold() : Color::PanelBorder());
-    if (genre && genre[0]) {
-        DrawText(genre, x + 10, y + 6, 1, isSelected ? Color::Gold() : Color::Cyan());
+    // Poster Image
+    int posterH = h - 50;
+    if (posterTex && posterTex->pixels) {
+        DrawTexture(posterTex, x, y, w, posterH);
+    } else {
+        DrawRect(x, y, w, posterH, isSelected ? Color(36, 44, 62) : Color(24, 28, 40));
+        DrawTextCentered("SOULIMA", x + (w / 2), y + (posterH / 2) - 10, 1, Color::Gray());
     }
 
+    // Bottom info area
+    int infoY = y + posterH;
+    DrawRect(x, infoY, w, 50, isSelected ? Color(32, 38, 54) : Color(18, 20, 28));
+    DrawHLine(x, infoY, w, isSelected ? Color::Gold() : Color::PanelBorder());
+
+    // Title
     if (title && title[0]) {
-        int titleLen = (int)strlen(title);
-        if (titleLen <= 18) {
-            DrawTextCentered(title, x + (w / 2), y + 70, 1, isSelected ? Color::Gold() : Color::White());
-        } else {
-            char line1[24];
-            char line2[24];
-            memset(line1, 0, sizeof(line1));
-            memset(line2, 0, sizeof(line2));
-            int splitPos = 16;
-            while (splitPos > 8 && title[splitPos] != ' ') splitPos--;
-            if (splitPos <= 8) splitPos = 16;
-            strncpy(line1, title, splitPos);
-            strncpy(line2, title + (title[splitPos] == ' ' ? splitPos + 1 : splitPos), sizeof(line2) - 1);
-
-            DrawTextCentered(line1, x + (w / 2), y + 60, 1, isSelected ? Color::Gold() : Color::White());
-            DrawTextCentered(line2, x + (w / 2), y + 80, 1, isSelected ? Color::Gold() : Color::White());
+        char shortTitle[22];
+        strncpy(shortTitle, title, 20);
+        shortTitle[20] = '\0';
+        if (strlen(title) > 20) {
+            shortTitle[17] = '.';
+            shortTitle[18] = '.';
+            shortTitle[19] = '.';
         }
+        DrawText(shortTitle, x + 8, infoY + 8, 1, isSelected ? Color::Gold() : Color::White());
     }
 
-    int badgeBoxY = y + 120;
-    DrawRect(x + 20, badgeBoxY, w - 40, 50, isSelected ? Color(44, 52, 74) : Color(26, 30, 42));
-    DrawOutlineRect(x + 20, badgeBoxY, w - 40, 50, 1, isSelected ? Color::Gold() : Color::PanelBorder());
-    DrawTextCentered("SOULIMA CINEMA", x + (w / 2), badgeBoxY + 12, 1, Color::Gray());
-    DrawTextCentered("HD P2P STREAM", x + (w / 2), badgeBoxY + 28, 1, Color::DarkGray());
-
-    if (quality && quality[0]) {
-        DrawBadge(quality, x + 12, y + h - 68, isSelected ? Color::White() : Color::Gray(), isSelected ? Color::Crimson() : Color(35, 40, 54));
-    }
-
-    char starBuf[16];
-    snprintf(starBuf, sizeof(starBuf), "* %s", rating ? rating : "8.0");
-    DrawText(starBuf, x + 14, y + h - 30, 1, Color::Gold());
-
-    if (year && year[0]) {
-        DrawText(year, x + w - 48, y + h - 30, 1, Color::Gray());
-    }
+    // Rating & Year
+    char metaBuf[32];
+    snprintf(metaBuf, sizeof(metaBuf), "* %s   %s", rating ? rating : "8.0", year ? year : "2024");
+    DrawText(metaBuf, x + 8, infoY + 28, 1, isSelected ? Color::Gold() : Color::Gray());
 }
 
 void Renderer::Flip()

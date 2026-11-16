@@ -12,6 +12,20 @@
 #include <orbis/Sysmodule.h>
 #endif
 
+struct Texture {
+    int width;
+    int height;
+    uint32_t *pixels; // 32-bit ARGB (0xAARRGGBB)
+
+    Texture() : width(0), height(0), pixels(nullptr) {}
+    ~Texture() {
+        if (pixels) {
+            delete[] pixels;
+            pixels = nullptr;
+        }
+    }
+};
+
 struct Color {
     uint8_t r;
     uint8_t g;
@@ -21,15 +35,15 @@ struct Color {
     constexpr Color(uint8_t red = 0, uint8_t green = 0, uint8_t blue = 0, uint8_t alpha = 255)
         : r(red), g(green), b(blue), a(alpha) {}
         
-    static constexpr Color Bg()          { return Color(11, 13, 19); }
+    static constexpr Color Bg()          { return Color(14, 14, 18); }
     static constexpr Color Panel()       { return Color(20, 24, 33); }
     static constexpr Color PanelBorder() { return Color(40, 48, 66); }
     static constexpr Color CardBg()      { return Color(24, 28, 40); }
-    static constexpr Color Gold()        { return Color(245, 158, 11); }
-    static constexpr Color GoldDim()     { return Color(140, 95, 10); }
+    static constexpr Color Gold()        { return Color(246, 201, 6); }
+    static constexpr Color GoldDim()     { return Color(160, 120, 10); }
     static constexpr Color Crimson()     { return Color(225, 29, 72); }
-    static constexpr Color White()       { return Color(240, 243, 246); }
-    static constexpr Color Gray()        { return Color(140, 150, 165); }
+    static constexpr Color White()       { return Color(245, 245, 247); }
+    static constexpr Color Gray()        { return Color(160, 165, 175); }
     static constexpr Color DarkGray()    { return Color(70, 78, 92); }
     static constexpr Color Green()       { return Color(34, 197, 94); }
     static constexpr Color Cyan()        { return Color(6, 182, 212); }
@@ -84,7 +98,14 @@ public:
     void DrawTextCentered(const char *text, int centerX, int y, int scale, Color fg);
     void DrawBadge(const char *text, int x, int y, Color fg, Color bg);
     void DrawCard(int x, int y, int w, int h, const char *title, Color border = Color::PanelBorder());
-    void DrawMovieCard(int x, int y, int w, int h, const char *title, const char *year, const char *rating, const char *genre, const char *quality, bool isSelected);
+
+    // Texture & Poster Rendering
+    Texture *LoadTexture(const char *filepath);
+    Texture *LoadTextureFromMemory(const uint8_t *data, size_t size);
+    void FreeTexture(Texture *tex);
+    void DrawTexture(const Texture *tex, int x, int y, int w, int h, uint8_t alpha = 255);
+    void DrawTextureFadedV(const Texture *tex, int x, int y, int w, int h);
+    void DrawMoviePosterCard(int x, int y, int w, int h, const Texture *posterTex, const char *title, const char *year, const char *rating, bool isSelected);
 
     void Flip();
 };

@@ -162,6 +162,18 @@ def build():
     shutil.copy2(fios2_path, os.path.join(staging_dir, "sce_module", "libSceFios2.prx"))
     if os.path.isfile(CONF_FILE):
         shutil.copy2(CONF_FILE, os.path.join(staging_dir, "soulima.conf"))
+
+    # Stage assets (movie posters, backdrops, logo)
+    assets_dir = os.path.join(PROJECT_ROOT, "assets")
+    asset_files = []
+    if os.path.isdir(assets_dir):
+        dest_assets = os.path.join(staging_dir, "assets")
+        os.makedirs(dest_assets, exist_ok=True)
+        for af in sorted(os.listdir(assets_dir)):
+            src_af = os.path.join(assets_dir, af)
+            if os.path.isfile(src_af):
+                shutil.copy2(src_af, os.path.join(dest_assets, af))
+                asset_files.append(f"assets/{af}")
         
     print("[2/5] Staging files prepared in", staging_dir)
     
@@ -179,6 +191,8 @@ def build():
     files_to_pack = "eboot.bin sce_sys/about/right.sprx sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png sce_module/libc.prx sce_module/libSceFios2.prx"
     if os.path.isfile(CONF_FILE):
         files_to_pack += " soulima.conf"
+    for af in asset_files:
+        files_to_pack += f" {af}"
         
     gp4_cmd = [
         create_gp4,
