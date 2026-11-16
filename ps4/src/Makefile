@@ -49,7 +49,7 @@ FSELF := $(shell \
 SRCDIR   := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 BUILDDIR := $(abspath $(SRCDIR)/../build)
 
-CXX_SOURCES := main.cpp renderer.cpp controller.cpp network.cpp
+CXX_SOURCES := main.cpp renderer.cpp controller.cpp network.cpp catalog.cpp player.cpp
 CXX_OBJS    := $(patsubst %.cpp,$(BUILDDIR)/%.o,$(CXX_SOURCES))
 
 TARGET_ELF  := $(BUILDDIR)/eboot.elf
@@ -79,7 +79,7 @@ LDFLAGS := \
 	--eh-frame-hdr \
 	-L$(OO_PS4_TOOLCHAIN)/lib \
 	-lc -lkernel -lc++ \
-	-lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet \
+	-lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet -lSceAvPlayer \
 	$(OO_PS4_TOOLCHAIN)/lib/crt1.o
 
 .PHONY: all clean stub fself check

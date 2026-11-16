@@ -28,6 +28,11 @@ public:
 
     bool TestConnection();
     const char *GetUrl();
+
+    // REST API communication
+    bool SendHttpRequest(const char *method, const char *path, const char *body, char *responseBuf, size_t responseBufSize);
+    bool StartStream(const char *magnet, char *outStreamId, size_t outStreamIdSize);
+    bool GetStreamStatus(const char *streamId, int *outBufferPercent, int *outSeeds, int *outPeers, int *outSpeedKb);
 };
 
 #endif // NETWORK_H

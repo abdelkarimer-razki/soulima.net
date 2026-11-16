@@ -15,7 +15,7 @@ NetworkManager::NetworkManager()
 {
     memset(urlBuffer, 0, sizeof(urlBuffer));
     InitDefault(192, 168, 1, 68, 3030);
-    strcpy(statusMessage, "Connection Unchecked. Press [Square] to Ping.");
+    strcpy(statusMessage, "Checking server connection...");
 }
 
 void NetworkManager::InitDefault(uint8_t a, uint8_t b, uint8_t c, uint8_t d, uint16_t p)
@@ -123,4 +123,129 @@ bool NetworkManager::TestConnection()
         close(sock);
         return false;
     }
+}
+
+bool NetworkManager::SendHttpRequest(const char *method, const char *path, const char *body, char *responseBuf, size_t responseBufSize)
+{
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) return false;
+
+    struct timeval timeout;
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 500000; // 2.5s timeout
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+
+    struct sockaddr_in saddr;
+    memset(&saddr, 0, sizeof(saddr));
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(port);
+    char ipStr[32];
+    snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+    inet_pton(AF_INET, ipStr, &saddr.sin_addr);
+
+    if (connect(sock, (struct sockaddr *)&saddr, sizeof(saddr)) != 0) {
+        close(sock);
+        return false;
+    }
+
+    char req[1024];
+    int reqLen = 0;
+    if (body && strlen(body) > 0) {
+        reqLen = snprintf(req, sizeof(req),
+            "%s %s HTTP/1.1\r\n"
+            "Host: %s:%d\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: %zu\r\n"
+            "Connection: close\r\n\r\n"
+            "%s",
+            method, path, ipStr, port, strlen(body), body);
+    } else {
+        reqLen = snprintf(req, sizeof(req),
+            "%s %s HTTP/1.1\r\n"
+            "Host: %s:%d\r\n"
+            "Connection: close\r\n\r\n",
+            method, path, ipStr, port);
+    }
+
+    send(sock, req, reqLen, 0);
+
+    if (responseBuf && responseBufSize > 0) {
+        memset(responseBuf, 0, responseBufSize);
+        int totalRead = 0;
+        int bytes = 0;
+        while ((bytes = recv(sock, responseBuf + totalRead, responseBufSize - 1 - totalRead, 0)) > 0) {
+            totalRead += bytes;
+            if ((size_t)totalRead >= responseBufSize - 1) break;
+        }
+        responseBuf[totalRead] = '\0';
+    }
+
+    close(sock);
+    return true;
+}
+
+bool NetworkManager::StartStream(const char *magnet, char *outStreamId, size_t outStreamIdSize)
+{
+    if (!magnet || !outStreamId || outStreamIdSize == 0) return false;
+
+    char body[1024];
+    snprintf(body, sizeof(body), "{\"torrent\":\"%s\"}", magnet);
+
+    char resp[2048];
+    if (!SendHttpRequest("POST", "/api/stream", body, resp, sizeof(resp))) {
+        return false;
+    }
+
+    // Parse torrentId from json response
+    char *pId = strstr(resp, "\"torrentId\":");
+    if (pId) {
+        pId += 12;
+        while (*pId == ' ' || *pId == '\"') pId++;
+        size_t idx = 0;
+        while (idx < outStreamIdSize - 1 && *pId && *pId != '\"' && *pId != ',' && *pId != '}') {
+            outStreamId[idx++] = *pId++;
+        }
+        outStreamId[idx] = '\0';
+        return true;
+    }
+
+    return false;
+}
+
+bool NetworkManager::GetStreamStatus(const char *streamId, int *outBufferPercent, int *outSeeds, int *outPeers, int *outSpeedKb)
+{
+    if (!streamId) return false;
+    char path[128];
+    snprintf(path, sizeof(path), "/api/stream/%s/status", streamId);
+
+    char resp[1024];
+    if (!SendHttpRequest("GET", path, nullptr, resp, sizeof(resp))) {
+        return false;
+    }
+
+    if (outBufferPercent) {
+        char *p = strstr(resp, "\"progress\":");
+        if (p) {
+            float prg = 0.0f;
+            if (sscanf(p + 11, "%f", &prg) == 1) {
+                *outBufferPercent = (int)(prg * 100.0f);
+            }
+        }
+    }
+    if (outSeeds) {
+        char *p = strstr(resp, "\"numPeers\":");
+        if (p) sscanf(p + 11, "%d", outSeeds);
+    }
+    if (outSpeedKb) {
+        char *p = strstr(resp, "\"downloadSpeed\":");
+        if (p) {
+            int speedBps = 0;
+            if (sscanf(p + 16, "%d", &speedBps) == 1) {
+                *outSpeedKb = speedBps / 1024;
+            }
+        }
+    }
+
+    return true;
 }

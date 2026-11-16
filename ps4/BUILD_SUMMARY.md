@@ -12,7 +12,7 @@ This document provides a comprehensive report of the verification, compilation, 
 - **Target OS**: Sony OrbisOS (PlayStation 4, Firmwares 5.05 - 11.00+)
 - **Environment**: Jailbroken console running GoldHEN / Mira
 - **Packaging Format**: Fake PKG (FPKG) container (`0x7F434E54` magic)
-- **Application Architecture**: True native C++17 application rendering directly to 1080p display buffers via `libSceVideoOut` direct video memory mapping, fully controlled via DualShock 4 wireless/USB controller (`libScePad`), featuring live streaming server diagnostics, socket pinging, interactive octet IP configuration, and cinema launching. Default target URL: `http://192.168.1.68:3030`.
+- **Application Architecture**: True native C++17 application rendering directly to 1080p display buffers via `libSceVideoOut` direct video memory mapping, fully controlled via DualShock 4 wireless/USB controller (`libScePad`). Features a full 10-foot TV Cinema Wall (horizontal poster shelf with smooth D-pad scrolling and gold focus highlight), hero movie spotlight, torrent quality selector (1080p, 720p, 4K), integrated in-app cinema video player with real-time BitTorrent swarm buffering HUD, live socket pinging, and on-screen IP configurator. Zero browser launching. Default target URL: `http://192.168.1.68:3030`.
 
 ---
 
@@ -27,8 +27,10 @@ All input components were verified for structural and specification compliance:
 | **Splash / Background**| `ps4/sce_sys/pic1.png` | PNG 1920×1080, 8-bit RGB | **PASS** — Verified dimensions and format with libpng header parser. |
 | **Native Renderer** | `ps4/src/renderer.cpp` | C++17, `libSceVideoOut` double-buffered 1080p ARGB @ 60 FPS | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
 | **Controller Manager** | `ps4/src/controller.cpp`| C++17, `libScePad` & `libSceUserService` edge-detection | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
-| **Network Manager** | `ps4/src/network.cpp` | C++17, BSD socket ping & latency probe, `/data/soulima.conf` persistence | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
-| **Native Dashboard** | `ps4/src/main.cpp` | C++17, Soulima Cinema 1080p TV Dashboard | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
+| **Catalog Manager** | `ps4/src/catalog.cpp`| C++17, 10-foot cinema categories (Trending, Classics, Series) | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
+| **In-App Player** | `ps4/src/player.cpp`| C++17, In-app torrent stream player & swarm buffer HUD | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
+| **Network Manager** | `ps4/src/network.cpp` | C++17, BSD socket ping, REST API stream client, `/data/soulima.conf` persistence | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
+| **Native Cinema Core**| `ps4/src/main.cpp` | C++17, 10-foot Netflix-style TV Cinema Interface | **PASS** — Cleanly compiles targeting `x86_64-pc-freebsd12-elf`. |
 | **Executable Binary** | `ps4/build/eboot.bin` | Orbis FSELF (0x1D3D154F), paid `0x3800000000000011` | **PASS** — Valid Sony FSELF header magic `4f 15 3d 1d`. |
 | **Runtime Modules** | `ps4/sce_module/` | `libc.prx`, `libSceFios2.prx` (Orbis PFS runtime) | **PASS** — Included in PFS image to prevent `0x80990055` installation failure. |
 | **Runtime Config** | `ps4/soulima.conf` | Target server URL configuration | **PASS** — Bundled into PKG root (`192.168.1.68:3030`). |
@@ -41,7 +43,7 @@ The build environment is powered by the OpenOrbis PS4 Toolchain coupled with LLV
 
 1. **Compilation (`ps4/src/Makefile`)**:
    - Compiler: `clang++ --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=c++17 -O2`
-   - Linker: `ld.lld -pie --script $OO_PS4_TOOLCHAIN/link.x` linking `-lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet`.
+   - Linker: `ld.lld -pie --script $OO_PS4_TOOLCHAIN/link.x` linking `-lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNet -lSceAvPlayer`.
    - FSELF Signing: `create-fself` converts `eboot.elf` into fake-signed `eboot.bin` (`--paid 0x3800000000000011`).
 
 2. **Assembly Pipeline (`ps4/scripts/build_pkg.py`)**:
