@@ -3,9 +3,14 @@
 
 #include <stdint.h>
 #include <stddef.h>
+
+#ifdef SOULIMA_HOST
+#include <SDL2/SDL.h>
+#else
 #include <orbis/libkernel.h>
 #include <orbis/VideoOut.h>
 #include <orbis/Sysmodule.h>
+#endif
 
 struct Color {
     uint8_t r;
@@ -38,22 +43,27 @@ private:
     static const int FRAME_DEPTH  = 4; // 32-bit ARGB
     static const int NUM_BUFFERS  = 2;
 
+#ifdef SOULIMA_HOST
+    SDL_Window *sdlWindow;
+    SDL_Renderer *sdlRenderer;
+    SDL_Texture *sdlTexture;
+#else
     int videoHandle;
     off_t directMemOff;
     size_t directMemSize;
     void *videoMem;
     uintptr_t videoMemSP;
-
-    char *frameBuffers[NUM_BUFFERS];
     OrbisKernelEqueue flipQueue;
     OrbisVideoOutBufferAttribute attr;
-
-    int activeBufferIdx;
-    int frameId;
 
     bool initFlipQueue();
     bool allocateVideoMemory(size_t size, int alignment);
     bool registerBuffers();
+#endif
+
+    char *frameBuffers[NUM_BUFFERS];
+    int activeBufferIdx;
+    int frameId;
 
 public:
     Renderer();

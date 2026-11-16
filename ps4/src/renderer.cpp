@@ -2,21 +2,43 @@
 #include "font8x16.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 Renderer::Renderer()
-    : videoHandle(-1), directMemOff(0), directMemSize(0), videoMem(nullptr),
-      videoMemSP(0), activeBufferIdx(0), frameId(0)
+    : activeBufferIdx(0), frameId(0)
 {
     memset(frameBuffers, 0, sizeof(frameBuffers));
+#ifdef SOULIMA_HOST
+    sdlWindow = nullptr;
+    sdlRenderer = nullptr;
+    sdlTexture = nullptr;
+#else
+    videoHandle = -1;
+    directMemOff = 0;
+    directMemSize = 0;
+    videoMem = nullptr;
+    videoMemSP = 0;
+#endif
 }
 
 Renderer::~Renderer()
 {
+#ifdef SOULIMA_HOST
+    if (sdlTexture) SDL_DestroyTexture(sdlTexture);
+    if (sdlRenderer) SDL_DestroyRenderer(sdlRenderer);
+    if (sdlWindow) SDL_DestroyWindow(sdlWindow);
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        if (frameBuffers[i]) free(frameBuffers[i]);
+    }
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+#else
     if (directMemOff && directMemSize) {
         sceKernelReleaseDirectMemory(directMemOff, directMemSize);
     }
+#endif
 }
 
+#ifndef SOULIMA_HOST
 bool Renderer::initFlipQueue()
 {
     int rc = sceKernelCreateEqueue(&flipQueue, "soulima_flip_q");
@@ -52,9 +74,61 @@ bool Renderer::registerBuffers()
     int rc = sceVideoOutRegisterBuffers(videoHandle, 0, (void **)frameBuffers, NUM_BUFFERS, &attr);
     return (rc == 0);
 }
+#endif
 
 bool Renderer::Init()
 {
+#ifdef SOULIMA_HOST
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) != 0) {
+        fprintf(stderr, "[HOST] SDL_Init Error: %s\n", SDL_GetError());
+        return false;
+    }
+
+    sdlWindow = SDL_CreateWindow(
+        "Soulima Cinema — PS4 Native TV App Simulator",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        1280, 720,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
+    );
+    if (!sdlWindow) {
+        fprintf(stderr, "[HOST] SDL_CreateWindow Error: %s\n", SDL_GetError());
+        return false;
+    }
+
+    sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (!sdlRenderer) {
+        sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!sdlRenderer) {
+        fprintf(stderr, "[HOST] SDL_CreateRenderer Error: %s\n", SDL_GetError());
+        return false;
+    }
+
+    SDL_RenderSetLogicalSize(sdlRenderer, FRAME_WIDTH, FRAME_HEIGHT);
+
+    sdlTexture = SDL_CreateTexture(
+        sdlRenderer,
+        SDL_PIXELFORMAT_ARGB8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        FRAME_WIDTH, FRAME_HEIGHT
+    );
+    if (!sdlTexture) {
+        fprintf(stderr, "[HOST] SDL_CreateTexture Error: %s\n", SDL_GetError());
+        return false;
+    }
+
+    size_t singleFbSize = FRAME_WIDTH * FRAME_HEIGHT * FRAME_DEPTH;
+    for (int i = 0; i < NUM_BUFFERS; i++) {
+        frameBuffers[i] = (char *)malloc(singleFbSize);
+        if (!frameBuffers[i]) return false;
+        memset(frameBuffers[i], 0, singleFbSize);
+    }
+
+    activeBufferIdx = 0;
+    frameId = 0;
+    Clear();
+    return true;
+#else
     videoHandle = sceVideoOutOpen(ORBIS_VIDEO_USER_MAIN, ORBIS_VIDEO_OUT_BUS_MAIN, 0, nullptr);
     if (videoHandle < 0) return false;
 
@@ -67,6 +141,7 @@ bool Renderer::Init()
     frameId = 0;
     Clear();
     return true;
+#endif
 }
 
 void Renderer::Clear(Color c)
@@ -254,32 +329,26 @@ void Renderer::DrawCard(int x, int y, int w, int h, const char *title, Color bor
 
 void Renderer::DrawMovieCard(int x, int y, int w, int h, const char *title, const char *year, const char *rating, const char *genre, const char *quality, bool isSelected)
 {
-    // Focus glow border if card is selected by user controller
     if (isSelected) {
         DrawOutlineRect(x - 5, y - 5, w + 10, h + 10, 4, Color::Gold());
     }
 
-    // Card background gradient
     Color topBg = isSelected ? Color(36, 44, 62) : Color(22, 26, 36);
     Color botBg = isSelected ? Color(20, 24, 34) : Color(14, 16, 22);
     DrawGradientV(x, y, w, h, topBg, botBg);
     DrawOutlineRect(x, y, w, h, 1, isSelected ? Color::Gold() : Color::PanelBorder());
 
-    // Top Genre Header
     DrawRect(x, y, w, 28, isSelected ? Color(48, 56, 80) : Color(28, 32, 44));
     DrawHLine(x, y + 28, w, isSelected ? Color::Gold() : Color::PanelBorder());
     if (genre && genre[0]) {
         DrawText(genre, x + 10, y + 6, 1, isSelected ? Color::Gold() : Color::Cyan());
     }
 
-    // Central Title Display
-    // Split title into two lines if it's long (>18 chars)
     if (title && title[0]) {
         int titleLen = (int)strlen(title);
         if (titleLen <= 18) {
             DrawTextCentered(title, x + (w / 2), y + 70, 1, isSelected ? Color::Gold() : Color::White());
         } else {
-            // Find a space near the middle
             char line1[24];
             char line2[24];
             memset(line1, 0, sizeof(line1));
@@ -295,19 +364,16 @@ void Renderer::DrawMovieCard(int x, int y, int w, int h, const char *title, cons
         }
     }
 
-    // Central Movie Icon / Badge
     int badgeBoxY = y + 120;
     DrawRect(x + 20, badgeBoxY, w - 40, 50, isSelected ? Color(44, 52, 74) : Color(26, 30, 42));
     DrawOutlineRect(x + 20, badgeBoxY, w - 40, 50, 1, isSelected ? Color::Gold() : Color::PanelBorder());
     DrawTextCentered("SOULIMA CINEMA", x + (w / 2), badgeBoxY + 12, 1, Color::Gray());
     DrawTextCentered("HD P2P STREAM", x + (w / 2), badgeBoxY + 28, 1, Color::DarkGray());
 
-    // Quality Badge
     if (quality && quality[0]) {
         DrawBadge(quality, x + 12, y + h - 68, isSelected ? Color::White() : Color::Gray(), isSelected ? Color::Crimson() : Color(35, 40, 54));
     }
 
-    // Rating & Year bottom bar
     char starBuf[16];
     snprintf(starBuf, sizeof(starBuf), "* %s", rating ? rating : "8.0");
     DrawText(starBuf, x + 14, y + h - 30, 1, Color::Gold());
@@ -319,6 +385,16 @@ void Renderer::DrawMovieCard(int x, int y, int w, int h, const char *title, cons
 
 void Renderer::Flip()
 {
+#ifdef SOULIMA_HOST
+    SDL_UpdateTexture(sdlTexture, nullptr, frameBuffers[activeBufferIdx], FRAME_WIDTH * FRAME_DEPTH);
+    SDL_RenderClear(sdlRenderer);
+    SDL_RenderCopy(sdlRenderer, sdlTexture, nullptr, nullptr);
+    SDL_RenderPresent(sdlRenderer);
+    SDL_Delay(16);
+
+    activeBufferIdx = (activeBufferIdx + 1) % NUM_BUFFERS;
+    frameId++;
+#else
     sceVideoOutSubmitFlip(videoHandle, activeBufferIdx, ORBIS_VIDEO_OUT_FLIP_VSYNC, frameId);
 
     OrbisKernelEvent evt;
@@ -332,4 +408,5 @@ void Renderer::Flip()
 
     activeBufferIdx = (activeBufferIdx + 1) % NUM_BUFFERS;
     frameId++;
+#endif
 }

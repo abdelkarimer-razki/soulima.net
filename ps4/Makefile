@@ -15,9 +15,13 @@ PIC1        := $(SCE_SYS)/pic1.png
 EBOOT_BIN   := $(BUILD_DIR)/eboot.bin
 PKG         := $(DIST_DIR)/Soulima.pkg
 
-.PHONY: all sfo assets eboot pkg clean
+.PHONY: all sfo assets eboot pkg clean host sim
 
 all: sfo assets eboot pkg
+
+## Build host PC simulator (test without PS4)
+host sim:
+	$(MAKE) -C src host
 
 ## Generate param.sfo binary
 sfo: $(SFO)

@@ -20,9 +20,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef SOULIMA_HOST
 extern "C" {
     int32_t sceSystemServiceHideSplashScreen(void);
 }
+#endif
 
 enum class AppView {
     CinemaWall,
@@ -39,8 +41,10 @@ enum class FocusZone {
 
 int main(void)
 {
+#ifndef SOULIMA_HOST
     // Dismiss the firmware loading splash screen immediately
     sceSystemServiceHideSplashScreen();
+#endif
 
     Renderer renderer;
     if (!renderer.Init()) {
@@ -75,6 +79,10 @@ int main(void)
 
     while (!shouldQuit) {
         controller.Update();
+        if (controller.QuitRequested()) {
+            shouldQuit = true;
+            break;
+        }
 
         // Global hotkey: Options to toggle Network Settings
         if (controller.Options()) {
