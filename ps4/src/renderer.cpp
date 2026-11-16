@@ -136,6 +136,41 @@ void Renderer::DrawOutlineRect(int x, int y, int w, int h, int thickness, Color 
     }
 }
 
+void Renderer::DrawGradientV(int x, int y, int w, int h, Color top, Color bottom)
+{
+    int startY = y < 0 ? 0 : y;
+    int endY = (y + h) > FRAME_HEIGHT ? FRAME_HEIGHT : (y + h);
+    int startX = x < 0 ? 0 : x;
+    int endX = (x + w) > FRAME_WIDTH ? FRAME_WIDTH : (x + w);
+    if (startX >= endX || startY >= endY || h <= 0) return;
+
+    for (int py = startY; py < endY; py++) {
+        float t = (float)(py - y) / (float)h;
+        uint8_t r = (uint8_t)(top.r + t * (bottom.r - top.r));
+        uint8_t g = (uint8_t)(top.g + t * (bottom.g - top.g));
+        uint8_t b = (uint8_t)(top.b + t * (bottom.b - top.b));
+        uint32_t colorVal = 0xFF000000 | (r << 16) | (g << 8) | b;
+
+        uint32_t *row = (uint32_t *)frameBuffers[activeBufferIdx] + (py * FRAME_WIDTH);
+        for (int px = startX; px < endX; px++) {
+            row[px] = colorVal;
+        }
+    }
+}
+
+void Renderer::DrawProgressBar(int x, int y, int w, int h, float progress, Color fg, Color bg)
+{
+    if (progress < 0.0f) progress = 0.0f;
+    if (progress > 1.0f) progress = 1.0f;
+
+    DrawRect(x, y, w, h, bg);
+    int fillW = (int)(w * progress);
+    if (fillW > 0) {
+        DrawRect(x, y, fillW, h, fg);
+    }
+    DrawOutlineRect(x, y, w, h, 1, Color::PanelBorder());
+}
+
 void Renderer::DrawChar(char ch, int x, int y, int scale, Color fg, Color bg, bool transparent)
 {
     uint8_t cIdx = (uint8_t)ch;
@@ -214,6 +249,71 @@ void Renderer::DrawCard(int x, int y, int w, int h, const char *title, Color bor
         DrawRect(x, y, w, 36, Color(30, 34, 46));
         DrawHLine(x, y + 36, w, border);
         DrawText(title, x + 16, y + 10, 1, Color::Gold());
+    }
+}
+
+void Renderer::DrawMovieCard(int x, int y, int w, int h, const char *title, const char *year, const char *rating, const char *genre, const char *quality, bool isSelected)
+{
+    // Focus glow border if card is selected by user controller
+    if (isSelected) {
+        DrawOutlineRect(x - 5, y - 5, w + 10, h + 10, 4, Color::Gold());
+    }
+
+    // Card background gradient
+    Color topBg = isSelected ? Color(36, 44, 62) : Color(22, 26, 36);
+    Color botBg = isSelected ? Color(20, 24, 34) : Color(14, 16, 22);
+    DrawGradientV(x, y, w, h, topBg, botBg);
+    DrawOutlineRect(x, y, w, h, 1, isSelected ? Color::Gold() : Color::PanelBorder());
+
+    // Top Genre Header
+    DrawRect(x, y, w, 28, isSelected ? Color(48, 56, 80) : Color(28, 32, 44));
+    DrawHLine(x, y + 28, w, isSelected ? Color::Gold() : Color::PanelBorder());
+    if (genre && genre[0]) {
+        DrawText(genre, x + 10, y + 6, 1, isSelected ? Color::Gold() : Color::Cyan());
+    }
+
+    // Central Title Display
+    // Split title into two lines if it's long (>18 chars)
+    if (title && title[0]) {
+        int titleLen = (int)strlen(title);
+        if (titleLen <= 18) {
+            DrawTextCentered(title, x + (w / 2), y + 70, 1, isSelected ? Color::Gold() : Color::White());
+        } else {
+            // Find a space near the middle
+            char line1[24];
+            char line2[24];
+            memset(line1, 0, sizeof(line1));
+            memset(line2, 0, sizeof(line2));
+            int splitPos = 16;
+            while (splitPos > 8 && title[splitPos] != ' ') splitPos--;
+            if (splitPos <= 8) splitPos = 16;
+            strncpy(line1, title, splitPos);
+            strncpy(line2, title + (title[splitPos] == ' ' ? splitPos + 1 : splitPos), sizeof(line2) - 1);
+
+            DrawTextCentered(line1, x + (w / 2), y + 60, 1, isSelected ? Color::Gold() : Color::White());
+            DrawTextCentered(line2, x + (w / 2), y + 80, 1, isSelected ? Color::Gold() : Color::White());
+        }
+    }
+
+    // Central Movie Icon / Badge
+    int badgeBoxY = y + 120;
+    DrawRect(x + 20, badgeBoxY, w - 40, 50, isSelected ? Color(44, 52, 74) : Color(26, 30, 42));
+    DrawOutlineRect(x + 20, badgeBoxY, w - 40, 50, 1, isSelected ? Color::Gold() : Color::PanelBorder());
+    DrawTextCentered("SOULIMA CINEMA", x + (w / 2), badgeBoxY + 12, 1, Color::Gray());
+    DrawTextCentered("HD P2P STREAM", x + (w / 2), badgeBoxY + 28, 1, Color::DarkGray());
+
+    // Quality Badge
+    if (quality && quality[0]) {
+        DrawBadge(quality, x + 12, y + h - 68, isSelected ? Color::White() : Color::Gray(), isSelected ? Color::Crimson() : Color(35, 40, 54));
+    }
+
+    // Rating & Year bottom bar
+    char starBuf[16];
+    snprintf(starBuf, sizeof(starBuf), "* %s", rating ? rating : "8.0");
+    DrawText(starBuf, x + 14, y + h - 30, 1, Color::Gold());
+
+    if (year && year[0]) {
+        DrawText(year, x + w - 48, y + h - 30, 1, Color::Gray());
     }
 }
 

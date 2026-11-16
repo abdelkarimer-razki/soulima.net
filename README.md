@@ -97,9 +97,11 @@ Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Jailbroke
 - Full desktop integration with AppArmor compliance, icon badges, and system tray lifecycle.
 
 ### 🕹️ PlayStation 4 Native Homebrew (OpenOrbis FPKG)
-- **True Native C++17 OrbisOS Application:** Renders directly to 1080p display buffers at 60 FPS using `libSceVideoOut` direct video memory mapping and flip queue vsync.
-- **DualShock 4 Controller Input:** Native wireless/USB controller support via `libScePad` and `libSceUserService` with edge-detection and hold-to-repeat D-pad navigation.
-- **Interactive Cinema Dashboard:** Real-time BSD socket ping & latency measurement to the streaming server, interactive on-screen IP configurator (adjust octets via D-Pad), configuration persistence to `/data/soulima.conf`, live system logs, and hardware diagnostics.
+- **100% Native C++17 OrbisOS Console App (Zero Browser Launching):** Runs entirely inside its own native window without ever minimizing or invoking the PS4 Internet Browser (`CUSA00001`).
+- **10-Foot TV Cinema Interface (Netflix Experience):** Horizontal poster shelves with smooth D-pad / left stick scrolling, dynamic Gold glowing focus highlight, and hero spotlight displaying movie backdrops, ratings, runtime, and synopses.
+- **Integrated In-App Cinema Player:** Streams and decodes torrent video directly on the PS4 hardware with animated BitTorrent swarm buffering HUD (seeds, peers, download rate in MB/s, buffer progress), live timeline scrub bar, play/pause, and fast seeking (+/- 15s).
+- **DualShock 4 Wireless & USB Controller Support:** Native low-latency input handling via `libScePad` and `libSceUserService` with edge-detection (`JustPressed`) and hold-to-repeat D-pad navigation.
+- **On-Screen IP Configurator & Socket Ping:** Real-time BSD socket handshake to measure round-trip latency to the PC server, interactive 4-octet IP editor directly on the TV screen, and configuration persistence to `/data/soulima.conf`.
 - **100% Compliant FPKG:** Verified Title ID `SOUL00001`, Content ID `IV0000-SOUL00001_00-SOULIMA000000000`, containing required `libc.prx` and `libSceFios2.prx` runtime modules for seamless installation across GoldHEN 5.05 - 11.00+.
 
 ---
