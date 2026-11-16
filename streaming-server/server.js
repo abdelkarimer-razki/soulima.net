@@ -558,7 +558,14 @@ async function handleUnsafeAudioStream(req, res, s, startTime) {
     s.mkvConfig = (await probeCodecs(sourcePath)) || null;
   }
   const cfg = s.mkvConfig;
-  if (!cfg || !cfg.hasAudio) return false;
+  if (!cfg) return false;
+
+  // When client requests seeking (startTime > 0), remux with FFmpeg so -ss seeks to exact second
+  if (startTime > 0) {
+    return spawnRemux(res, s, startTime, cfg, file.name);
+  }
+
+  if (!cfg.hasAudio) return false;
   if (['aac', 'mp3', 'opus', 'vorbis'].includes(cfg.audioCodec)) return false;
   return spawnRemux(res, s, startTime, cfg, file.name);
 }
@@ -1312,6 +1319,66 @@ app.get('/api/servers', (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', streams: streams.size });
+});
+
+/* ─── TMDB Live Catalog & Image Proxy ─────────────────────────────────────── */
+let cachedCatalog = null;
+let lastCatalogFetch = 0;
+
+app.get('/api/catalog', async (req, res) => {
+  if (cachedCatalog && Date.now() - lastCatalogFetch < 1800000) {
+    return res.json(cachedCatalog);
+  }
+  try {
+    const [trendRes, topRes, tvRes] = await Promise.all([
+      fetch(`https://api.themoviedb.org/3/trending/movie/day?api_key=${TMDB_API_KEY}`),
+      fetch(`https://api.themoviedb.org/3/movie/top_rated?api_key=${TMDB_API_KEY}`),
+      fetch(`https://api.themoviedb.org/3/trending/tv/day?api_key=${TMDB_API_KEY}`)
+    ]);
+    const trendJson = await trendRes.json();
+    const topJson = await topRes.json();
+    const tvJson = await tvRes.json();
+
+    const formatItems = (list, isTv = false) => (list || []).slice(0, 10).map(item => ({
+      id: item.id,
+      title: item.title || item.name || 'Unknown',
+      year: (item.release_date || item.first_air_date || '2024').slice(0, 4),
+      rating: (item.vote_average || 8.0).toFixed(1),
+      overview: item.overview || '',
+      posterPath: item.poster_path || '',
+      backdropPath: item.backdrop_path || '',
+      isTv
+    }));
+
+    cachedCatalog = {
+      categories: [
+        { name: 'TRENDING MOVIES', items: formatItems(trendJson.results) },
+        { name: 'TOP RATED MASTERPIECES', items: formatItems(topJson.results) },
+        { name: 'POPULAR TV SHOWS', items: formatItems(tvJson.results, true) }
+      ]
+    };
+    lastCatalogFetch = Date.now();
+    res.json(cachedCatalog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/image', async (req, res) => {
+  const p = req.query.path;
+  const size = req.query.size || 'w500';
+  if (!p) return res.status(400).end();
+  try {
+    const tmdbUrl = `https://image.tmdb.org/t/p/${size}${p}`;
+    const imgRes = await fetch(tmdbUrl);
+    if (!imgRes.ok) return res.status(imgRes.status).end();
+    res.setHeader('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    const arrayBuffer = await imgRes.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
+  } catch (err) {
+    res.status(502).end();
+  }
 });
 
 /* ─── Series torrent search (TPB proxy) ───────────────────────────────────── */
