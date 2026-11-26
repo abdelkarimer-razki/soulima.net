@@ -1,18 +1,20 @@
-import { Component,Renderer2,OnInit, ViewChild, HostListener, ElementRef  } from '@angular/core';
+import { Component, Renderer2, OnInit, OnDestroy, ViewChild, HostListener, ElementRef } from '@angular/core';
 import { Title, Meta } from '@angular/platform-browser';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
-import { forkJoin, Subject } from 'rxjs';
+import { forkJoin, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CookieService } from 'ngx-cookie-service';
 import { SeoService } from '../services/seo.service';
 import { SearchCorrectorService } from '../services/search-corrector.service';
+import { WatchProgressService } from '../services/watch-progress.service';
 
 interface Genre {
 	name: string;
-  }
+}
+
 @Component({
   selector: 'app-exercice2',
   templateUrl: './exercice2.component.html',
@@ -23,51 +25,65 @@ interface Genre {
 			transition(':leave', [style({ transform: 'translateY(0)'}), animate('300ms', style({ transform: 'translateY(-200%)' }))])
 		]),
 		trigger('fade', [
-			transition(':leave', [style({ opacity: '1'}), animate('1000ms', style({  opacity: '0' }))])
+			transition(':leave', [style({ opacity: '1'}), animate('1000ms', style({ opacity: '0' }))])
 		])]
 })
-export class Exercice2Component implements OnInit
+export class Exercice2Component implements OnInit, OnDestroy
 {
 	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
-	searchQuery: string ="";
+	searchQuery: string = "";
 	suggestedCorrection: string | null = null;
 	ghostText: string = "";
 	autocompleteTitle: string = "";
 	searchSubject = new Subject<string>();
+	private searchSub?: Subscription;
 	autocompleteSuggestions: any[] = [];
 	showAutocomplete = false;
-	//movies variables
+
+	// View filters
+	activeFilter: 'all' | 'movies' | 'series' = 'all';
+	searchFilter: 'all' | 'movies' | 'series' = 'all';
+
+	// Content catalogs
 	movies: any[] = [];
 	searchedMovies: any[] = [];
 	searchedSeries: any[] = [];
+	
 	trendingMovies: any[] = [];
-	topRatedMovies:any[] = [];
-	newReleasedMovies:any[] = [];
-	recentlyWatched:any[] = [];
-	foryou:any[] = [];
+	topRatedMovies: any[] = [];
+	newReleasedMovies: any[] = [];
+	
+	trendingSeries: any[] = [];
+	topRatedSeries: any[] = [];
+	newReleasedSeries: any[] = [];
+
+	trendingMixed: any[] = [];
+	recentlyWatched: any[] = [];
+	recentlyWatchedSeries: any[] = [];
+	recentlyWatchedMixed: any[] = [];
+	foryou: any[] = [];
  
-	isMovies = true;
-	showSearch = false
-	moviePosterData:any;
+	showSearch = false;
+	moviePosterData: any;
 	moviePosterLogo = "";
 
 	popUp = false;
-	popUpMovie:any;
+	popUpMovie: any;
 	popUpPoster = "";
 	popUpLogo = "";
 	startTrailer = false;
 
-	genraMovies:any[] = [];
+	genraMovies: any[] = [];
 	genraName = "";
 	genraSearch = false;
-	popUpLink:string = "";
-	mute:boolean = true;
+	popUpLink: string = "";
+	mute: boolean = true;
 	playerVars = {
 		disablekb: 1,
-		autoplay: 1,  // Enable autoplay
-		controls: 0,  // Show controls (optional)
-		rel: 0,       // Disable related videos at the end (optional)
-		modestbranding: 1, // Remove YouTube logo from the control bar (optional),
+		autoplay: 1,
+		controls: 0,
+		rel: 0,
+		modestbranding: 1,
 		mute: 1,
 		loop: 1
 	};
@@ -76,10 +92,11 @@ export class Exercice2Component implements OnInit
 	showLoadingScreen = true;
 	isSearching = false;
 	isPopUpLoading = false;
+	private lastFocusedCard: HTMLElement | null = null;
 
 	constructor(
 		private moviedbAPIService: MoviedbAPIService,
-		private router:Router,
+		private router: Router,
 		private route: ActivatedRoute,
 		private renderer: Renderer2,
 		private cookie: CookieService,
@@ -87,12 +104,110 @@ export class Exercice2Component implements OnInit
 		private metaService: Meta,
 		private seoService: SeoService,
 		private elementRef: ElementRef,
-		private searchCorrector: SearchCorrectorService
+		private searchCorrector: SearchCorrectorService,
+		public watchProgress: WatchProgressService
 	) { }
 
-	sliceTo3(table:any[]):any[]
+	sliceTo3(table: any[]): any[]
 	{
-		return table.slice(0,3);
+		return table.slice(0, 3);
+	}
+
+	isItemTv(item: any): boolean {
+		if (!item) return false;
+		return !!(item.name || item.first_air_date || item.isTvShow || item.media_type === 'tv' || item.seasonnb || item.episodenb);
+	}
+
+	get filteredSearchResults(): any[] {
+		if (this.searchFilter === 'movies') {
+			return this.searchedMovies;
+		}
+		if (this.searchFilter === 'series') {
+			return this.searchedSeries;
+		}
+		return this.movies;
+	}
+
+	setFilter(filter: 'all' | 'movies' | 'series') {
+		const previousFilter = this.activeFilter;
+		this.activeFilter = filter;
+		this.updateSeoMeta();
+		if (previousFilter !== filter && (this.trendingMovies.length > 0 || this.trendingSeries.length > 0)) {
+			this.getBillboardImage();
+		}
+		this.router.navigate([], {
+			relativeTo: this.route,
+			queryParams: filter === 'all' ? { filter: null } : { filter },
+			queryParamsHandling: 'merge'
+		});
+	}
+
+	setSearchFilter(filter: 'all' | 'movies' | 'series') {
+		this.searchFilter = filter;
+	}
+
+	updateSeoMeta() {
+		if (this.activeFilter === 'series') {
+			this.seoService.updateMeta({
+				title: "Soulima TV Shows | Free Streaming of TV Series & Seasons",
+				description: "Watch trending TV series, full seasons, and new releases for free in high quality on Soulima.",
+				keywords: "سوليما, Soulima, مشاهدة مسلسلات, مسلسلات أونلاين, streaming tv shows, free series",
+				url: "https://soulima.net/#/?filter=series"
+			});
+		} else if (this.activeFilter === 'movies') {
+			this.seoService.updateMeta({
+				title: "Soulima Movies | Free Streaming of Movies & Cinema Hits",
+				description: "Watch trending movies, blockbuster cinema, and new releases for free in high quality on Soulima.",
+				keywords: "سوليما, Soulima, مشاهدة أفلام, streaming movies, movies",
+				url: "https://soulima.net/#/?filter=movies"
+			});
+		} else {
+			this.seoService.updateMeta({
+				title: "Soulima | Free Streaming of Movies & TV Shows",
+				description: "Watch your favorite movies and TV shows for free on Soulima. Explore trending cinema hits, classic series, and new releases in HD.",
+				keywords: "سوليما, Soulima, مشاهدة أفلام, مسلسلات, streaming movies, tv shows, free streaming",
+				url: "https://soulima.net/"
+			});
+		}
+	}
+
+	buildMixedTrending() {
+		const mixed: any[] = [];
+		const max = Math.max(this.trendingMovies.length, this.trendingSeries.length);
+		for (let i = 0; i < max && mixed.length < 10; i++) {
+			if (this.trendingMovies[i]) {
+				mixed.push({ ...this.trendingMovies[i], media_type: 'movie', isTvShow: false });
+			}
+			if (mixed.length < 10 && this.trendingSeries[i]) {
+				mixed.push({ ...this.trendingSeries[i], media_type: 'tv', isTvShow: true });
+			}
+		}
+		this.trendingMixed = mixed;
+	}
+
+	loadRecentlyWatched() {
+		let moviesList: any[] = [];
+		try {
+			const moviesRaw = localStorage.getItem("movies");
+			if (moviesRaw) {
+				const parsed = JSON.parse(moviesRaw);
+				const seen = new Set();
+				for (const m of parsed) {
+					if (m && m.id && !seen.has(m.id)) {
+						moviesList.push({ ...m, isTvShow: false, updated_at: m.updated_at || Date.now() });
+						seen.add(m.id);
+					}
+				}
+			}
+		} catch (_) {}
+		this.recentlyWatched = moviesList;
+
+		const seriesList = (this.watchProgress.getHistory() || []).map(s => ({ ...s, isTvShow: true }));
+		this.recentlyWatchedSeries = seriesList;
+
+		const combined = [...seriesList, ...moviesList];
+		combined.sort((a: any, b: any) => (b.updated_at || 0) - (a.updated_at || 0));
+		this.recentlyWatchedMixed = combined;
 	}
 
 	searchMovies()
@@ -134,8 +249,8 @@ export class Exercice2Component implements OnInit
 				if (query !== this.searchQuery) {
 					return;
 				}
-				const movieResults = (moviesResponse.results || []).map((m: any) => ({ ...m, media_type: 'movie' }));
-				const seriesResults = (seriesResponse.results || []).map((s: any) => ({ ...s, media_type: 'tv' }));
+				const movieResults = (moviesResponse.results || []).map((m: any) => ({ ...m, media_type: 'movie', isTvShow: false }));
+				const seriesResults = (seriesResponse.results || []).map((s: any) => ({ ...s, media_type: 'tv', isTvShow: true }));
 				
 				movieResults.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
 				seriesResults.sort((a: any, b: any) => (b.popularity || 0) - (a.popularity || 0));
@@ -182,22 +297,24 @@ export class Exercice2Component implements OnInit
 
 	getDetailUrl(item: any): string {
 		if (!item) return '';
-		const isTv = !!(item.name || item.first_air_date || item.isTvShow || item.media_type === 'tv');
+		const isTv = this.isItemTv(item);
 		if (isTv) {
 			const series = localStorage.getItem("series");
 			if (series) {
-				const seriesParsed = JSON.parse(series);
-				const matched = seriesParsed.find((s: any) => s && s.id === item.id);
-				if (matched) {
-					return `/serie/${item.id}/${matched.seasonnb}/${matched.episodenb}`;
-				}
+				try {
+					const seriesParsed = JSON.parse(series);
+					const matched = seriesParsed.find((s: any) => s && s.id === item.id);
+					if (matched) {
+						return `/serie/${item.id}/${matched.seasonnb || 1}/${matched.episodenb || 1}`;
+					}
+				} catch (_) {}
 			}
 			return `/serie/${item.id}/1/1`;
 		}
 		return `/movie/${item.id}`;
 	}
 
-	onCardClick(event: MouseEvent, item: any) {
+	onCardClick(event: Event | MouseEvent | KeyboardEvent, item: any) {
 		event.preventDefault();
 		this.showPopUp(item);
 	}
@@ -273,35 +390,50 @@ export class Exercice2Component implements OnInit
 			this.startTrailer = true;
 	}
 
-	getMovieImage()
+	getBillboardImage()
 	{
-		const posterMovieNb:any = Math.floor(Math.random() * 15);
-		const movieId = this.trendingMovies[posterMovieNb].id;
+		const useSeries = this.activeFilter === 'series' && this.trendingSeries.length > 0;
+		const useMovies = this.activeFilter === 'movies' && this.trendingMovies.length > 0;
+		
+		let list: any[] = [];
+		if (useSeries) {
+			list = this.trendingSeries;
+		} else if (useMovies) {
+			list = this.trendingMovies;
+		} else {
+			list = this.trendingMixed.length > 0 ? this.trendingMixed : (this.trendingMovies.length > 0 ? this.trendingMovies : this.trendingSeries);
+		}
 
-		forkJoin([
-			this.moviedbAPIService.getMovieDetails(movieId),
-			this.moviedbAPIService.getMovieImages(movieId)
-		]).subscribe({
+		if (!list || list.length === 0) {
+			this.loading = false;
+			return;
+		}
+
+		const randIdx = Math.floor(Math.random() * Math.min(10, list.length));
+		const selectedItem = list[randIdx];
+		const isTv = this.isItemTv(selectedItem);
+
+		const details$ = isTv ? this.moviedbAPIService.getSerieDetails(selectedItem.id) : this.moviedbAPIService.getMovieDetails(selectedItem.id);
+		const images$ = isTv ? this.moviedbAPIService.getSerieImages(selectedItem.id) : this.moviedbAPIService.getMovieImages(selectedItem.id);
+
+		forkJoin([details$, images$]).subscribe({
 			next: ([details, images]: [any, any]) => {
-				this.moviePosterData = details;
-				
-				// Find an English logo, or default to first available logo, or empty string
-				const logo = images.logos.find((l: any) => l.iso_639_1 === 'en') || images.logos[0];
+				this.moviePosterData = { ...details, isTvShow: isTv };
+				const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
 				this.moviePosterLogo = logo ? logo.file_path : "";
 
 				setTimeout(() => {
 					this.loading = false;
-				}, 2000);
+				}, 300);
 			},
 			error: (err) => {
-				console.error("Error loading movie billboard image/logo:", err);
+				console.error("Error loading billboard image/logo:", err);
 				this.loading = false;
 			}
 		});
 	}
 
-
-	getMovieVideos(movieId:any)
+	getMovieVideos(movieId: any)
 	{
 		this.moviedbAPIService.getMovieImages(movieId)
 		.subscribe((response: any) => {
@@ -317,15 +449,16 @@ export class Exercice2Component implements OnInit
 
 	changeAudio()
 	{
-		this.mute = !this.mute
+		this.mute = !this.mute;
 		if (this.mute)
-			this.player.mute()
+			this.player?.mute();
 		else
-			this.player.unMute()
+			this.player?.unMute();
 	}
 
-	showPopUp(movie:any)
+	showPopUp(movie: any)
 	{
+		this.lastFocusedCard = document.activeElement as HTMLElement | null;
 		this.renderer.setStyle(document.body, 'overflow', 'hidden');
 		this.popUp = true;
 		this.popUpLink = "";
@@ -336,7 +469,14 @@ export class Exercice2Component implements OnInit
 		this.popUpMovie = movie;
 		this.isPopUpLoading = true;
 
-		const isTv = movie.name || movie.first_air_date || movie.isTvShow || movie.seasonnb || movie.episodenb;
+		setTimeout(() => {
+			if (document.body.classList.contains('soulima-tv')) {
+				const playBtn = document.querySelector('.playinPopUp') as HTMLElement | null;
+				if (playBtn) playBtn.focus();
+			}
+		}, 100);
+
+		const isTv = this.isItemTv(movie);
 
 		if (isTv) {
 			if (movie.seasonnb && movie.episodenb) {
@@ -371,7 +511,7 @@ export class Exercice2Component implements OnInit
 							cast: cast
 						};
 						
-						this.popUpPoster = episodeDetails.still_path || images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+						this.popUpPoster = episodeDetails.still_path || images.backdrops?.[2]?.file_path || images.backdrops?.[0]?.file_path || details.backdrop_path;
 						
 						const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
 						this.popUpLogo = logo ? logo.file_path : "";
@@ -410,12 +550,12 @@ export class Exercice2Component implements OnInit
 							directors: directors,
 							cast: cast
 						};
-						this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+						this.popUpPoster = images.backdrops?.[2]?.file_path || images.backdrops?.[0]?.file_path || details.backdrop_path;
 						
 						const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
 						this.popUpLogo = logo ? logo.file_path : "";
 
-						const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+						const trailer = videos.results?.find((video: any) => video.type === 'Trailer');
 						if (trailer?.key) {
 							this.popUpLink = trailer.key;
 						}
@@ -440,15 +580,16 @@ export class Exercice2Component implements OnInit
 
 					this.popUpMovie = {
 						...details,
+						isTvShow: false,
 						directors: directors,
 						cast: cast
 					};
-					this.popUpPoster = images.backdrops[2]?.file_path || images.backdrops[0]?.file_path || details.backdrop_path;
+					this.popUpPoster = images.backdrops?.[2]?.file_path || images.backdrops?.[0]?.file_path || details.backdrop_path;
 					
 					const logo = images.logos?.find((l: any) => l.iso_639_1 === 'en') || images.logos?.[0];
 					this.popUpLogo = logo ? logo.file_path : "";
 
-					const trailer = videos.results.find((video: any) => video.type === 'Trailer');
+					const trailer = videos.results?.find((video: any) => video.type === 'Trailer');
 					if (trailer?.key) {
 						this.popUpLink = trailer.key;
 					}
@@ -462,14 +603,14 @@ export class Exercice2Component implements OnInit
 		}
 	}
 
-	getMoviesByGenre(genreId:number, genraName:string)
+	getMoviesByGenre(genreId: number, genraName: string)
 	{
 		this.moviedbAPIService.getMovieByGenres(genreId, 1).subscribe((response: any) => {
 			this.genraMovies = response.results;
 			this.genraName = genraName;
 			this.genraSearch = true;
-		})
-		window.scrollTo(0,0)
+		});
+		window.scrollTo(0, 0);
 	}
 
 	clearGenre()
@@ -483,76 +624,103 @@ export class Exercice2Component implements OnInit
 
 	closePopUp()
 	{
-		this.popUp=false;
+		this.popUp = false;
 		this.popUpMovie = {};
-		this.popUpPoster=""; 
-		this.popUpLogo="";
-		this.startTrailer=false;
+		this.popUpPoster = ""; 
+		this.popUpLogo = "";
+		this.startTrailer = false;
 		this.mute = true;
-		this.popUpLink= "";
+		this.popUpLink = "";
 		this.renderer.removeStyle(document.body, 'overflow');
+		if (this.lastFocusedCard) {
+			try {
+				this.lastFocusedCard.focus();
+			} catch (_) {}
+			this.lastFocusedCard = null;
+		}
 	}
 
 	getForYou()
 	{
-		var movies = localStorage.getItem("movies");
-		if (movies)
-		{
-			var moviesParsed = JSON.parse(movies);
-			var randomMovie =  Math.floor(Math.random() * moviesParsed.length);
-			this.moviedbAPIService.getSimilairMovies(moviesParsed[randomMovie].id)
-			.subscribe(
-				(response: any) => {
-					this.foryou = response.results;
+		const movies = localStorage.getItem("movies");
+		const series = localStorage.getItem("series");
+		let seedId: number | null = null;
+		let isTvSeed = false;
+
+		if (movies) {
+			try {
+				const parsed = JSON.parse(movies);
+				if (parsed.length > 0) {
+					const rand = Math.floor(Math.random() * parsed.length);
+					seedId = parsed[rand]?.id;
 				}
-			)
+			} catch (_) {}
+		}
+
+		if (!seedId && series) {
+			try {
+				const parsed = JSON.parse(series);
+				if (parsed.length > 0) {
+					const rand = Math.floor(Math.random() * parsed.length);
+					seedId = parsed[rand]?.id;
+					isTvSeed = true;
+				}
+			} catch (_) {}
+		}
+
+		if (seedId) {
+			const rec$ = isTvSeed ? this.moviedbAPIService.getSimilairSeries(seedId) : this.moviedbAPIService.getSimilairMovies(seedId);
+			rec$.subscribe({
+				next: (response: any) => {
+					this.foryou = (response.results || []).map((item: any) => ({
+						...item,
+						isTvShow: isTvSeed
+					}));
+				},
+				error: () => {}
+			});
 		}
 	}
 
 	ngOnInit(): void
 	{
-		const urlSearch = this.route.snapshot.queryParamMap.get('search');
-		if (urlSearch) {
-			this.searchQuery = urlSearch;
-			this.searchMovies();
-		}
-		this.searchSubject.pipe(
+		this.route.queryParamMap.subscribe(params => {
+			const filter = params.get('filter');
+			let newFilter: 'all' | 'movies' | 'series' = 'all';
+			if (filter === 'movies') {
+				newFilter = 'movies';
+			} else if (filter === 'series') {
+				newFilter = 'series';
+			} else if (this.route.snapshot.data['filter'] === 'series') {
+				newFilter = 'series';
+			} else {
+				newFilter = 'all';
+			}
+			const filterChanged = this.activeFilter !== newFilter;
+			this.activeFilter = newFilter;
+			this.updateSeoMeta();
+
+			if (filterChanged && (this.trendingMovies.length > 0 || this.trendingSeries.length > 0)) {
+				this.getBillboardImage();
+			}
+
+			const urlSearch = params.get('search');
+			if (urlSearch && urlSearch !== this.searchQuery) {
+				this.searchQuery = urlSearch;
+				this.searchMovies();
+			}
+		});
+
+		this.searchSub = this.searchSubject.pipe(
 			debounceTime(300),
 			distinctUntilChanged()
 		).subscribe(query => {
 			this.performSearch(query);
 		});
-		this.seoService.updateMeta({
-			title: "Soulima Movies | Free Streaming of Movies & Cinema Hits",
-			description: "Watch your favorite movies for free on Soulima. Explore trending cinema hits, classic movies, and new releases in high definition.",
-			keywords: "سوليما, Soulima, مشاهدة أفلام, أفلام عربية, أفلام مجانية, streaming movies, movies, free streaming, TV shows, online streaming, watch movies online, Moroccan streaming",
-			schema: {
-				"@context": "https://schema.org",
-				"@type": "WebSite",
-				"url": "https://soulima.net/",
-				"name": "Soulima Movies",
-				"description": "Watch your favorite movies for free on Soulima. Explore trending cinema hits, classic movies, and new releases in high definition.",
-				"potentialAction": {
-					"@type": "SearchAction",
-					"target": "https://soulima.net/?search={search_term_string}",
-					"query-input": "required name=search_term_string"
-				}
-			}
-		});
-		this.getForYou()
-		const data = localStorage.getItem("movies")
-		if (data) {
-			const parsed = JSON.parse(data);
-			const unique = [];
-			const seen = new Set();
-			for (const m of parsed) {
-				if (m && m.id && !seen.has(m.id)) {
-					unique.push(m);
-					seen.add(m.id);
-				}
-			}
-			this.recentlyWatched = unique;
-		}
+
+		this.getForYou();
+		this.loadRecentlyWatched();
+
 		// Safety fallback: Never stay stuck on loading screen longer than 3.5 seconds
 		setTimeout(() => {
 			if (this.loading || this.showLoadingScreen) {
@@ -570,65 +738,45 @@ export class Exercice2Component implements OnInit
 		forkJoin([
 			this.moviedbAPIService.getTrendingMovies(),
 			this.moviedbAPIService.getTopRatedMovies(),
-			this.moviedbAPIService.getNewRelease()
+			this.moviedbAPIService.getNewRelease(),
+			this.moviedbAPIService.getTrendingSeries(),
+			this.moviedbAPIService.getTopRatedSeries(),
+			this.moviedbAPIService.getNewReleaseSeries()
 		]).subscribe({
-			next: (responses: any[]) => {
-				this.trendingMovies = responses[0]?.results || [];
-				this.topRatedMovies = responses[1]?.results || [];
-				this.newReleasedMovies = responses[2]?.results || [];
+			next: ([trendMovies, topMovies, newMovies, trendSeries, topSeries, newSeries]: any[]) => {
+				this.trendingMovies = trendMovies?.results || [];
+				this.topRatedMovies = topMovies?.results || [];
+				this.newReleasedMovies = newMovies?.results || [];
+				this.trendingSeries = trendSeries?.results || [];
+				this.topRatedSeries = topSeries?.results || [];
+				this.newReleasedSeries = newSeries?.results || [];
 				
-				// Seed search corrector service
+				// Seed search corrector service with rich unified catalog
 				this.searchCorrector.addMediaItems(this.trendingMovies);
 				this.searchCorrector.addMediaItems(this.topRatedMovies);
 				this.searchCorrector.addMediaItems(this.newReleasedMovies);
+				this.searchCorrector.addMediaItems(this.trendingSeries);
+				this.searchCorrector.addMediaItems(this.topRatedSeries);
+				this.searchCorrector.addMediaItems(this.newReleasedSeries);
 				
-				if (this.trendingMovies.length > 0) {
-					this.getMovieImage();
-				} else {
-					this.loading = false;
-					this.showLoadingScreen = false;
-				}
+				this.buildMixedTrending();
+				this.getBillboardImage();
 			},
 			error: (err) => {
-				console.error("Error fetching homepage movies:", err);
+				console.error("Error fetching homepage content:", err);
 				this.loading = false;
 				this.showLoadingScreen = false;
 			}
 		});
 	}
 
-	switchDivs(): void {
-		const div1 = document.getElementById('e1');
-		const div2 = document.getElementById('div2');
-	
-		if (div1 && div2) {
-		  const parent = div1.parentNode;
-	
-		  // Create a temporary placeholder
-		  const temp = document.createElement('div');
-		  temp.style.display = 'none'; // Hide the temporary element
-	
-		  // Insert the temp before div1
-		  parent?.insertBefore(temp, div1);
-	
-		  // Move div1 before div2
-		  parent?.insertBefore(div1, div2);
-	
-		  // Move div2 before the temp element
-		  parent?.insertBefore(div2, temp);
-	
-		  // Remove the temporary element
-		  parent?.removeChild(temp);
-		}
-	  }
-
 	ngOnDestroy()
 	{
+		this.searchSub?.unsubscribe();
 		this.renderer.removeStyle(document.body, 'overflow');
 	}
 
-
-	stopClose(event:MouseEvent)
+	stopClose(event: MouseEvent)
 	{
 		event.stopPropagation();
 	}
@@ -639,25 +787,20 @@ export class Exercice2Component implements OnInit
 		if (!item) return;
 
 		let id = typeof item === 'object' ? item.id : item;
-		let isTv = false;
-		if (typeof item === 'object') {
-			isTv = !!(item.name || item.first_air_date || item.isTvShow);
-		} else {
-			if (this.popUpMovie && this.popUpMovie.id === id) {
-				isTv = !!(this.popUpMovie.name || this.popUpMovie.first_air_date || this.popUpMovie.isTvShow);
-			}
-		}
+		let isTv = this.isItemTv(item);
 
 		if (isTv) {
 			const series = localStorage.getItem("series");
 			if (series) {
-				const seriesParsed = JSON.parse(series);
-				for (let i = 0; i < seriesParsed.length; i++) {
-					if (seriesParsed[i].id == id) {
-						this.router.navigate(['/serie/' + id + '/' + seriesParsed[i].seasonnb + '/' + seriesParsed[i].episodenb]);
-						return;
+				try {
+					const seriesParsed = JSON.parse(series);
+					for (let i = 0; i < seriesParsed.length; i++) {
+						if (seriesParsed[i].id == id) {
+							this.router.navigate(['/serie/' + id + '/' + (seriesParsed[i].seasonnb || 1) + '/' + (seriesParsed[i].episodenb || 1)]);
+							return;
+						}
 					}
-				}
+				} catch (_) {}
 			}
 			this.router.navigate(['/serie/' + id + '/1/1']);
 		} else {

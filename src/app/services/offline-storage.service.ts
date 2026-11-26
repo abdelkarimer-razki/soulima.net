@@ -99,6 +99,30 @@ export class OfflineStorageService {
     });
   }
 
+  // Fetch only metadata (omitting multi-gigabyte video blobs from memory for list views)
+  async getAllMediaMetadata(): Promise<OfflineMediaItem[]> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(this.storeName, 'readonly');
+      const store = tx.objectStore(this.storeName);
+      const req = store.openCursor();
+      const items: OfflineMediaItem[] = [];
+
+      req.onsuccess = (event: any) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const val = cursor.value;
+          const { videoBlob, subtitleBlob, ...metadata } = val;
+          items.push(metadata as OfflineMediaItem);
+          cursor.continue();
+        } else {
+          resolve(items);
+        }
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
   async getMediaById(id: string): Promise<OfflineMediaItem | null> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
@@ -131,7 +155,7 @@ export class OfflineStorageService {
 
   async refreshItems(): Promise<void> {
     try {
-      const items = await this.getAllMedia();
+      const items = await this.getAllMediaMetadata();
       this.itemsSubject.next(items);
     } catch {
       this.itemsSubject.next([]);

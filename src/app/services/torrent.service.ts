@@ -29,7 +29,7 @@ export interface StreamInfo {
   duration?: number;
 }
 
-const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
+const TMDB_API_KEY = '';
 
 const TRACKERS = [
   'wss://tracker.openwebtorrent.com',
@@ -101,39 +101,18 @@ export class TorrentService {
     year?: string
   ): Promise<TorrentSource[]> {
     try {
-      const isMovie = mediaType === 'movie';
-      const requests: Promise<TorrentSource[]>[] = [];
-
       // 1. Primary: Backend unified multi-source proxy (Torrentio, YTS, PirateBay, SolidTorrents, BitSearch)
-      requests.push(this.fetchProxySources(tmdbId, season, episode, title, year));
-
-      // 2. Direct client Torrentio request in parallel
-      const imdbPromise = this.getImdbId(tmdbId, mediaType).catch(() => null);
-      requests.push(
-        imdbPromise.then(imdbId => {
-          if (!imdbId) return [];
-          return this.fetchTorrentioSources(imdbId, isMovie ? null : season, isMovie ? null : episode);
-        }).catch(() => [])
-      );
-
-      const settled = await Promise.allSettled(requests);
-      const merged = new Map<string, TorrentSource>();
-
-      for (const res of settled) {
-        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-          for (const s of res.value) {
-            if (!s || !s.magnet) continue;
-            const match = s.magnet.match(/btih:([a-fA-F0-9]+)/i);
-            const key = match ? match[1].toLowerCase() : s.magnet;
-            const prev = merged.get(key);
-            if (!prev || (s.seeds || 0) > (prev.seeds || 0)) {
-              merged.set(key, s);
-            }
-          }
-        }
+      const proxySources = await this.fetchProxySources(tmdbId, season, episode, title, year).catch(() => []);
+      if (proxySources && proxySources.length) {
+        return proxySources.sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
       }
 
-      return Array.from(merged.values()).sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
+      // 2. Direct client Torrentio request fallback if backend proxy returned empty/failed
+      const isMovie = mediaType === 'movie';
+      const imdbId = await this.getImdbId(tmdbId, mediaType).catch(() => null);
+      if (!imdbId) return [];
+      const clientSources = await this.fetchTorrentioSources(imdbId, isMovie ? null : season, isMovie ? null : episode).catch(() => []);
+      return clientSources.sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
     } catch {
       return [];
     }
@@ -281,15 +260,14 @@ export class TorrentService {
     });
   }
 
-  getDownloadUrl(streamId: string): string {
-    return `${this.streamServerUrl}/api/stream/${streamId}/download`;
-  }
-
   /** Start a server-side tracked download; returns a downloadId to poll. */
-  async startTrackedDownload(streamId: string, subtitleId?: string, lang?: string): Promise<string> {
+  async startTrackedDownload(streamId: string, subtitleId?: string, lang?: string, offset?: number): Promise<string> {
     let url = `${this.streamServerUrl}/api/stream/${streamId}/download?tracked=1`;
     if (subtitleId) {
       url += `&subtitle=${encodeURIComponent(subtitleId)}&lang=${encodeURIComponent(lang || '')}`;
+    }
+    if (offset) {
+      url += `&offset=${encodeURIComponent(offset)}`;
     }
     const data: any = await this.http.get(url).toPromise();
     return data.downloadId;

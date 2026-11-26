@@ -12,7 +12,11 @@
     "desktop": "npm run desktop:build && npm run desktop:start",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "private": true,
   "dependencies": {

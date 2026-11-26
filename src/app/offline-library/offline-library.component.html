@@ -1,46 +1,5 @@
 <div class="offline-container">
-  <!-- Shared site navbar (identical to Home / TV Shows) -->
-  <nav class="navBar">
-    <a routerLink="/" class="logoLink">
-      <img src="assets/soulimaWhiteLogo.png" width="44px" alt="Soulima Logo" class="logoImg">
-    </a>
-    <div class="navLinks">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navLink">
-        <svg class="navIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-          <line x1="7" y1="2" x2="7" y2="22"></line>
-          <line x1="17" y1="2" x2="17" y2="22"></line>
-          <line x1="2" y1="12" x2="22" y2="12"></line>
-          <line x1="2" y1="7" x2="7" y2="7"></line>
-          <line x1="2" y1="17" x2="7" y2="17"></line>
-          <line x1="17" y1="17" x2="22" y2="17"></line>
-          <line x1="17" y1="7" x2="22" y2="7"></line>
-        </svg>
-        <span>Movies</span>
-      </a>
-      <a routerLink="/tvshows" routerLinkActive="active" class="navLink">
-        <svg class="navIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
-          <polyline points="17 2 12 7 7 2"></polyline>
-        </svg>
-        <span>TV Shows</span>
-      </a>
-      <a routerLink="/downloads" routerLinkActive="active" class="navLink">
-        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        <span>Downloads</span>
-      </a>
-    </div>
-    <div class="searchBarContainer">
-      <div class="searchBarRow">
-        <svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-        <input class="searchBar" type="text" placeholder="Search for movies or series..." [(ngModel)]="searchQuery" (keydown.enter)="searchSite()">
-      </div>
-    </div>
-  </nav>
+  <app-top-menu [(searchQuery)]="searchQuery" (searchChange)="searchSite()"></app-top-menu>
 
   <article class="moviesContainer" style="padding-top: 100px;">
 

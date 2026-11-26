@@ -55,23 +55,11 @@ streaming-server/.env
 *.exe
 *.zip
 *.tar.gz
-*.sprx
-*.prx
 *.bin
-*.elf
-*.o
-*.a
 
 # Electron desktop dist & bundled ffmpeg binary
 desktop/dist/
 desktop/resources/ffmpeg/
-
-# PS4 build & dist artifacts
-ps4/dist/
-ps4/build/
-ps4/sce_sys/about/
-ps4/soulima_sim
-soulima_sim
 
 # Session logs
 session-*.md

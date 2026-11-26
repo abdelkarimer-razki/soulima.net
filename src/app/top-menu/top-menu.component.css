@@ -1,0 +1,371 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.navBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4%;
+  box-sizing: border-box;
+  z-index: 1000;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  transition: background-color 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+              backdrop-filter 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+              border-color 0.4s ease;
+  border-bottom: 1px solid transparent;
+}
+
+.navBar.scrolled {
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.logoLink:hover {
+  opacity: 0.85;
+  transform: scale(1.02);
+}
+
+.logoImg {
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.navLink {
+  color: #e5e5e5;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.25s ease, opacity 0.25s ease;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+}
+
+.navLink:hover {
+  color: #ffffff;
+}
+
+.navLink.active {
+  color: #ffffff;
+  font-weight: 700;
+  position: relative;
+}
+
+.navLink.active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #e50914;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(229, 9, 20, 0.6);
+}
+
+.navIcon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2px;
+  fill: none;
+  opacity: 0.8;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.navLink:hover .navIcon {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Glassmorphic Search Bar Container (Netflix Style) */
+.searchBarContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 4px 12px;
+  width: 240px;
+  transition: width 0.35s cubic-bezier(0.2, 0, 0, 1),
+              background 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+  box-sizing: border-box;
+}
+
+.searchBarContainer:focus-within {
+  width: 320px;
+  background: rgba(0, 0, 0, 0.85);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.searchBarRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.searchBarIcon {
+  width: 16px;
+  height: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.searchGhostContainer {
+  position: absolute;
+  left: 26px;
+  right: 60px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ghost-transparent {
+  color: transparent;
+  white-space: pre;
+}
+
+.ghost-visible {
+  color: rgba(255, 255, 255, 0.35);
+  white-space: pre;
+}
+
+.searchBar {
+  padding: 6px 10px 6px 10px;
+  width: 100%;
+  font-size: 13px;
+  outline: none;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff;
+  font-family: inherit;
+}
+
+.searchBar::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.autocomplete-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e50914;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.autocomplete-inline-btn:hover {
+  background: #ff1f2d;
+  transform: scale(1.04);
+}
+
+.mobileSearchToggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.mobileSearchToggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mobileSearchDrawer {
+  display: none;
+}
+
+.mobileBottomNav {
+  display: none;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .navBar {
+    height: 56px;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .navLeft {
+    gap: 16px;
+  }
+
+  .logoImg {
+    height: 28px;
+  }
+
+  .navLinks.desktopOnly {
+    display: none !important;
+  }
+
+  .searchBarContainer:not(.mobile) {
+    display: none;
+  }
+
+  .mobileSearchToggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobileSearchDrawer {
+    display: flex;
+    position: fixed;
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    left: 0;
+    width: 100%;
+    background: rgba(20, 20, 20, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 10px 16px;
+    box-sizing: border-box;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 999;
+  }
+
+  .searchBarContainer.mobile {
+    display: flex;
+    width: 100% !important;
+    max-width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .mobileSearchClose {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  /* ─── Netflix Mobile App Bottom Tab Bar ─── */
+  .mobileBottomNav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(18, 18, 18, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+    box-sizing: border-box;
+  }
+
+  .mobileBottomTab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+  }
+
+  .mobileBottomTab:active {
+    transform: scale(0.92);
+  }
+
+  .mobileBottomTab.active {
+    color: #ffffff;
+  }
+
+  .mobileBottomTab.active .mobileTabIcon {
+    color: #e50914; /* Signature Netflix Red */
+  }
+
+  .mobileTabIcon {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2.2px;
+    fill: none;
+    transition: color 0.2s ease;
+  }
+
+  .mobileTabLabel {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
+
+@media (max-width: 480px) {
+  .logoImg {
+    height: 24px;
+  }
+}

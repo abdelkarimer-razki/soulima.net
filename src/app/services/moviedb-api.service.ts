@@ -1,14 +1,46 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { Observable, of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MoviedbAPIService {
 
-  private apiKey = 'acc5f02e54fa612710d3245f53f29600';
-  constructor(private http: HttpClient) { }
+  private apiKey = '';
+  private cache = new Map<string, { data: any; expiresAt: number }>();
 
+  constructor(private http: HttpClient) {
+    this.fetchConfig();
+  }
+
+  private fetchConfig() {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const configUrl = typeof window !== 'undefined' && window.location.port === '3030'
+      ? '/api/config'
+      : `http://${host}:3030/api/config`;
+    this.http.get<{ tmdbApiKey?: string }>(configUrl).subscribe({
+      next: (cfg) => {
+        if (cfg?.tmdbApiKey) {
+          this.apiKey = cfg.tmdbApiKey;
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  private getCached(key: string, ttlMs: number, fetcher: () => Observable<any>): Observable<any> {
+    const hit = this.cache.get(key);
+    if (hit && Date.now() < hit.expiresAt) {
+      return of(hit.data);
+    }
+    return fetcher().pipe(
+      tap(data => {
+        this.cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+      })
+    );
+  }
 
   //movies functions
   searchMovies(query: string) {
@@ -19,20 +51,18 @@ export class MoviedbAPIService {
     return this.http.get('https://api.themoviedb.org/3/search/movie', { params });
   }
 
-  getTrendingMovies()
-  {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/trending/movie/day', { params });
+  getTrendingMovies() {
+    return this.getCached('trending_movie', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/trending/movie/day', { params });
+    });
   }
 
-  getTopRatedMovies()
-  {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/movie/top_rated', { params });
+  getTopRatedMovies() {
+    return this.getCached('top_rated_movie', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/movie/top_rated', { params });
+    });
   }
 
   getVideosMovie(query: string)
@@ -43,12 +73,11 @@ export class MoviedbAPIService {
     return this.http.get('https://api.themoviedb.org/3/movie/' + query +'/videos', { params });
   }
 
-  getNewRelease()
-  {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/movie/now_playing', { params });
+  getNewRelease() {
+    return this.getCached('new_release_movie', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/movie/now_playing', { params });
+    });
   }
 
   getMovieDetails(movieId: number) {
@@ -57,11 +86,11 @@ export class MoviedbAPIService {
     return this.http.get(`https://api.themoviedb.org/3/movie/${movieId}`, { params });
   }
 
-  getMoviesGenres()
-  {
-    const params = new HttpParams().set('api_key', this.apiKey);
-
-    return this.http.get(`https://api.themoviedb.org/3/genre/movie/list`, { params });
+  getMoviesGenres() {
+    return this.getCached('genres_movie', 3600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get(`https://api.themoviedb.org/3/genre/movie/list`, { params });
+    });
   }
 
   getMovieByGenres(genreId:number, pageNumber:number)
@@ -98,18 +127,18 @@ export class MoviedbAPIService {
 
   getNewReleaseSeries()
   {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/tv/on_the_air', { params });
+    return this.getCached('new_release_series', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/tv/on_the_air', { params });
+    });
   }
 
   getTopRatedSeries()
   {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/tv/top_rated', { params });
+    return this.getCached('top_rated_series', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/tv/top_rated', { params });
+    });
   }
 
   getMovieImages(movieId: number)
@@ -139,10 +168,10 @@ export class MoviedbAPIService {
 
   getTrendingSeries()
   {
-    const params = new HttpParams()
-    .set('api_key', this.apiKey)
-
-    return this.http.get('https://api.themoviedb.org/3/trending/tv/day', { params });
+    return this.getCached('trending_series', 600000, () => {
+      const params = new HttpParams().set('api_key', this.apiKey);
+      return this.http.get('https://api.themoviedb.org/3/trending/tv/day', { params });
+    });
   }
 
   getEpisodeDetails(serieId:number, season:number, episode:number)

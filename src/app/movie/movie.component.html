@@ -3,7 +3,8 @@
 		<app-torrent-player [sources]="torrentSources" [sourcesLoading]="torrentSourcesLoading" [subtitles]="subtitleTracks" [title]="movie?.title || movie?.original_title" [info]="(movie?.release_date | date:'yyyy') || ''"
 			[backdropUrl]="movie?.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + movie.backdrop_path : ''"
 			[posterUrl]="movie?.poster_path ? 'https://image.tmdb.org/t/p/w500' + movie.poster_path : ''"
-			[overview]="movie?.overview" [resumeKey]="'movie:' + id" (retrySources)="fetchTorrentSources()">
+			[knownDuration]="(movie?.runtime || 0) * 60"
+			[overview]="movie?.overview" [resumeKey]="'movie:' + id" (retrySources)="fetchTorrentSources()" (unplayable)="onUnplayable()">
 		</app-torrent-player>
 	</div>
 </div>

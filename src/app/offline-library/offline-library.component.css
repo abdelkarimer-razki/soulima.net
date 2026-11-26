@@ -4,128 +4,6 @@
   color: var(--text-primary);
 }
 
-/* ===== Site navbar (mirrors Home / TV Shows) ===== */
-.navBar {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 68px;
-  padding: 0 32px;
-  box-sizing: border-box;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--border-light);
-  z-index: 1000;
-}
-
-.logoLink {
-  display: flex;
-  align-items: center;
-  margin-right: 28px;
-  transition: opacity 0.2s ease;
-}
-
-.logoLink:hover {
-  opacity: 0.85;
-}
-
-.navLinks {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  margin-right: auto;
-}
-
-.navLink {
-  color: var(--text-muted);
-  font-size: 15px;
-  font-weight: 500;
-  transition: color 0.3s ease;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.navLink:hover {
-  color: var(--text-primary);
-}
-
-.navLink.active {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.navIcon {
-  width: 16px;
-  height: 16px;
-  stroke: currentColor;
-  stroke-width: 2px;
-  fill: none;
-  transition: transform 0.25s ease;
-}
-
-.navLink:hover .navIcon {
-  transform: scale(1.1);
-}
-
-/* Site search bar */
-.searchBarContainer {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-light);
-  border-radius: 18px;
-  padding: 4px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 240px;
-  box-sizing: border-box;
-}
-
-.searchBarContainer:focus-within {
-  width: 300px;
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
-}
-
-.searchBarRow {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  position: relative;
-}
-
-.searchBarIcon {
-  position: absolute;
-  left: 12px;
-  width: 18px;
-  height: 18px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-.searchBar {
-  padding: 6px 12px 6px 38px;
-  width: 100%;
-  font-size: 14px;
-  outline: none;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: var(--text-primary);
-}
-
-.searchBar::placeholder {
-  color: var(--text-muted);
-}
-
 /* ===== Downloads header ===== */
 .downloadsHeader {
   display: flex;
@@ -238,7 +116,10 @@
   justify-content: flex-start;
   width: 100%;
   overflow-x: auto;
-  padding: 28px 24px 28px 24px;
+  overflow-y: hidden;
+  padding: 40px 24px 32px 24px;
+  margin-top: -18px;
+  margin-bottom: -12px;
   gap: 16px;
   box-sizing: border-box;
   scrollbar-width: none;
@@ -253,8 +134,8 @@
   content: '';
   position: absolute;
   right: 0;
-  bottom: 20px;
-  height: calc(100% - 60px);
+  bottom: 12px;
+  height: calc(100% - 50px);
   width: 80px;
   background: linear-gradient(90deg, transparent 0%, var(--bg-color) 100%);
   pointer-events: none;
@@ -269,16 +150,18 @@
   border-radius: var(--radius-card);
   cursor: pointer;
   overflow: hidden;
-  background: linear-gradient(90deg, #181818 25%, #2a2a2a 50%, #181818 75%);
-  background-size: 200% 100%;
-  transition: var(--transition-smooth);
-  will-change: transform, box-shadow, filter;
+  background: #181818;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease, border-color 0.3s ease, filter 0.3s ease;
+  will-change: transform, box-shadow;
 }
 
 .downloadCard:hover {
-  transform: translateY(-10px) scale(1.08);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.85), 0 0 30px rgba(255, 255, 255, 0.45);
-  filter: saturate(1.05) brightness(1.05);
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.85), 0 8px 12px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.25);
+  filter: saturate(1.08) brightness(1.06);
   z-index: 10;
 }
 
@@ -536,36 +419,6 @@
 
 /* ===== Responsiveness ===== */
 @media (max-width: 768px) {
-  .navBar {
-    top: unset;
-    bottom: 0;
-    height: 64px;
-    padding: 0 16px;
-    background: rgba(10, 10, 10, 0.9);
-    border-top: 1px solid var(--border-light);
-    border-bottom: none;
-    justify-content: space-around;
-  }
-
-  .logoLink {
-    display: none;
-  }
-
-  .navLinks {
-    width: 100%;
-    margin: 0;
-    justify-content: space-around;
-  }
-
-  .navLink {
-    font-size: 14px;
-    padding: 8px 16px;
-  }
-
-  .searchBarContainer {
-    display: none;
-  }
-
   .downloadsHeader {
     flex-direction: column;
     align-items: flex-start;

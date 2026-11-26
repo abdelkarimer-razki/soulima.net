@@ -2,18 +2,19 @@
 
 [![Angular](https://img.shields.io/badge/Angular-16.0-DD0031.svg?logo=angular)](https://angular.io/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-339933.svg?logo=node.js)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
 [![WebTorrent](https://img.shields.io/badge/WebTorrent-P2P%20Engine-brightgreen.svg)](https://webtorrent.io/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-Remux%20%26%20Transcode-007808.svg?logo=ffmpeg)](https://ffmpeg.org/)
-[![PlayStation 4](https://img.shields.io/badge/PS4-OpenOrbis%20Homebrew-003791.svg?logo=playstation)](https://openorbis.github.io/)
+[![Smart TV](https://img.shields.io/badge/Smart%20TV-10--Foot%20D--Pad-E50914.svg)](https://soulima.net)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Soulima** is a self-hosted, commercial-grade peer-to-peer streaming engine and modern web cinema application. It delivers instantaneous, Netflix-grade video on demand directly from distributed BitTorrent swarms without requiring files to be downloaded completely prior to playback.
 
-Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Jailbroken PlayStation 4 (OpenOrbis FPKG)**.
+Available across **Docker Containers**, **Web Browsers**, **Linux Desktop (Electron)**, and **Smart TVs (10-Foot D-Pad UI) / Mobile PWA**.
 
 ---
 
-## 📸 Architecture & System Design
+## Architecture and System Design
 
 ```
                      ┌───────────────────────────────────────────────┐
@@ -45,25 +46,28 @@ Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Jailbroke
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                       Soulima Cinema Frontend (Angular 16)                             │
 │                                                                                        │
+│  • Unified Cinema Experience (Movies & TV Series merged with on-page filter pills)    │
+│  • Modern Search Interface (Query tags, in-search category tabs, 2:3 responsive grid)  │
+│  • Tier-Aware Smart TV Spatial Navigation (10-Foot D-Pad navigation engine)            │
 │  • Virtual Continuous Timeline (streamStartTime + currentTime)                         │
 │  • Instant In-Buffer & Server-Side Dynamic Out-of-Buffer Scrubbing                     │
 │  • Multi-Source Torrent Scraper (Torrentio, YTS, PirateBay, BitSearch)                 │
-│  • Multi-Language Subtitles (SubDL + YIFY Subtitles + ffsubsync Alignment)             │
+│  • Resilient Subtitle Engine (3x retry, SubDL, YIFY, ffsubsync, auto-fallback chain)   │
 │  • Predictive Next-Episode Background Prefetching (Sub-second Episode Switching)        │
-│  • Cross-Platform Delivery: Web UI • Linux Desktop App • PS4 OpenOrbis FPKG           │
+│  • Cross-Platform Delivery: Web UI • Linux Desktop App • Smart TV & Mobile PWA        │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🌟 Key Engineering Highlights
+## Key Engineering Highlights
 
 ### 1. Pure Torrent Streaming (Zero Cloud Storage, Zero Buffering Waits)
 - **Instant Time-To-First-Frame (TTFF):** Prioritizes the initial byte blocks (file headers, metadata) and trailing cues (`moov` atoms / Matroska seekheads) immediately upon magnet ingestion, enabling playback in seconds.
 - **Dynamic Tracker Merging:** Enriches every magnet URI with 20+ bootstrap WebSocket and UDP trackers for rapid peer discovery even in sparse swarms.
 - **Fast Swarm Failover:** Identifies dead or unseeded torrents within 6.5 seconds and automatically fails over to the next highest-seeded release.
 
-### 2. On-the-Fly MKV Remuxing & Transcoding
+### 2. On-the-Fly MKV Remuxing and Transcoding
 - **Fragmented MP4 Remuxing (`frag_keyframe+empty_moov+default_base_moof`):** Remuxes Matroska (`.mkv`) containers on the fly to Chromium-compliant fragmented MP4.
 - **Smart Codec Passthrough:** Videos encoded in H.264 copy directly with near-zero CPU overhead; HEVC/H.265 files are transcoded on-the-fly with `libx264 veryfast`.
 - **Incompatible Audio Transcoding:** Non-browser-safe audio streams (DTS, AC3, EAC3, TrueHD) are automatically downmixed/transcoded to AAC, eliminating silent audio playback in Chromium/WebKit.
@@ -76,43 +80,98 @@ Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Jailbroke
   3. Mapped time seeks (`/api/stream/:id?startTime=t`) directly to byte offsets in WebTorrent (`(approxByte + file.offset) / pieceLength`), prioritizing only the pieces surrounding the seek timestamp.
   4. Engineered a virtual continuous timeline in Angular (`streamStartTime + video.currentTime`), ensuring smooth seeking forward (+30s, +120s, +10min) and backward with zero timeline resets.
 
-### 4. Background Episode Prefetching
-- While an active episode is playing, the client automatically requests and warms up the BitTorrent swarm for the next episode in the season pack.
-- Episode transitions happen with near-instantaneous switch latency (<1s warm TTFF).
+### 4. Resilient Subtitle Engine and Frame-Accurate Alignment
+- **3-Attempt Exponential Backoff Discovery:** Subtitle scraping operates with parity to source discovery resilience, retrying up to 3 times before error propagation.
+- **Dynamic Host URL Resolution:** Resolves subtitle API endpoints dynamically via `window.location.hostname`, preventing localhost blackouts on remote devices and Smart TVs.
+- **Verified `X-Subtitle-Sync` Header Feedback:** Communicates background `ffsubsync` status (`pending`, `syncing`, `synced`, `failed`, `unavailable`) directly to the client player, halting polling immediately upon completion or unsuitability.
+- **Automatic Fallback Chain and Validation:** Validates that cue counts are non-empty. If a subtitle file fails or has 0 cues, the player automatically cascades to the next best track in the same language.
+- **Overlapping Cue Scanner:** Retains all active dialogues across multi-character and singing scenes within a 60-second scanning window.
 
-### 5. Multi-Language Subtitles with `ffsubsync` Auto-Alignment
-- Integrates SubDL and YIFY Subtitles APIs for multi-language subtitle tracks.
-- Asynchronously aligns subtitles against the video audio stream using `ffsubsync`, correcting audio/subtitle sync drift automatically.
+### 5. Unified Cinema Browsing and Dynamic Billboard
+- **Cohesive Catalog:** Merges Movies and TV Series into a single browsing experience with sticky section filter pills (`All Cinema`, `Movies`, `TV Shows`) and instant genre tags (`Action`, `Sci-Fi`, `Comedy`, `Drama`, `Horror`, `Animation`).
+- **Dynamic Spotlight Billboard:** Automatically switches the hero billboard to a relevant top title matching the selected medium when filters change.
+- **Curated Content Shelves:** Continue Watching (with episode badges and progress bars), Top 10 Trending Today with Netflix-style giant rank typography, Blockbusters, Binge-Worthy TV Series, and Fresh Releases.
+- **Safe Headroom Padding:** Employs a 40px internal headroom padding pattern inside horizontal carousels to ensure poster hover scale (`scale(1.06)`), outlines, and drop shadows never clip against scroll boundaries.
+
+### 6. Modern Search Experience
+- **Instant Query Highlighting:** Live query tags and result counters (`All (N)`, `Movies (N)`, `TV Shows (N)`).
+- **Fluid 2:3 Grid:** High-density responsive card grid with media type tags (`MOVIE` vs `TV SHOW`), star ratings, and hover action shortcuts (`Play Now`, `Info`).
+- **Top-Anchored Image Zoom:** Image scaling anchored to `center top` so actor faces and movie titles remain fully visible without clipping inside rounded card masks.
+- **Smart Empty State:** Automatic spelling correction suggestions and popular recommendations for zero-result queries.
+
+### 7. Tier-Aware Smart TV Spatial Navigation
+- **10-Foot D-Pad Engine (`SmartTvService`):** Recognizes vertical DOM tiers (Top Nav, Billboard, Filters, Shelves, Search Grid, Footer) in strict order.
+- **Deterministic Row Transitions:** `ArrowDown` and `ArrowUp` keys transition cleanly across shelves, selecting the horizontally nearest card and auto-centering the entire shelf in the TV viewport (`smooth` window scroll).
+- **Index Clamping & Intra-Tier Centering:** `ArrowLeft` and `ArrowRight` navigate cards with automatic horizontal viewport centering (`scrollIntoView({ inline: 'center' })`).
 
 ---
 
-## 🎮 Cross-Platform Ecosystem
+## Cross-Platform Ecosystem
 
-### 🌐 Web Application
+### Web Application
 - Single Page Application built with Angular 16, RxJS, and clean cinema HUD controls.
 - Runs on any standard browser (Chrome, Firefox, Safari, Edge).
 
-### 🖥️ Linux Desktop App (Electron)
+### Linux Desktop App (Electron)
 - Standalone desktop bundle with embedded Node.js streaming server and static FFmpeg binary.
 - Full desktop integration with AppArmor compliance, icon badges, and system tray lifecycle.
 
-### 🕹️ PlayStation 4 Native Homebrew (OpenOrbis FPKG)
-- **100% Native C++17 OrbisOS Console App (Zero Browser Launching):** Runs entirely inside its own native window without ever minimizing or invoking the PS4 Internet Browser (`CUSA00001`).
-- **10-Foot TV Cinema Interface (Netflix Experience):** Horizontal poster shelves with smooth D-pad / left stick scrolling, dynamic Gold glowing focus highlight, and hero spotlight displaying movie backdrops, ratings, runtime, and synopses.
-- **Integrated In-App Cinema Player:** Streams and decodes torrent video directly on the PS4 hardware with animated BitTorrent swarm buffering HUD (seeds, peers, download rate in MB/s, buffer progress), live timeline scrub bar, play/pause, and fast seeking (+/- 15s).
-- **DualShock 4 Wireless & USB Controller Support:** Native low-latency input handling via `libScePad` and `libSceUserService` with edge-detection (`JustPressed`) and hold-to-repeat D-pad navigation.
-- **On-Screen IP Configurator & Socket Ping:** Real-time BSD socket handshake to measure round-trip latency to the PC server, interactive 4-octet IP editor directly on the TV screen, and configuration persistence to `/data/soulima.conf`.
-- **100% Compliant FPKG:** Verified Title ID `SOUL00001`, Content ID `IV0000-SOUL00001_00-SOULIMA000000000`, containing required `libc.prx` and `libSceFios2.prx` runtime modules for seamless installation across GoldHEN 5.05 - 11.00+.
+### Smart TV and 10-Foot Cinema Experience
+- **Spatial D-Pad and Remote Control Navigation:** Built-in 2D directional navigation engine (`SmartTvService`) mapping Arrow keys, Enter, Back, and Media keys seamlessly for TV remotes (LG webOS, Samsung Tizen, Android TV, Fire TV).
+- **10-Foot TV Cinema Interface:** Horizontal poster shelves with smooth D-pad scrolling, high-contrast red focus rings (`outline: 3px solid #e50914`), and hero spotlight displaying movie backdrops, ratings, runtime, and synopses.
+- **Integrated In-App Cinema Player:** Streams and decodes torrent video directly on the TV browser with animated BitTorrent swarm buffering HUD (seeds, peers, download rate in MB/s, buffer progress), live timeline scrub bar, play/pause, and fast seeking (+/- 10s, +/- 30s).
+- **Mobile PWA and Touch Optimized:** Responsive bottom navigation bar, safe-area inset compliance for notches, touch gestures, and home screen installability.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prerequisites
+### Method 1: Docker (Recommended — Instant Zero-Setup)
+
+Run the entire platform with zero host dependencies. The container automatically builds the Angular frontend, installs Node.js, bundles FFmpeg, and configures Python with `ffsubsync` for subtitle auto-alignment.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/abdelkarimer-razki/soulima.net.git
+cd soulima.net
+
+# 2. (Optional) Copy environment template and configure API keys
+cp .env.example .env
+
+# 3. Start Soulima with Docker Compose
+docker compose up -d
+
+# View live streaming and transcoding logs
+docker compose logs -f
+```
+
+Open **`http://localhost:3030`** in your browser.
+
+All torrent piece buffers, downloaded media, usage limits, and subtitle sync files automatically persist on the `soulima_data` Docker volume (`/data`).
+
+To run with standalone Docker CLI:
+```bash
+# Build the container image
+docker build -t soulima .
+
+# Run container with persistent storage
+docker run -d \
+  --name soulima \
+  -p 3030:3030 \
+  -v soulima_data:/data \
+  --restart unless-stopped \
+  soulima
+```
+
+---
+
+### Method 2: Local Node.js Development
+
+#### Prerequisites
 - [Node.js](https://nodejs.org/) v18+ (v20+ recommended)
 - [FFmpeg](https://ffmpeg.org/) installed and available in `PATH`
 
-### 1. Run the Web & Streaming Server
+#### 1. Run the Web and Streaming Server
 ```bash
 # Clone the repository
 git clone https://github.com/abdelkarimer-razki/soulima.net.git
@@ -131,10 +190,13 @@ Open **`http://localhost:3030`** in your browser.
 
 ---
 
-### 2. Build for Production
+#### 2. Build for Production
 ```bash
 # Build Angular production bundle to docs/
-npx ng build --configuration=production
+npm run build
+
+# Mirror web build into desktop distribution
+rsync -av --delete docs/ desktop/resources/web/
 
 # Run production server
 node streaming-server/server.js
@@ -142,70 +204,70 @@ node streaming-server/server.js
 
 ---
 
-### 3. Run Automated E2E Test Suite
-The repository includes automated multi-agent user simulation tests powered by Puppeteer:
+#### 3. Run Automated Verification Test Suite
+The repository includes automated unit and integration tests covering the player and streaming pipeline:
 
 ```bash
+# Run unit and integration verification checks
+node scripts/test-player-and-server.js
+
 # Run the intensive MKV & MP4 timeline scrubbing verification
 node tests/e2e/test_seek_behavior.mjs
 
-# Run the complete commercial user loop (Search -> Modal -> Movie -> Seek -> Subtitles -> Series -> Episode switch)
+# Run the complete commercial user loop
 node tests/e2e/comprehensive_user_loop.mjs
 ```
 
 ---
 
-### 4. Assemble PS4 Fake PKG (Optional)
-Requires OpenOrbis PS4 Toolchain:
-```bash
-# Compile eboot and assemble validated Fake PKG
-python3 ps4/scripts/build_pkg.py
-```
-Outputs `ps4/dist/Soulima.pkg`, ready to install via GoldHEN Package Installer.
-
----
-
-## 📁 Repository Structure
+## Repository Structure
 
 ```
+├── Dockerfile                    # Production multi-stage Docker build (Angular + Streaming Server)
+├── docker-compose.yml            # Container orchestration with volume persistence & healthcheck
+├── .dockerignore                 # Container build exclusion rules
+├── .env.example                  # Environment configuration template
 ├── src/                          # Angular 16 Cinema Client
 │   ├── app/
 │   │   ├── components/
 │   │   │   ├── torrent-player/   # Core HTML5 P2P video player & HUD controls
 │   │   │   └── player-loader/    # Buffering & metadata progress overlay
+│   │   ├── exercice2/            # Unified cinema browsing & modern search experience
 │   │   ├── movie/                # Movie details and cinema view
 │   │   ├── series/               # TV show season/episode browser & cinema view
-│   │   └── services/             # Torrent, subtitle, and TMDB integration services
+│   │   ├── offline-library/      # Local downloads & offline storage viewer
+│   │   ├── offline-player/       # Offline media player
+│   │   └── services/             # Smart TV spatial nav, torrent, subtitle, & TMDB services
 ├── streaming-server/             # High-Performance Node.js Torrent & Transcoding Engine
-│   ├── server.js                 # WebTorrent, FFmpeg remuxing, Range streaming, and proxy APIs
+│   └── server.js                 # WebTorrent, FFmpeg remuxing, Range streaming, and proxy APIs
 ├── desktop/                      # Electron Linux Desktop Wrapper
 │   ├── main.js                   # Main Electron process with embedded daemon management
-│   └── build.mjs                 # Packaging & static binary bundling scripts
-├── ps4/                          # PlayStation 4 Native Homebrew Port
-│   ├── src/                      # Native C++17 engine (libSceVideoOut, libScePad, BSD sockets)
-│   ├── scripts/                  # OpenOrbis SFO & PKG automation scripts
-│   ├── sce_sys/                  # PS4 icons, splash art, and parameter metadata
-│   └── sce_module/               # Runtime PRX modules (libc, libSceFios2)
+│   ├── build.mjs                 # Packaging & static binary bundling scripts
+│   └── resources/                # Embedded server and web assets
+├── scripts/                      # Test suites and build verification helpers
+│   └── test-player-and-server.js # 9-point unit & integration verification suite
 ├── tests/                        # Automated Multi-Agent E2E Verification
 │   └── e2e/                      # Headless Puppeteer benchmarks and seeking test loops
-└── docs/                         # Compiled production web bundle
+├── docs/                         # Compiled production web bundle
+└── AUDIT_LEDGER.md               # Complete audit history and enhancement ledger
 ```
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technologies |
 | --- | --- |
+| **Container & Cloud** | Docker Multi-Stage (Node 20 Bookworm), Docker Compose, Tini, Healthcheck |
 | **Frontend** | Angular 16, TypeScript, RxJS, HTML5 Video API, CSS Custom Properties |
 | **P2P & Streaming** | WebTorrent, Express.js, HTTP 206 Partial Content, WebSockets, DHT, PEX |
 | **Transcoding** | FFmpeg 7.x, fragmented MP4, libx264, AAC, ffsubsync |
 | **Metadata & Subtitles** | TMDB API, SubDL REST API, YIFY Subtitles API |
 | **Desktop** | Electron 43, Electron Builder |
-| **Console Port** | C++17, OpenOrbis PS4 Toolchain, libSceVideoOut, libScePad, PkgTool.Core |
-| **Testing & CI** | Puppeteer Headless Browser, E2E Latency Benchmarking |
+| **Smart TV & Mobile** | Tier-Aware Spatial D-Pad Engine (Angular), 10-Foot UI, PWA Service Worker, Responsive CSS |
+| **Testing & CI** | Mocha-compatible custom test harness, Puppeteer Headless Browser |
 
 ---
 
-## 📄 License
+## License
 This project is open-source under the [MIT License](LICENSE).
