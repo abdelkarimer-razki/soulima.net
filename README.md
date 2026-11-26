@@ -2,6 +2,7 @@
 
 [![Angular](https://img.shields.io/badge/Angular-16.0-DD0031.svg?logo=angular)](https://angular.io/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-339933.svg?logo=node.js)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker)](https://www.docker.com/)
 [![WebTorrent](https://img.shields.io/badge/WebTorrent-P2P%20Engine-brightgreen.svg)](https://webtorrent.io/)
 [![FFmpeg](https://img.shields.io/badge/FFmpeg-Remux%20%26%20Transcode-007808.svg?logo=ffmpeg)](https://ffmpeg.org/)
 [![Smart TV](https://img.shields.io/badge/Smart%20TV-10--Foot%20D--Pad-E50914.svg)](https://soulima.net)
@@ -9,7 +10,7 @@
 
 **Soulima** is a self-hosted, commercial-grade peer-to-peer streaming engine and modern web cinema application. It delivers instantaneous, Netflix-grade video on demand directly from distributed BitTorrent swarms without requiring files to be downloaded completely prior to playback.
 
-Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Smart TVs (10-Foot D-Pad UI) / Mobile PWA**.
+Available across **Docker Containers**, **Web Browsers**, **Linux Desktop (Electron)**, and **Smart TVs (10-Foot D-Pad UI) / Mobile PWA**.
 
 ---
 
@@ -125,11 +126,52 @@ Available across **Web Browsers**, **Linux Desktop (Electron)**, and **Smart TVs
 
 ## Quick Start
 
-### Prerequisites
+### Method 1: Docker (Recommended — Instant Zero-Setup)
+
+Run the entire platform with zero host dependencies. The container automatically builds the Angular frontend, installs Node.js, bundles FFmpeg, and configures Python with `ffsubsync` for subtitle auto-alignment.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/abdelkarimer-razki/soulima.net.git
+cd soulima.net
+
+# 2. (Optional) Copy environment template and configure API keys
+cp .env.example .env
+
+# 3. Start Soulima with Docker Compose
+docker compose up -d
+
+# View live streaming and transcoding logs
+docker compose logs -f
+```
+
+Open **`http://localhost:3030`** in your browser.
+
+All torrent piece buffers, downloaded media, usage limits, and subtitle sync files automatically persist on the `soulima_data` Docker volume (`/data`).
+
+To run with standalone Docker CLI:
+```bash
+# Build the container image
+docker build -t soulima .
+
+# Run container with persistent storage
+docker run -d \
+  --name soulima \
+  -p 3030:3030 \
+  -v soulima_data:/data \
+  --restart unless-stopped \
+  soulima
+```
+
+---
+
+### Method 2: Local Node.js Development
+
+#### Prerequisites
 - [Node.js](https://nodejs.org/) v18+ (v20+ recommended)
 - [FFmpeg](https://ffmpeg.org/) installed and available in `PATH`
 
-### 1. Run the Web and Streaming Server
+#### 1. Run the Web and Streaming Server
 ```bash
 # Clone the repository
 git clone https://github.com/abdelkarimer-razki/soulima.net.git
@@ -148,7 +190,7 @@ Open **`http://localhost:3030`** in your browser.
 
 ---
 
-### 2. Build for Production
+#### 2. Build for Production
 ```bash
 # Build Angular production bundle to docs/
 npm run build
@@ -162,7 +204,7 @@ node streaming-server/server.js
 
 ---
 
-### 3. Run Automated Verification Test Suite
+#### 3. Run Automated Verification Test Suite
 The repository includes automated unit and integration tests covering the player and streaming pipeline:
 
 ```bash
@@ -181,6 +223,10 @@ node tests/e2e/comprehensive_user_loop.mjs
 ## Repository Structure
 
 ```
+├── Dockerfile                    # Production multi-stage Docker build (Angular + Streaming Server)
+├── docker-compose.yml            # Container orchestration with volume persistence & healthcheck
+├── .dockerignore                 # Container build exclusion rules
+├── .env.example                  # Environment configuration template
 ├── src/                          # Angular 16 Cinema Client
 │   ├── app/
 │   │   ├── components/
@@ -212,6 +258,7 @@ node tests/e2e/comprehensive_user_loop.mjs
 
 | Layer | Technologies |
 | --- | --- |
+| **Container & Cloud** | Docker Multi-Stage (Node 20 Bookworm), Docker Compose, Tini, Healthcheck |
 | **Frontend** | Angular 16, TypeScript, RxJS, HTML5 Video API, CSS Custom Properties |
 | **P2P & Streaming** | WebTorrent, Express.js, HTTP 206 Partial Content, WebSockets, DHT, PEX |
 | **Transcoding** | FFmpeg 7.x, fragmented MP4, libx264, AAC, ffsubsync |

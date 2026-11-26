@@ -1,0 +1,40 @@
+# ==============================================================================
+# Soulima — Docker Compose Configuration
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  soulima:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: soulima:latest
+    container_name: soulima
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3030}:3030"
+    environment:
+      - PORT=3030
+      - NODE_ENV=production
+      - SOULIMA_CACHE_DIR=/data/cache
+      - MEDIA_DIR=/data/media
+      - DOWNLOAD_BUDGET_GB=${DOWNLOAD_BUDGET_GB:-15}
+      - SUBDL_API_KEY=${SUBDL_API_KEY:-}
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+    volumes:
+      # Persistent storage for torrent buffers, offline media library, and subtitle sync
+      - soulima_data:/data
+    # Optional: For maximum BitTorrent peer discovery speed via host UDP/DHT,
+    # you may uncomment 'network_mode: host' and comment out 'ports'.
+    # network_mode: host
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3030/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  soulima_data:
+    name: soulima_data

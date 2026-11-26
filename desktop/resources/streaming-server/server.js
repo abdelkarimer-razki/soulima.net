@@ -54,11 +54,13 @@ function resolveFfmpegPath() {
 const ffmpegPath = resolveFfmpegPath();
 
 function resolveFfsubsyncPath() {
-  const candidates = [
+  const candidates = [];
+  if (process.env.FFSUBSYNC_PATH) candidates.push(process.env.FFSUBSYNC_PATH);
+  candidates.push(
     path.join(os.homedir(), '.local', 'bin', 'ffsubsync'),
     '/usr/local/bin/ffsubsync',
     '/usr/bin/ffsubsync',
-  ];
+  );
   for (const c of candidates) {
     try { fs.accessSync(c, fs.constants.X_OK); return c; } catch {}
   }

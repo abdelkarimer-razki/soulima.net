@@ -677,3 +677,33 @@ rsync -av --delete docs/ desktop/resources/web/                       ✓ Synced
 ```
 
 ### Build Hash: `main.533f660102986b4f.js` @ 2026-11-26T21:01:38.519Z — 1.08MB initial total
+
+---
+
+## Iteration 23 — 2026-11-26T21:10:00Z
+
+### Status: COMPLETE ✓
+
+### Objective: Zero-Setup Docker Containerization & Portable Deployment
+
+Containerize the entire Soulima platform using multi-stage Docker and Docker Compose so it runs reliably on any machine without installing Node.js, Angular CLI, FFmpeg, Python 3, or `ffsubsync`.
+
+### Enhancements & Refactorings Applied
+
+| # | Domain | Files | Description & Implementation |
+|---|--------|-------|------------------------------|
+| 1 | **Multi-Stage Docker Architecture** | `Dockerfile` | Engineered a 2-stage build: Stage 1 (`builder`) compiles the Angular 16 frontend into `/app/docs`; Stage 2 (`runner`) on `node:20-bookworm-slim` installs system FFmpeg, Python 3, `ffsubsync`, `curl`, and `tini`. Copies backend server and compiled web bundle, creating an isolated self-contained runtime. |
+| 2 | **Docker Compose Orchestration** | `docker-compose.yml` | Configured service with port mapping `3030:3030`, persistent storage volume `soulima_data:/data`, environment variable pass-through (`SUBDL_API_KEY`, `TMDB_API_KEY`, `DOWNLOAD_BUDGET_GB`), restart policies, and API healthcheck. |
+| 3 | **Container Security & Volume Isolation** | `Dockerfile`, `docker-compose.yml`, `server.js` | Uses non-root `node` user with proper permissions for `/data`. Configured `SOULIMA_CACHE_DIR=/data/cache` and `MEDIA_DIR=/data/media` so torrent piece buffers, completed offline downloads, usage limits, and subtitle sync files persist seamlessly across container restarts. |
+| 4 | **Subtitle Alignment Path Overrides** | `streaming-server/server.js`, `desktop/resources/streaming-server/server.js` | Added `process.env.FFSUBSYNC_PATH` support to `resolveFfsubsyncPath()` while preserving 100% byte parity between server copies. |
+| 5 | **Environment Configuration & Ignores** | `.env.example`, `.dockerignore`, `package.json` | Created root `.env.example` template; added `.dockerignore` to optimize container context transfer; added convenience scripts (`docker:build`, `docker:up`, `docker:down`, `docker:logs`) to `package.json`. |
+| 6 | **Documentation Integration** | `README.md` | Added Docker badge and dedicated "Method 1: Docker (Recommended — Instant Zero-Setup)" section at the top of Quick Start. |
+
+### Verification Results
+
+```
+node -c streaming-server/server.js                                    ✓ Exit 0
+node -c desktop/resources/streaming-server/server.js                  ✓ Exit 0
+diff -u streaming-server/server.js desktop/resources/streaming-server/server.js  ✓ No diff (100% Parity)
+node scripts/test-player-and-server.js                                ✓ ALL 9 TESTS PASSED
+```
