@@ -4,8 +4,8 @@ import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
-import { forkJoin, Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { forkJoin, Subject, Subscription, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, catchError } from 'rxjs/operators';
 import { CookieService } from 'ngx-cookie-service';
 import { SeoService } from '../services/seo.service';
 import { SearchCorrectorService } from '../services/search-corrector.service';
@@ -736,12 +736,12 @@ export class Exercice2Component implements OnInit, OnDestroy
 		}
 
 		forkJoin([
-			this.moviedbAPIService.getTrendingMovies(),
-			this.moviedbAPIService.getTopRatedMovies(),
-			this.moviedbAPIService.getNewRelease(),
-			this.moviedbAPIService.getTrendingSeries(),
-			this.moviedbAPIService.getTopRatedSeries(),
-			this.moviedbAPIService.getNewReleaseSeries()
+			this.moviedbAPIService.getTrendingMovies().pipe(catchError(() => of({ results: [] }))),
+			this.moviedbAPIService.getTopRatedMovies().pipe(catchError(() => of({ results: [] }))),
+			this.moviedbAPIService.getNewRelease().pipe(catchError(() => of({ results: [] }))),
+			this.moviedbAPIService.getTrendingSeries().pipe(catchError(() => of({ results: [] }))),
+			this.moviedbAPIService.getTopRatedSeries().pipe(catchError(() => of({ results: [] }))),
+			this.moviedbAPIService.getNewReleaseSeries().pipe(catchError(() => of({ results: [] })))
 		]).subscribe({
 			next: ([trendMovies, topMovies, newMovies, trendSeries, topSeries, newSeries]: any[]) => {
 				this.trendingMovies = trendMovies?.results || [];
@@ -761,6 +761,8 @@ export class Exercice2Component implements OnInit, OnDestroy
 				
 				this.buildMixedTrending();
 				this.getBillboardImage();
+				this.loading = false;
+				this.showLoadingScreen = false;
 			},
 			error: (err) => {
 				console.error("Error fetching homepage content:", err);

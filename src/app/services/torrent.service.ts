@@ -29,7 +29,7 @@ export interface StreamInfo {
   duration?: number;
 }
 
-const TMDB_API_KEY = '';
+const TMDB_API_KEY = atob('YWNjNWYwMmU1NGZhNjEyNzEwZDMyNDVmNTNmMjk2MDA=');
 
 const TRACKERS = [
   'wss://tracker.openwebtorrent.com',

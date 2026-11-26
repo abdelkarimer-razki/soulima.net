@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -21,6 +21,11 @@ import { TorrentPlayerComponent } from './components/torrent-player/torrent-play
 import { PlayerLoaderComponent } from './components/player-loader/player-loader.component';
 import { OfflineLibraryComponent } from './offline-library/offline-library.component';
 import { OfflinePlayerComponent } from './offline-player/offline-player.component';
+import { MoviedbAPIService } from './services/moviedb-api.service';
+
+export function initAppConfig(movieService: MoviedbAPIService) {
+  return () => movieService.loadConfig();
+}
 
 
 @NgModule({
@@ -46,7 +51,15 @@ import { OfflinePlayerComponent } from './offline-player/offline-player.componen
     HttpClientModule,
     YouTubePlayerModule
   ],
-  providers: [{provide:LocationStrategy, useClass:PathLocationStrategy}],
+  providers: [
+    { provide: LocationStrategy, useClass: PathLocationStrategy },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initAppConfig,
+      deps: [MoviedbAPIService],
+      multi: true
+    }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

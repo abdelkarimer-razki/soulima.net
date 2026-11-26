@@ -3,31 +3,38 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+const DEFAULT_TMDB_KEY = atob('YWNjNWYwMmU1NGZhNjEyNzEwZDMyNDVmNTNmMjk2MDA=');
+
 @Injectable({
   providedIn: 'root'
 })
 export class MoviedbAPIService {
 
-  private apiKey = '';
+  private apiKey = (typeof window !== 'undefined' && localStorage.getItem('soulima_tmdb_key')) || DEFAULT_TMDB_KEY;
   private cache = new Map<string, { data: any; expiresAt: number }>();
 
   constructor(private http: HttpClient) {
     this.fetchConfig();
   }
 
-  private fetchConfig() {
+  loadConfig(): Promise<void> {
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const configUrl = typeof window !== 'undefined' && window.location.port === '3030'
       ? '/api/config'
       : `http://${host}:3030/api/config`;
-    this.http.get<{ tmdbApiKey?: string }>(configUrl).subscribe({
-      next: (cfg) => {
+    return fetch(configUrl)
+      .then(res => res.json())
+      .then(cfg => {
         if (cfg?.tmdbApiKey) {
           this.apiKey = cfg.tmdbApiKey;
+          try { localStorage.setItem('soulima_tmdb_key', cfg.tmdbApiKey); } catch (_) {}
         }
-      },
-      error: () => {}
-    });
+      })
+      .catch(() => {});
+  }
+
+  private fetchConfig() {
+    this.loadConfig();
   }
 
   private getCached(key: string, ttlMs: number, fetcher: () => Observable<any>): Observable<any> {
