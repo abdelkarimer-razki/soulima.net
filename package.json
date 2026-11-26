@@ -4,7 +4,9 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "serve:lan": "node streaming-server/server.js",
     "dev": "concurrently -n web,stream -c blue,magenta \"npm start\" \"npm run start --prefix streaming-server\"",
+    "dev:lan": "concurrently -n web,stream -c blue,magenta \"ng serve --host 0.0.0.0 --disable-host-check\" \"npm run start --prefix streaming-server\"",
     "desktop:build": "node desktop/build.mjs",
     "desktop:start": "npm --prefix desktop start",
     "desktop:package": "npm --prefix desktop run package",

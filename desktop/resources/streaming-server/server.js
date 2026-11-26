@@ -159,6 +159,8 @@ const PORT = process.env.PORT || 3030;
 
 const ALLOWED_ORIGIN_PATTERNS = [
   /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+  /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/,
+  /^https?:\/\/([a-zA-Z0-9-]+\.)*local(:\d+)?$/,
   /^https?:\/\/([a-zA-Z0-9-]+\.)*soulima\.net(:\d+)?$/,
   /^https?:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/,
   /^capacitor:\/\/localhost$/,
@@ -2870,4 +2872,4 @@ if (fs.existsSync(staticPath)) {
 }
 
 loadBudget().catch(() => {});
-app.listen(PORT, () => console.log(`soulima streaming server running on :${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`soulima streaming server running on http://0.0.0.0:${PORT}`));
