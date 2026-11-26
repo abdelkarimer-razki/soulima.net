@@ -1,15 +1,16 @@
 <div class="moviePlayer">
 	<div class="torrentPlayerWrapper">
-		<app-torrent-player [sources]="torrentSources" [sourcesLoading]="torrentSourcesLoading" [subtitles]="subtitleTracks" [title]="serie?.name"
+		<app-torrent-player [sources]="torrentSources" [sourcesLoading]="torrentSourcesLoading" [subtitles]="subtitleTracks" [title]="serie?.name || serie?.original_name || 'TV Show'"
 			[info]="'Season ' + season + ' • Episode ' + episode" backLink="/tvshows"
 			[backdropUrl]="serie?.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + serie.backdrop_path : ''"
 			[posterUrl]="serie?.current_still_path ? 'https://image.tmdb.org/t/p/w780' + serie.current_still_path : (serie?.backdrop_path ? 'https://image.tmdb.org/t/p/w1280' + serie.backdrop_path : '')"
 			[overview]="serie?.current_episode_overview || serie?.overview"
+			[knownDuration]="(serie?.current_episode_runtime || 0) * 60"
 			[hasPrev]="hasPreviousEpisode()" [hasNext]="hasNextEpisode()"
 			[seasons]="seasons" [episodes]="episodes" [currentSeason]="season" [currentEpisode]="episode" [resumeKey]="'tv:' + id"
 			(prevEpisode)="prevEpisode()" (nextEpisode)="nextEpisode()"
 			(selectEpisode)="changeEpisode($event)" (selectSeason)="choseSeason($event)"
-			(retrySources)="fetchTorrentSources()">
+			(retrySources)="fetchTorrentSources()" (unplayable)="onUnplayable()">
 		</app-torrent-player>
 	</div>
 </div>

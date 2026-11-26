@@ -92,8 +92,16 @@ async function autoSyncSubtitle(subBuf, videoPath) {
     let srtText = text;
     if (isVtt) {
       srtText = text
-        .replace(/WEBVTT[\s\S]*?\n\n/, '')
-        .replace(/(\d{2}:\d{2}:\d{2})\.(\d{3})/g, '$1,$2');
+        .replace(/^\s*WEBVTT[^\n]*\n+/i, '')
+        .replace(/^(?:STYLE|NOTE|REGION)\b[\s\S]*?^\s*$/gm, '')
+        // Ensure mm:ss.ttt or hh:mm:ss.ttt timestamps are converted to valid SRT hh:mm:ss,ttt
+        .replace(/(?:^|\n)(?:(\d{2}):)?(\d{2}):(\d{2})[\.,](\d{3})\s*-->\s*(?:(\d{2}):)?(\d{2}):(\d{2})[\.,](\d{3})/g,
+          (m, h1, m1, s1, ms1, h2, m2, s2, ms2) => {
+            const startH = h1 || '00';
+            const endH = h2 || '00';
+            return `\n${startH}:${m1}:${s1},${ms1} --> ${endH}:${m2}:${s2},${ms2}`;
+          }
+        );
     }
     await fs.promises.writeFile(inFile, srtText, 'utf8');
 
@@ -107,9 +115,9 @@ async function autoSyncSubtitle(subBuf, videoPath) {
 
     if (!fs.existsSync(outFile)) return null;
     let synced = await fs.promises.readFile(outFile, 'utf8');
-    // Convert back to VTT
-    synced = synced.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
-    synced = 'WEBVTT\n\n' + synced;
+    // Convert back to VTT standard
+    synced = synced.replace(/(?:^|\n)(\d{2}:\d{2}:\d{2}),(\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}),(\d{3})/g, '\n$1.$2 --> $3.$4');
+    synced = 'WEBVTT\n\n' + synced.trim() + '\n';
     console.log(`[sync] ffsubsync done for ${path.basename(videoPath)}`);
     return synced;
   } catch (err) {
@@ -146,7 +154,24 @@ const BOOTSTRAP_TRACKERS = [
 
 const app = express();
 const PORT = process.env.PORT || 3030;
-app.use(cors());
+
+const ALLOWED_ORIGIN_PATTERNS = [
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
+  /^https?:\/\/([a-zA-Z0-9-]+\.)*soulima\.net(:\d+)?$/,
+  /^https?:\/\/([a-zA-Z0-9-]+\.)*vercel\.app$/,
+  /^capacitor:\/\/localhost$/,
+  /^app:\/\/./,
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = ALLOWED_ORIGIN_PATTERNS.some(p => p.test(origin));
+    callback(null, isAllowed);
+  },
+  credentials: true,
+  exposedHeaders: ['X-Subtitle-Sync', 'X-Media-Duration', 'X-Stream-Start-Time'],
+}));
 app.use(express.json({ limit: '1mb' }));
 
 const client = new WebTorrent({
@@ -161,7 +186,50 @@ const client = new WebTorrent({
   },
   webSeeds: true,
 });
+client.on('error', (err) => console.error('[webtorrent] client error:', err.message));
+
+class BoundedMap extends Map {
+  constructor(maxSize = 500) {
+    super();
+    this.maxSize = maxSize;
+  }
+  get(key) {
+    if (!super.has(key)) return undefined;
+    const value = super.get(key);
+    // Move to end for true LRU access ordering
+    super.delete(key);
+    super.set(key, value);
+    return value;
+  }
+  set(key, value) {
+    if (super.has(key)) {
+      super.delete(key);
+    } else if (this.size >= this.maxSize) {
+      const oldestKey = this.keys().next().value;
+      this.delete(oldestKey);
+    }
+    return super.set(key, value);
+  }
+}
+
+function normalizeMagnet(rawMagnet) {
+  if (!rawMagnet || typeof rawMagnet !== 'string') return null;
+  const match = rawMagnet.match(/xt=urn:btih:([a-fA-F0-9]{40}|[a-zA-Z2-7]{32})/i);
+  if (!match) return null;
+  const hash = match[1].toLowerCase();
+  const dnMatch = rawMagnet.match(/[?&]dn=([^&]+)/i);
+  const dn = dnMatch ? `&dn=${dnMatch[1]}` : '';
+  const trStr = BOOTSTRAP_TRACKERS.map(t => `tr=${encodeURIComponent(t)}`).join('&');
+  return {
+    infoHash: hash,
+    normalizedMagnet: `magnet:?xt=urn:btih:${hash}${dn}&${trStr}`,
+  };
+}
+
 const streams = new Map();
+const prefetches = new Map();
+const inProgressSyncs = new Set();
+const failedSyncs = new BoundedMap(500);
 
 function getTempDir(id) {
   return path.join(CACHE_BASE_DIR, 'stream', id);
@@ -183,18 +251,44 @@ function pickVideoFile(files, season, episode) {
 
   // If season and episode are specified, match specific episode
   if (season != null && episode != null) {
-    const s = Number(season);
-    const e = Number(episode);
-    const patterns = [
-      new RegExp(`s0*${s}e0*${e}\\b`, 'i'),
-      new RegExp(`\\b${s}x0*${e}\\b`, 'i'),
-      new RegExp(`\\bepisode[ ._-]*0*${e}\\b`, 'i'),
-      new RegExp(`\\b0*${e}[ ._-]+of[ ._-]+`, 'i'),
-      new RegExp(`\\be0*${e}\\b`, 'i'),
-    ];
-    for (const pat of patterns) {
-      const match = candidates.find(f => pat.test(f.name));
-      if (match) return match;
+    try {
+      const s = Number(season);
+      const e = Number(episode);
+
+      // 1. Precise season & episode patterns (including multi-episode ranges like S01E01-E02, S01E01-02, 1x01-02)
+      const exactPatterns = [
+        new RegExp(`s0*${s}[- ._]*e0*${e}(?:[- ._]+e?\\d+)?\\b`, 'i'),
+        new RegExp(`s0*${s}[- ._]*e\\d+[- ._]+e?0*${e}\\b`, 'i'),
+        new RegExp(`\\b${s}x0*${e}(?:-\\d+)?\\b`, 'i'),
+        new RegExp(`\\b${s}x\\d+-0*${e}\\b`, 'i'),
+        new RegExp(`(?:season|s)[- ._]*0*${s}[\\s\\S]*?\\b(?:episode|ep|e)[- ._]*0*${e}\\b`, 'i'),
+      ];
+      for (const pat of exactPatterns) {
+        const match = candidates.find(f => pat.test(f.name) || pat.test(f.path || ''));
+        if (match) return match;
+      }
+
+      // 2. Fallback: Episode number with season folder/path verification
+      const seasonFolderCheck = new RegExp(`(?:season|s)[- ._]*0*${s}\\b`, 'i');
+      const episodePatterns = [
+        new RegExp(`\\bepisode[- ._]*0*${e}\\b`, 'i'),
+        new RegExp(`\\b0*${e}[- ._]+of[- ._]+`, 'i'),
+        new RegExp(`\\be0*${e}\\b`, 'i'),
+      ];
+      for (const pat of episodePatterns) {
+        const match = candidates.find(f => {
+          const fullPath = (f.path || '') + '/' + f.name;
+          // Ensure that if season folder exists in path, it matches our target season
+          if (seasonFolderCheck.test(fullPath)) return pat.test(f.name);
+          // Only allow standalone episode match if no conflicting season exists in the path
+          const otherSeason = fullPath.match(/s0*(\d+)/i) || fullPath.match(/season[- ._]*(\d+)/i);
+          if (otherSeason && Number(otherSeason[1]) !== s) return false;
+          return pat.test(f.name);
+        });
+        if (match) return match;
+      }
+    } catch (err) {
+      console.warn('[stream] pickVideoFile episode matching error:', err.message);
     }
   }
 
@@ -206,22 +300,15 @@ app.post('/api/stream', async (req, res) => {
   const { magnet, season, episode } = req.body;
   if (!magnet) return res.status(400).json({ error: 'magnet required' });
   console.log('[stream] POST received magnet:', magnet.slice(0, 80));
-  if (!magnet.startsWith('magnet:?xt=urn:btih:')) {
+  
+  const norm = normalizeMagnet(magnet);
+  if (!norm) {
     return res.status(400).json({ error: 'invalid magnet link' });
   }
-
-  // Ensure magnet has all bootstrap tracker parameters for instant peer discovery
-  let enrichedMagnet = magnet;
-  const missingTrackers = BOOTSTRAP_TRACKERS.filter(tr => !magnet.includes(encodeURIComponent(tr)));
-  if (missingTrackers.length) {
-    const trStr = missingTrackers.map(t => `tr=${encodeURIComponent(t)}`).join('&');
-    enrichedMagnet += (enrichedMagnet.includes('?') ? '&' : '?') + trStr;
-  }
+  const { infoHash, normalizedMagnet: enrichedMagnet } = norm;
 
   const id = crypto.randomBytes(6).toString('hex');
-
-  const infoHashMatch = magnet.match(/xt=urn:btih:([a-fA-F0-9]+)/);
-  const infoHash = infoHashMatch ? infoHashMatch[1].toLowerCase() : null;
+  let newlyCreatedTorrent = null;
 
   try {
     let existing = infoHash ? await client.get(`magnet:?xt=urn:btih:${infoHash}`) : null;
@@ -275,6 +362,7 @@ app.post('/api/stream', async (req, res) => {
           maxConns: 300,
           strategy: 'sequential',
         });
+        newlyCreatedTorrent = t;
       } catch (e) {
         reject(new Error('failed to add torrent'));
         return;
@@ -292,7 +380,7 @@ app.post('/api/stream', async (req, res) => {
         reject(err);
       };
 
-      // Fast failover if torrent has 0 peers after 6.5s
+      // Fast failover if torrent has 0 peers after 10s (gives DHT/trackers time to connect)
       earlyTimer = setTimeout(() => {
         if (!t.metadata && t.numPeers === 0) {
           t.removeListener('metadata', onMeta);
@@ -300,7 +388,7 @@ app.post('/api/stream', async (req, res) => {
           t.destroy();
           reject(new Error('no peers found (fast failover)'));
         }
-      }, 6500);
+      }, 10000);
 
       const timeout = setTimeout(() => {
         if (earlyTimer) clearTimeout(earlyTimer);
@@ -344,35 +432,42 @@ app.post('/api/stream', async (req, res) => {
       size: file.length,
     });
   } catch (err) {
-    console.error('[stream] POST error:', err);
+    if (newlyCreatedTorrent && !streams.has(id)) {
+      try { newlyCreatedTorrent.destroy(); } catch {}
+    }
+    console.error('[stream] POST error:', err.message || err);
     res.status(500).json({ error: err.message });
   }
 });
 
 app.post('/api/stream/prefetch', async (req, res) => {
   const { magnet } = req.body;
-  if (!magnet || !magnet.startsWith('magnet:?xt=urn:btih:')) {
+  const norm = normalizeMagnet(magnet);
+  if (!norm) {
     return res.status(400).json({ error: 'invalid magnet' });
   }
-  const infoHashMatch = magnet.match(/xt=urn:btih:([a-fA-F0-9]+)/);
-  const infoHash = infoHashMatch ? infoHashMatch[1].toLowerCase() : null;
-  if (!infoHash) return res.status(400).json({ error: 'invalid infoHash' });
+  const { infoHash, normalizedMagnet: enrichedMagnet } = norm;
 
   try {
     let existing = client.get(`magnet:?xt=urn:btih:${infoHash}`);
     if (!existing) {
-      let enrichedMagnet = magnet;
-      if (!magnet.includes('&tr=')) {
-        const trStr = BOOTSTRAP_TRACKERS.map(t => `tr=${encodeURIComponent(t)}`).join('&');
-        enrichedMagnet += (magnet.includes('?') ? '&' : '?') + trStr;
-      }
       existing = client.add(enrichedMagnet, {
         path: path.join(CACHE_BASE_DIR, 'prefetch', infoHash),
         announce: BOOTSTRAP_TRACKERS,
-        maxConns: 300,
+        maxConns: 100,
         strategy: 'sequential',
       });
+      // When metadata arrives, immediately deselect all pieces so prefetching only
+      // caches swarm discovery and metadata without downloading unrequested pieces.
+      existing.once('metadata', () => {
+        try {
+          if (existing.pieces?.length) {
+            existing.deselect(0, existing.pieces.length - 1, 0);
+          }
+        } catch {}
+      });
     }
+    prefetches.set(infoHash, { torrent: existing, createdAt: Date.now() });
     res.json({ ok: true, infoHash });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -426,10 +521,20 @@ function startDurationProbe(id) {
   const s = streams.get(id);
   if (!s) return;
   const sourcePath = path.join(s.torrent.path, s.file.path);
-  waitForFileSize(sourcePath, 2 * 1024 * 1024, 20000).then(() =>
+  waitForFileSize(sourcePath, 512 * 1024, 20000).then(() =>
     probeCodecs(sourcePath).then(cfg => {
       const cur = streams.get(id);
-      if (cur && cfg && cfg.duration > 0) cur.duration = cfg.duration;
+      if (cur && cfg && cfg.duration > 0) {
+        cur.duration = cfg.duration;
+      } else if (cur && (!cfg || !cfg.duration)) {
+        setTimeout(() => {
+          if (!streams.has(id)) return;
+          probeCodecs(sourcePath).then(c2 => {
+            const c = streams.get(id);
+            if (c && c2 && c2.duration > 0) c.duration = c2.duration;
+          }).catch(() => {});
+        }, 10000);
+      }
     }).catch(() => {})
   );
 }
@@ -439,7 +544,7 @@ async function probeCodecs(sourcePath) {
   try {
     const { stderr } = await execFileAsync(
       ffmpegPath,
-      ['-hide_banner', '-probesize', '4M', '-analyzeduration', '4M', '-i', sourcePath],
+      ['-hide_banner', '-probesize', '1M', '-analyzeduration', '1M', '-i', sourcePath],
       { timeout: 20000 }
     ).catch(e => ({ stderr: e.stderr || e.message || '' }));
     const video = stderr.match(/Stream #\d+:\d+[^\n]*: Video: (\S+)/i);
@@ -469,21 +574,24 @@ function spawnRemux(res, s, startTime, cfg, sourceName) {
   const args = [
     '-hide_banner',
     '-loglevel', 'error',
-    '-probesize', '4M',
-    '-analyzeduration', '4M',
+    '-probesize', '1M',
+    '-analyzeduration', '1M',
     '-seekable', '1',
     '-multiple_requests', '1',
   ];
 
   if (startTime > 0) {
     args.push('-ss', String(startTime));
-    if (cfg.duration > 0 && s.torrent?.pieceLength) {
+    const duration = s.duration || cfg.duration || 0;
+    if (s.torrent?.pieceLength) {
       const fileOffset = s.file.offset || 0;
       const pLen = s.torrent.pieceLength;
-      const approxByte = Math.floor((startTime / cfg.duration) * s.file.length);
+      const approxByte = duration > 0
+        ? Math.floor((startTime / duration) * s.file.length)
+        : Math.floor((startTime / 7200) * s.file.length); // 2hr nominal fallback
       const targetPiece = Math.floor((approxByte + fileOffset) / pLen);
       try {
-        s.torrent.critical(targetPiece, Math.min(targetPiece + 30, s.file._endPiece || (s.torrent.pieces.length - 1)));
+        s.torrent.critical(targetPiece, Math.min(targetPiece + 35, s.file._endPiece || (s.torrent.pieces.length - 1)));
       } catch {}
     }
   }
@@ -501,6 +609,7 @@ function spawnRemux(res, s, startTime, cfg, sourceName) {
   console.log(`[mkv] remux ${sourceName} startTime=${startTime}s video=${cfg.videoCodec || '?'} audio=${cfg.audioCodec || '?'} (${copyVideo ? 'copy' : 'h264'} / ${copyAudio ? 'copy' : 'aac'})`);
 
   const proc = spawn(ffmpegPath, args);
+  s.ffmpegProc = proc;
   proc.stdout.pipe(res);
   proc.stderr.on('data', d => {
     const t = d.toString().trim();
@@ -515,6 +624,7 @@ function spawnRemux(res, s, startTime, cfg, sourceName) {
     }
   });
   proc.on('close', (code) => {
+    if (s.ffmpegProc === proc) s.ffmpegProc = null;
     if (code !== 0 && !res.writableEnded) res.destroy();
   });
   res.on('close', () => {
@@ -528,7 +638,62 @@ function spawnRemux(res, s, startTime, cfg, sourceName) {
     'Accept-Ranges': 'none',
     'Cache-Control': 'no-store, no-cache',
   };
-  if (cfg.duration > 0) headers['X-Media-Duration'] = String(cfg.duration);
+  const effectiveDur = s.duration || cfg.duration || 0;
+  if (effectiveDur > 0) headers['X-Media-Duration'] = String(effectiveDur);
+  if (startTime > 0) headers['X-Stream-Start-Time'] = String(startTime);
+  res.writeHead(200, headers);
+  return true;
+}
+
+async function spawnFileRemux(res, filePath, startTime, cfg, sourceName) {
+  const isHevc = /hevc|x265|h265|265/i.test(sourceName) || cfg.videoCodec === 'hevc';
+  const copyVideo = !isHevc && !!cfg.videoCodec && FFMPEG_VIDEO_COPY.has(cfg.videoCodec);
+  const copyAudio = !!cfg.hasAudio && FFMPEG_AUDIO_COPY.has(cfg.audioCodec);
+
+  const args = [
+    '-hide_banner',
+    '-loglevel', 'error',
+  ];
+  if (startTime > 0) {
+    args.push('-ss', String(startTime));
+  }
+  args.push('-i', filePath);
+
+  if (copyVideo) args.push('-c:v', 'copy');
+  else args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p');
+
+  if (copyAudio) args.push('-c:a', 'copy');
+  else args.push('-c:a', 'aac', '-b:a', '192k');
+
+  args.push('-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-f', 'mp4', 'pipe:1');
+
+  console.log(`[file-remux] ${sourceName} startTime=${startTime}s video=${cfg.videoCodec || '?'} audio=${cfg.audioCodec || '?'} (${copyVideo ? 'copy' : 'h264'} / ${copyAudio ? 'copy' : 'aac'})`);
+
+  const proc = spawn(ffmpegPath, args);
+  proc.stdout.pipe(res);
+  proc.stderr.on('data', d => {
+    const t = d.toString().trim();
+    if (t && !/^frame=/.test(t)) console.log('[file-remux]', t);
+  });
+  proc.on('error', (err) => {
+    console.error('[file-remux] spawn error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'transcode unavailable' });
+    else res.destroy();
+  });
+  proc.on('close', (code) => {
+    if (code !== 0 && !res.writableEnded) res.destroy();
+  });
+  res.on('close', () => {
+    try { proc.kill('SIGKILL'); } catch {}
+  });
+
+  const headers = {
+    'Content-Type': 'video/mp4',
+    'Accept-Ranges': 'none',
+    'Cache-Control': 'no-store, no-cache',
+  };
+  const effectiveDur = cfg.duration || 0;
+  if (effectiveDur > 0) headers['X-Media-Duration'] = String(effectiveDur);
   if (startTime > 0) headers['X-Stream-Start-Time'] = String(startTime);
   res.writeHead(200, headers);
   return true;
@@ -539,7 +704,7 @@ async function handleMkvStream(req, res, s, startTime) {
   const sourcePath = path.join(torrent.path, file.path);
 
   if (!s.mkvConfig) {
-    await waitForFileSize(sourcePath, 1024 * 1024, 15000);
+    await waitForFileSize(sourcePath, 512 * 1024, 15000);
     s.mkvConfig = (await probeCodecs(sourcePath)) || { videoCodec: '', audioCodec: '', hasAudio: true, duration: 0 };
   }
   return spawnRemux(res, s, startTime, s.mkvConfig, file.name);
@@ -710,19 +875,54 @@ function toSrt(buf) {
   return text;
 }
 
-async function muxWithSubtitle(req, res, s, fileId, lang) {
+function shiftSrtTimestamps(srtText, offsetSec) {
+  if (!offsetSec || isNaN(offsetSec) || offsetSec === 0) return srtText;
+  const offsetMs = Math.round(offsetSec * 1000);
+
+  function shiftTime(tStr) {
+    const parts = tStr.split(/[:,]/);
+    if (parts.length < 4) return tStr;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const s = parseInt(parts[2], 10);
+    const ms = parseInt(parts[3], 10);
+    let totalMs = (h * 3600 + m * 60 + s) * 1000 + ms + offsetMs;
+    if (totalMs < 0) totalMs = 0;
+    const nH = Math.floor(totalMs / 3600000);
+    totalMs %= 3600000;
+    const nM = Math.floor(totalMs / 60000);
+    totalMs %= 60000;
+    const nS = Math.floor(totalMs / 1000);
+    const nMs = totalMs % 1000;
+    return `${String(nH).padStart(2, '0')}:${String(nM).padStart(2, '0')}:${String(nS).padStart(2, '0')},${String(nMs).padStart(3, '0')}`;
+  }
+
+  return srtText.replace(/(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})/g, (m, start, end) => {
+    return `${shiftTime(start)} --> ${shiftTime(end)}`;
+  });
+}
+
+async function getSubtitleBufferForMux(s, subtitleId) {
+  const cacheKeySync = `sync:${s.id}:${subtitleId}`;
+  const cached = subtitleCache.get(cacheKeySync);
+  if (cached?.buf) return cached.buf;
+  return resolveSubtitleBuffer(subtitleId);
+}
+
+async function muxWithSubtitle(req, res, s, fileId, lang, offsetSec) {
   const { torrent, file } = s;
   const sourcePath = path.join(torrent.path, file.path);
   if (!fs.existsSync(sourcePath)) return false;
-  const subBuf = await resolveSubtitleBuffer(fileId);
+  const subBuf = await getSubtitleBufferForMux(s, fileId);
   if (!subBuf) return false;
-  const srt = toSrt(subBuf);
+  let srt = toSrt(subBuf);
+  if (offsetSec) srt = shiftSrtTimestamps(srt, offsetSec);
   if (!srt.trim()) return false;
   const tmpSub = path.join(getTempDir(req.params.id), `.soulima-subs-${process.pid}.srt`);
   await fs.promises.writeFile(tmpSub, srt);
   const baseName = file.name.replace(/\.(mkv|mp4|webm|avi)$/i, '') || 'video';
   const outName = `${baseName} (${(lang || 'und').toUpperCase()}).mkv`.replace(/[^\w.\- ()]/g, '_');
-  console.log(`[mux] ${file.name} + ${fileId} (${lang || 'und'}) -> ${outName}`);
+  console.log(`[mux] ${file.name} + ${fileId} (${lang || 'und'}, offset=${offsetSec || 0}s) -> ${outName}`);
   try {
     const args = [
       '-y', '-loglevel', 'error',
@@ -827,19 +1027,26 @@ async function waitForFileDone(s, state) {
   const { file } = s;
   if (file.downloaded >= file.length) return true;
   return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(false), 60 * 60 * 1000);
+    let iv = null;
+    const timeout = setTimeout(() => {
+      if (iv) clearInterval(iv);
+      resolve(false);
+    }, 60 * 60 * 1000);
     const update = () => {
       state.downloaded = file.downloaded;
       state.progress = file.length ? Math.min(99, (file.downloaded / file.length) * 100) : 0;
       if (file.downloaded >= file.length) {
-        clearTimeout(timeout); clearInterval(iv);
+        clearTimeout(timeout);
+        if (iv) clearInterval(iv);
         resolve(true);
       }
     };
-    const iv = setInterval(update, 1000);
+    iv = setInterval(update, 1000);
     file.once('done', () => {
-      clearTimeout(timeout); clearInterval(iv);
-      state.downloaded = file.length; state.progress = 99;
+      clearTimeout(timeout);
+      if (iv) clearInterval(iv);
+      state.downloaded = file.length;
+      state.progress = 99;
       resolve(true);
     });
   });
@@ -862,12 +1069,13 @@ async function copyToFile(s, state) {
 }
 
 // Mux a subtitle into a complete copy of the video, writing to outFile.
-async function muxToFile(s, outFile, subtitleId, lang, onProgress) {
+async function muxToFile(s, outFile, subtitleId, lang, offsetSec, onProgress) {
   const { torrent, file } = s;
   const sourcePath = path.join(torrent.path, file.path);
-  const subBuf = await resolveSubtitleBuffer(subtitleId);
+  const subBuf = await getSubtitleBufferForMux(s, subtitleId);
   if (!subBuf) throw new Error('subtitle fetch failed');
-  const srt = toSrt(subBuf);
+  let srt = toSrt(subBuf);
+  if (offsetSec) srt = shiftSrtTimestamps(srt, offsetSec);
   if (!srt.trim()) throw new Error('empty subtitle');
   const tmpSub = path.join(getTempDir(s.id), `.soulima-mux-subs-${process.pid}-${Date.now()}.srt`);
   await fs.promises.writeFile(tmpSub, srt);
@@ -921,7 +1129,7 @@ async function muxToFile(s, outFile, subtitleId, lang, onProgress) {
   });
 }
 
-async function startDownloadTask(s, state, subtitleId, lang) {
+async function startDownloadTask(s, state, subtitleId, lang, offsetSec) {
   if (subtitleId) {
     state.status = 'downloading';
     state.message = 'Downloading video…';
@@ -930,7 +1138,7 @@ async function startDownloadTask(s, state, subtitleId, lang) {
     state.status = 'muxing';
     state.message = 'Embedding subtitles…';
     state.progress = 0;
-    const outPath = await muxToFile(s, state.outFile, subtitleId, lang, (p) => {
+    const outPath = await muxToFile(s, state.outFile, subtitleId, lang, offsetSec, (p) => {
       state.progress = p;
     });
     state.outFile = outPath;
@@ -956,8 +1164,28 @@ function finishDownload(state) {
   if (s) {
     s.downloading = false;
     if (s.pendingDestroy) {
-      try { s.torrent.destroy(); } catch {}
+      let shared = false;
+      for (const [otherId, otherS] of streams.entries()) {
+        if (otherId !== state.streamId && otherS.torrent === s.torrent) {
+          shared = true;
+          break;
+        }
+      }
+      if (!shared && s.torrent) {
+        try { s.torrent.destroy(); } catch {}
+      }
       streams.delete(state.streamId);
+    }
+  } else if (state.torrent) {
+    let shared = false;
+    for (const otherS of streams.values()) {
+      if (otherS.torrent === state.torrent) {
+        shared = true;
+        break;
+      }
+    }
+    if (!shared) {
+      try { state.torrent.destroy(); } catch {}
     }
   }
   // Clean the temp files after a grace period so the user can still fetch them
@@ -975,6 +1203,7 @@ app.get('/api/stream/:id/download', async (req, res) => {
   const { file } = s;
   const subtitleId = req.query.subtitle ? String(req.query.subtitle) : '';
   const lang = req.query.lang ? String(req.query.lang) : '';
+  const offsetSec = parseFloat(req.query.offset) || 0;
 
   if (req.query.tracked === '1') {
     const used = budgetUsed();
@@ -995,6 +1224,7 @@ app.get('/api/stream/:id/download', async (req, res) => {
     const state = {
       downloadId,
       streamId: req.params.id,
+      torrent: s.torrent,
       outFile,
       status: 'starting',
       progress: 0,
@@ -1009,7 +1239,7 @@ app.get('/api/stream/:id/download', async (req, res) => {
     downloadsByStream.get(req.params.id).add(downloadId);
     s.downloading = true;
 
-    startDownloadTask(s, state, subtitleId, lang).catch((err) => {
+    startDownloadTask(s, state, subtitleId, lang, offsetSec).catch((err) => {
       console.error('[download] failed:', err.message);
       state.status = 'error';
       state.error = err.message;
@@ -1021,7 +1251,7 @@ app.get('/api/stream/:id/download', async (req, res) => {
 
   if (subtitleId && s.torrent.done) {
     try {
-      const ok = await muxWithSubtitle(req, res, s, subtitleId, lang);
+      const ok = await muxWithSubtitle(req, res, s, subtitleId, lang, offsetSec);
       if (ok) return;
     } catch (err) {
       console.error('[mux] mux failed, falling back to raw:', err.message);
@@ -1231,6 +1461,7 @@ app.get('/api/media/:id/stream', async (req, res) => {
     const stat = await fs.promises.stat(filePath);
     const mime = mediaMime(filePath);
     const lowerName = fileEntry.name.toLowerCase();
+    const startTime = Math.max(0, parseFloat(req.query.startTime) || 0);
 
     // Downloaded files are often MKV (or carry DTS/EAC3 audio) which Chromium
     // can't play. Remux them to fragmented MP4 on the fly, exactly like the
@@ -1243,8 +1474,8 @@ app.get('/api/media/:id/stream', async (req, res) => {
         const cfg = await probeCodecs(filePath).catch(() => null);
         if (cfg) {
           const unsafeAudio = cfg.hasAudio && !['aac', 'mp3', 'opus', 'vorbis'].includes(cfg.audioCodec);
-          if (needsRemux || unsafeAudio) {
-            const handled = await spawnRemux(res, () => fs.createReadStream(filePath), cfg, fileEntry.name)
+          if (needsRemux || unsafeAudio || startTime > 0) {
+            const handled = await spawnFileRemux(res, filePath, startTime, cfg, fileEntry.name)
               .catch(() => false);
             if (handled) return;
           }
@@ -1309,6 +1540,25 @@ app.get('/api/stream/:id/status', (req, res) => {
 app.delete('/api/stream/:id', (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
+  if (s.ffmpegProc) {
+    try { s.ffmpegProc.kill('SIGKILL'); } catch {}
+    s.ffmpegProc = null;
+  }
+  const isDownloading = downloadsByStream.has(req.params.id);
+  if (isDownloading) {
+    s.pendingDestroy = true;
+  } else {
+    let shared = false;
+    for (const [otherId, otherS] of streams.entries()) {
+      if (otherId !== req.params.id && otherS.torrent === s.torrent) {
+        shared = true;
+        break;
+      }
+    }
+    if (!shared && s.torrent) {
+      try { s.torrent.destroy(); } catch {}
+    }
+  }
   streams.delete(req.params.id);
   res.json({ ok: true });
 });
@@ -1322,6 +1572,7 @@ app.get('/api/health', (req, res) => {
 });
 
 /* ─── TMDB Live Catalog & Image Proxy ─────────────────────────────────────── */
+const TMDB_API_KEY = process.env.TMDB_API_KEY || 'acc5f02e54fa612710d3245f53f29600';
 let cachedCatalog = null;
 let lastCatalogFetch = 0;
 
@@ -1367,7 +1618,9 @@ app.get('/api/catalog', async (req, res) => {
 app.get('/api/image', async (req, res) => {
   const p = req.query.path;
   const size = req.query.size || 'w500';
-  if (!p) return res.status(400).end();
+  if (!p || typeof p !== 'string' || !p.startsWith('/') || p.includes('..') || !/^(w\d+|original)$/.test(size)) {
+    return res.status(400).end();
+  }
   try {
     const tmdbUrl = `https://image.tmdb.org/t/p/${size}${p}`;
     const imgRes = await fetch(tmdbUrl);
@@ -1382,7 +1635,6 @@ app.get('/api/image', async (req, res) => {
 });
 
 /* ─── Series torrent search (TPB proxy) ───────────────────────────────────── */
-const TMDB_API_KEY = 'acc5f02e54fa612710d3245f53f29600';
 const SEARCH_TRACKERS = [
   'udp://tracker.opentrackr.org:1337/announce',
   'udp://open.stealth.si:80/announce',
@@ -1396,15 +1648,31 @@ function seriesEpiTag(season, episode) {
 }
 
 async function apibaySearch(query) {
-  const year = new Date().getFullYear();
-  const queries = [query, query, query, query, `${query} ${year - 1}`, `${query} ${year}`];
-  for (let attempt = 0; attempt < queries.length; attempt++) {
+  try {
+    const url = `https://apibay.org/q.php?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': SUBTITLE_UA },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const list = await res.json();
+      if (
+        Array.isArray(list)
+        && list.length
+        && list[0].info_hash
+        && list[0].info_hash !== '0000000000000000000000000000000000000000'
+      ) {
+        return list;
+      }
+      return [];
+    }
+  } catch (err) {
     try {
-      const url = `https://apibay.org/q.php?q=${encodeURIComponent(queries[attempt])}`;
+      const url = `https://apibay.org/q.php?q=${encodeURIComponent(query)}`;
       const { stdout } = await execFileAsync(
         'curl',
-        ['-s', '-m', '20', '-A', SUBTITLE_UA, url],
-        { timeout: 25000 }
+        ['-s', '-m', '5', '-A', SUBTITLE_UA, url],
+        { timeout: 6000 }
       );
       const list = JSON.parse(stdout);
       if (
@@ -1413,14 +1681,9 @@ async function apibaySearch(query) {
         && list[0].info_hash
         && list[0].info_hash !== '0000000000000000000000000000000000000000'
       ) {
-        console.log(`[search] apibay ok: ${queries[attempt]} -> ${list.length} rows`);
         return list;
       }
-      console.log(`[search] apibay empty: ${queries[attempt]} -> ${Array.isArray(list) ? list.length : 'n/a'}`);
-    } catch (err) {
-      console.error(`[search] apibay attempt ${attempt + 1} failed:`, err.message);
-    }
-    await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    } catch {}
   }
   return [];
 }
@@ -1474,7 +1737,7 @@ function formatSize(bytes) {
   return `${v.toFixed(1)} ${u[i]}`;
 }
 
-const searchCache = new Map();
+const searchCache = new BoundedMap(500);
 
 async function tmdbMediaInfo(tmdbId, isMovie = true, fallbackMeta = {}) {
   const type = isMovie ? 'movie' : 'tv';
@@ -1509,10 +1772,6 @@ async function tmdbMediaInfo(tmdbId, isMovie = true, fallbackMeta = {}) {
     }
     throw err;
   }
-}
-
-async function tmdbTitle(tmdbId) {
-  return tmdbMediaInfo(tmdbId, false);
 }
 
 async function fetchTorrentioSources(imdbId, season = null, episode = null) {
@@ -1555,24 +1814,26 @@ async function fetchYtsMovieSources(imdbId, title = '') {
     if (title) urls.push(`https://${d}/api/v2/list_movies.json?query_term=${encodeURIComponent(title)}&limit=5`);
   }
 
-  for (const url of urls) {
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': SUBTITLE_UA }, signal: AbortSignal.timeout(3500) });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const movie = data?.data?.movie || data?.data?.movies?.[0];
-      const torrents = movie?.torrents;
-      if (!torrents || !torrents.length) continue;
-      const movieTitle = movie.title || title || 'Movie';
-      const results = torrents.filter(t => t.hash).map(t => ({
-        quality: `${t.quality} ${t.type || ''}`.trim(),
-        magnet: magnetFromHash(t.hash, `${movieTitle} ${t.quality}`),
-        size: t.size || '',
-        seeds: Number(t.seeds || 10),
-      }));
-      if (results.length) return results;
-    } catch {}
-  }
+  const fetchUrl = async (url) => {
+    const res = await fetch(url, { headers: { 'User-Agent': SUBTITLE_UA }, signal: AbortSignal.timeout(3500) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const movie = data?.data?.movie || data?.data?.movies?.[0];
+    const torrents = movie?.torrents;
+    if (!torrents || !torrents.length) return [];
+    const movieTitle = movie.title || title || 'Movie';
+    return torrents.filter(t => t.hash).map(t => ({
+      quality: `${t.quality} ${t.type || ''}`.trim(),
+      magnet: magnetFromHash(t.hash, `${movieTitle} ${t.quality}`),
+      size: t.size || '',
+      seeds: Number(t.seeds || 10),
+    }));
+  };
+
+  try {
+    const results = await Promise.any(urls.map(u => fetchUrl(u).then(r => r.length ? r : Promise.reject())));
+    if (results && results.length) return results;
+  } catch {}
   return [];
 }
 
@@ -1602,18 +1863,25 @@ async function bitSearchSources(title, season = null, episode = null, year = '')
   const out = [];
   const url = `https://bitsearch.to/search?q=${encodeURIComponent(query)}`;
   let stdout = '';
-  for (let attempt = 1; attempt <= 2 && !stdout; attempt++) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': SUBTITLE_UA },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (res.ok) {
+      stdout = await res.text();
+    }
+  } catch {
     try {
       const res = await execFileAsync(
         'curl',
-        ['-s', '-L', '-m', '15', '-A', SUBTITLE_UA, url],
-        { timeout: 20000 }
+        ['-s', '-L', '-m', '5', '-A', SUBTITLE_UA, url],
+        { timeout: 6000 }
       );
       stdout = res.stdout;
-    } catch (err) {
-      await new Promise(r => setTimeout(r, 600));
-    }
+    } catch {}
   }
+  if (!stdout) return out;
   try {
     const doc = stdout;
     const seen = new Set();
@@ -1716,9 +1984,18 @@ app.get('/api/search', async (req, res) => {
           list = await apibaySearch(title);
         }
         if (!Array.isArray(list)) return [];
-        const filtered = list.filter(t =>
+        let filtered = list.filter(t =>
           t.info_hash && t.name && t.name.toLowerCase().includes(tag) && showNameMatches(title, t.name, tag)
         );
+        // Fallback: If no individual episode torrents, include season packs for that season
+        if (!filtered.length) {
+          const sTag = `s${String(season).padStart(2, '0')}`;
+          filtered = list.filter(t =>
+            t.info_hash && t.name &&
+            (new RegExp(`\\b${sTag}\\b`, 'i').test(t.name) || new RegExp(`\\bseason[ ._-]*0*${season}\\b`, 'i').test(t.name)) &&
+            showNameMatches(title, t.name, sTag)
+          );
+        }
         const seeded = filtered.filter(t => Number(t.seeders || 0) > 0);
         return (seeded.length ? seeded : filtered).map(t => ({
           title: t.name,
@@ -1761,9 +2038,9 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-const subtitleCache = new Map();
-const subtitleTracksCache = new Map();
-const subtitleAlts = new Map();
+const subtitleCache = new BoundedMap(500);
+const subtitleTracksCache = new BoundedMap(500);
+const subtitleAlts = new BoundedMap(1000);
 
 const SUBTITLE_LANG_NAMES = {
   ar: 'Arabic', en: 'English', fr: 'French', es: 'Spanish', de: 'German',
@@ -1984,8 +2261,7 @@ async function searchSubdl(tmdbId, season, episode) {
         const fe = f.episode != null ? Number(f.episode) : null;
         if (fs != null && fe != null) {
           const exact = fs === season && fe === episode;
-          const zeroBased = fs === season + 1 && fe === episode + 1;
-          if (!exact && !zeroBased) continue;
+          if (!exact) continue;
         }
       }
       const fileId = f.file_n_id ? String(f.file_n_id) : '';
@@ -2458,28 +2734,45 @@ app.get('/api/subtitles/content/:fileId', async (req, res) => {
     const buf = await resolveSubtitleBuffer(fileId);
     if (!buf) return res.status(502).json({ error: 'subtitle fetch failed' });
 
-    // Check if we already have a cached background-synced version
-    if (ffsubsyncPath && streamId) {
+    // Handle X-Subtitle-Sync state header
+    if (!streamId || !ffsubsyncPath) {
+      res.setHeader('X-Subtitle-Sync', 'unavailable');
+    } else {
       const cacheKeySync = `sync:${streamId}:${fileId}`;
       const cached = subtitleCache.get(cacheKeySync);
       if (cached?.buf) {
         console.log(`[sync] serving cached synced subtitle for ${fileId}`);
+        res.setHeader('X-Subtitle-Sync', 'synced');
         return sendSubtitle(res, cached.buf);
       }
 
-      // Run background sync non-blockingly so response is instant (<50ms)
-      const s = streams.get(streamId);
-      if (s?.file && s?.torrent) {
-        const videoPath = path.join(s.torrent.path, s.file.path);
-        const videoExists = fs.existsSync(videoPath) && fs.statSync(videoPath).size > 10 * 1024 * 1024;
-        if (videoExists) {
-          autoSyncSubtitle(buf, videoPath).then(synced => {
-            if (synced) {
-              subtitleCache.set(cacheKeySync, { buf: Buffer.from(synced), at: Date.now() });
-              console.log(`[sync] background sync saved to cache for ${fileId}`);
-            }
-          }).catch(() => {});
+      if (failedSyncs.has(cacheKeySync)) {
+        res.setHeader('X-Subtitle-Sync', 'failed');
+      } else {
+        // Run background sync non-blockingly so initial response is instant (<50ms)
+        const s = streams.get(streamId);
+        if (s?.file && s?.torrent && !inProgressSyncs.has(cacheKeySync)) {
+          const videoPath = path.join(s.torrent.path, s.file.path);
+          // Ensure enough REAL video data has arrived (scaled to 3MB or 5% of file)
+          const minBytes = Math.min(3 * 1024 * 1024, (s.file.length || 0) * 0.05);
+          const hasEnoughData = s.torrent.downloaded >= minBytes && fs.existsSync(videoPath);
+          if (hasEnoughData) {
+            inProgressSyncs.add(cacheKeySync);
+            autoSyncSubtitle(buf, videoPath).then(synced => {
+              if (synced) {
+                subtitleCache.set(cacheKeySync, { buf: Buffer.from(synced), at: Date.now() });
+                console.log(`[sync] background sync saved to cache for ${fileId}`);
+              } else {
+                failedSyncs.set(cacheKeySync, true);
+              }
+            }).catch(() => {
+              failedSyncs.set(cacheKeySync, true);
+            }).finally(() => {
+              inProgressSyncs.delete(cacheKeySync);
+            });
+          }
         }
+        res.setHeader('X-Subtitle-Sync', inProgressSyncs.has(cacheKeySync) ? 'syncing' : 'pending');
       }
     }
 
@@ -2494,13 +2787,28 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, s] of streams) {
     if (now - s.createdAt > 3600000 && !s.downloading) {
-      s.torrent.destroy();
+      // Only destroy the torrent if no other active stream is using it
+      let shared = false;
+      for (const [otherId, otherS] of streams.entries()) {
+        if (otherId !== id && otherS.torrent === s.torrent) { shared = true; break; }
+      }
+      if (!shared && s.torrent) {
+        try { s.torrent.destroy(); } catch {}
+      }
+      if (s.ffmpegProc) { try { s.ffmpegProc.kill('SIGKILL'); } catch {} }
       streams.delete(id);
     }
   }
-}, 600000);
-
-client.on('error', () => {});
+  for (const [hash, p] of prefetches) {
+    if (now - p.createdAt > 600000) {
+      const isStream = Array.from(streams.values()).some(s => s.torrent?.infoHash === hash);
+      if (!isStream) {
+        try { p.torrent.destroy(); } catch {}
+      }
+      prefetches.delete(hash);
+    }
+  }
+}, 120000);
 
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err.message);
@@ -2510,6 +2818,31 @@ process.on('unhandledRejection', (err) => {
   if (err && err.message === 'Writable stream closed prematurely') return;
   console.error('unhandledRejection:', err);
 });
+
+function gracefulShutdown() {
+  console.log('[server] graceful shutdown triggered...');
+  const destroyedTorrents = new Set();
+  for (const [id, s] of streams) {
+    if (s.ffmpegProc) {
+      try { s.ffmpegProc.kill('SIGKILL'); } catch {}
+    }
+    if (s.torrent && !destroyedTorrents.has(s.torrent)) {
+      destroyedTorrents.add(s.torrent);
+      try { s.torrent.destroy(); } catch {}
+    }
+  }
+  for (const [hash, p] of prefetches) {
+    if (!destroyedTorrents.has(p.torrent)) {
+      destroyedTorrents.add(p.torrent);
+      try { p.torrent.destroy(); } catch {}
+    }
+  }
+  try { client.destroy(); } catch {}
+  process.exit(0);
+}
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 const staticPath = path.join(__dirname, '../docs');
 if (fs.existsSync(staticPath)) {

@@ -4,18 +4,17 @@ import { RouterModule, Routes } from '@angular/router';
 import { MovieComponent } from './movie/movie.component';
 import { SeriesComponent } from './series/series.component';
 import { TvshowsComponent } from './tvshows/tvshows.component';
-import { HelloworldComponent } from './helloworld/helloworld.component';
 import { OfflineLibraryComponent } from './offline-library/offline-library.component';
 import { OfflinePlayerComponent } from './offline-player/offline-player.component';
 
 const routes: Routes = [
   { path: '', component: Exercice2Component, data: { animation: 'Home' } },
   { path: 'movie/:id', component: MovieComponent, data: { animation: 'Movie' } },
-  { path: 'tvshows', component: TvshowsComponent, data: { animation: 'TvShows' } },
+  { path: 'tvshows', redirectTo: '/?filter=series', pathMatch: 'full' },
   { path: 'serie/:id/:season/:episode', component: SeriesComponent, data: { animation: 'Series' } },
   { path: 'downloads', component: OfflineLibraryComponent, data: { animation: 'Downloads' } },
   { path: 'downloads/:id', component: OfflinePlayerComponent, data: { animation: 'Downloads' } },
-  { path: 'helloworld', component: HelloworldComponent, data: { animation: 'HelloWorld' } },
+  { path: 'helloworld', redirectTo: '', pathMatch: 'full' },
   { path: '**', redirectTo: '' },
 ];
 

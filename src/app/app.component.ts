@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { SmartTvService } from './services/smart-tv.service';
 import {
 	trigger,
 	transition,
@@ -42,8 +43,15 @@ export class AppComponent {
 	isDismissed = false;
 	copied = false;
 
+	constructor(public smartTv: SmartTvService) {}
+
 	ngOnInit()
 	{
+		// Suppress social share banner immediately on Smart TVs
+		if (this.smartTv.isSmartTv) {
+			this.isDismissed = true;
+		}
+
 		const userAgent = navigator.userAgent;
 		if (/android/i.test(userAgent))
 			this.noPopUp = false;

@@ -1,11 +1,11 @@
-import { Component,Renderer2,ViewChild, OnInit, HostListener, ElementRef  } from '@angular/core';
+import { Component,Renderer2,ViewChild, OnInit, OnDestroy, HostListener, ElementRef  } from '@angular/core';
 import { MoviedbAPIService } from '../services/moviedb-api.service';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl, Title, Meta } from '@angular/platform-browser';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { YouTubePlayer } from '@angular/youtube-player';
-import { forkJoin, Subject } from 'rxjs';
+import { forkJoin, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SeoService } from '../services/seo.service';
 import { SearchCorrectorService } from '../services/search-corrector.service';
@@ -27,7 +27,7 @@ import { WatchProgressService } from '../services/watch-progress.service';
 			transition(':leave', [style({ opacity: '1'}), animate('1000ms', style({  opacity: '0' }))])
 		])]
 })
-export class TvshowsComponent implements OnInit {
+export class TvshowsComponent implements OnInit, OnDestroy {
 	@ViewChild(YouTubePlayer) player!: YouTubePlayer;
 
 	searchQuery: string ="";
@@ -35,6 +35,7 @@ export class TvshowsComponent implements OnInit {
 	ghostText: string = "";
 	autocompleteTitle: string = "";
 	searchSubject = new Subject<string>();
+	private searchSub?: Subscription;
 	autocompleteSuggestions: any[] = [];
 	showAutocomplete = false;
 
@@ -76,6 +77,7 @@ export class TvshowsComponent implements OnInit {
 	showLoadingScreen = true;
 	isSearching = false;
 	isPopUpLoading = false;
+	private lastFocusedCard: HTMLElement | null = null;
 
 
   sanitizedUrls: SafeResourceUrl[] = [];
@@ -301,7 +303,7 @@ export class TvshowsComponent implements OnInit {
       }
 
     ngOnInit(): void {
-      this.searchSubject.pipe(
+      this.searchSub = this.searchSubject.pipe(
         debounceTime(300),
         distinctUntilChanged()
       ).subscribe(query => {
@@ -381,6 +383,7 @@ export class TvshowsComponent implements OnInit {
 
     ngOnDestroy()
     {
+      this.searchSub?.unsubscribe();
 		  this.renderer.removeStyle(document.body, 'overflow');
     }
 
@@ -431,6 +434,7 @@ export class TvshowsComponent implements OnInit {
   
     showPopUp(movie:any)
     {
+      this.lastFocusedCard = document.activeElement as HTMLElement | null;
       this.renderer.setStyle(document.body, 'overflow', 'hidden');
 
       this.popUp = true;
@@ -442,6 +446,13 @@ export class TvshowsComponent implements OnInit {
       this.mute = true;
       this.popUpMovie = movie;
       this.isPopUpLoading = true;
+
+      setTimeout(() => {
+        if (document.body.classList.contains('soulima-tv')) {
+          const playBtn = document.querySelector('.playinPopUp') as HTMLElement | null;
+          if (playBtn) playBtn.focus();
+        }
+      }, 100);
 
       const isTv = movie.name || movie.first_air_date || movie.isTvShow || movie.seasonnb || movie.episodenb;
 
@@ -580,8 +591,13 @@ export class TvshowsComponent implements OnInit {
       this.startTrailer=false;
       this.mute = true;
       this.popUpLink= "";
-		this.renderer.removeStyle(document.body, 'overflow');
-
+      this.renderer.removeStyle(document.body, 'overflow');
+      if (this.lastFocusedCard) {
+        try {
+          this.lastFocusedCard.focus();
+        } catch (_) {}
+        this.lastFocusedCard = null;
+      }
     }
 
     getSerieVideos(movieId:any)

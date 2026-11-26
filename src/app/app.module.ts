@@ -14,11 +14,9 @@ import { LocationStrategy,HashLocationStrategy } from '@angular/common';
 import { PathLocationStrategy } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { TvshowsComponent } from './tvshows/tvshows.component';
-import { HelloworldComponent } from './helloworld/helloworld.component';
 import { YouTubePlayerModule } from '@angular/youtube-player';
 import { LoadingScreenComponent } from './loading-screen/loading-screen.component';
 import { NotifComponent } from './notif/notif.component';
-import { CustomPlayerComponent } from './components/custom-player/custom-player.component';
 import { TorrentPlayerComponent } from './components/torrent-player/torrent-player.component';
 import { PlayerLoaderComponent } from './components/player-loader/player-loader.component';
 import { OfflineLibraryComponent } from './offline-library/offline-library.component';
@@ -33,10 +31,8 @@ import { OfflinePlayerComponent } from './offline-player/offline-player.componen
     TopMenuComponent,
     SeriesComponent,
     TvshowsComponent,
-    HelloworldComponent,
     LoadingScreenComponent,
     NotifComponent,
-    CustomPlayerComponent,
     TorrentPlayerComponent,
     PlayerLoaderComponent,
     OfflineLibraryComponent,

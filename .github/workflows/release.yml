@@ -1,0 +1,76 @@
+name: Build and Release Desktop Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      - name: Install Streaming Server Dependencies
+        run: npm --prefix streaming-server ci || npm --prefix streaming-server install
+
+      - name: Install Desktop Dependencies
+        run: npm --prefix desktop ci || npm --prefix desktop install
+
+      - name: Build Web App & Bundle Server
+        run: npm run desktop:build
+
+      # Linux: build .deb and .AppImage
+      - name: Package Linux Desktop (.deb & .AppImage)
+        if: runner.os == 'Linux'
+        run: |
+          cd desktop
+          ./node_modules/.bin/electron-builder --linux deb AppImage
+
+      # Windows: build NSIS .exe installer
+      - name: Package Windows Desktop (.exe)
+        if: runner.os == 'Windows'
+        run: |
+          cd desktop
+          ./node_modules/.bin/electron-builder --win nsis
+
+      # macOS: build .dmg installer
+      - name: Package macOS Desktop (.dmg)
+        if: runner.os == 'macOS'
+        run: |
+          cd desktop
+          ./node_modules/.bin/electron-builder --mac dmg
+
+      # Publish all generated artifacts to the GitHub Release
+      - name: Upload Artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          files: |
+            desktop/dist/*.deb
+            desktop/dist/*.AppImage
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

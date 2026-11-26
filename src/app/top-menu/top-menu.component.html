@@ -1,0 +1,146 @@
+<nav class="navBar" [class.scrolled]="isScrolled" [class.mobileSearchActive]="mobileSearchOpen">
+  <div class="navLeft">
+    <a (click)="onLogoClick()" routerLink="/" class="logoLink" title="Soulima Home">
+      <img src="assets/soulimaWhiteLogo.png" alt="Soulima Logo" class="logoImg">
+    </a>
+
+    <div class="navLinks desktopOnly">
+      <a (click)="onLogoClick()" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Home</span>
+      </a>
+      <a (click)="clearGenre.emit()" [routerLink]="['/']" [queryParams]="{filter: 'movies'}" routerLinkActive="active" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+          <line x1="7" y1="2" x2="7" y2="22"></line>
+          <line x1="17" y1="2" x2="17" y2="22"></line>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+        </svg>
+        <span>Movies</span>
+      </a>
+      <a (click)="clearGenre.emit()" [routerLink]="['/']" [queryParams]="{filter: 'series'}" routerLinkActive="active" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
+        <span>TV Shows</span>
+      </a>
+      <a routerLink="/downloads" routerLinkActive="active" class="navLink">
+        <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Downloads</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="navRight" *ngIf="showSearch">
+    <!-- Desktop Search Bar -->
+    <div class="searchBarContainer">
+      <div class="searchBarRow">
+        <svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <div class="searchGhostContainer">
+          <span class="ghost-transparent">{{ searchQuery }}</span>
+          <span class="ghost-visible" *ngIf="ghostText">{{ ghostText }}</span>
+        </div>
+        <input class="searchBar"
+               type="text"
+               [placeholder]="placeholder"
+               [ngModel]="searchQuery"
+               (ngModelChange)="onInput($event)"
+               (keydown)="onKeyDown($event)">
+
+        <button class="autocomplete-inline-btn"
+                *ngIf="autocompleteTitle && (ghostText || searchQuery.toLowerCase() !== autocompleteTitle.toLowerCase())"
+                (click)="applySuggestion(autocompleteTitle)"
+                [title]="'Click to correct to: ' + autocompleteTitle + ' (or press Tab)'">
+          <span>{{ ghostText ? 'Tab' : 'Correct' }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 10px; height: 10px;">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Search Toggle Button -->
+    <button class="mobileSearchToggle" (click)="toggleMobileSearch()" title="Toggle search">
+      <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Expandable Search Bar Drawer -->
+<div class="mobileSearchDrawer" *ngIf="mobileSearchOpen && showSearch">
+  <div class="searchBarContainer mobile">
+    <div class="searchBarRow">
+      <svg class="searchBarIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      </svg>
+      <div class="searchGhostContainer">
+        <span class="ghost-transparent">{{ searchQuery }}</span>
+        <span class="ghost-visible" *ngIf="ghostText">{{ ghostText }}</span>
+      </div>
+      <input class="searchBar"
+             type="text"
+             [placeholder]="placeholder"
+             [ngModel]="searchQuery"
+             (ngModelChange)="onInput($event)"
+             (keydown)="onKeyDown($event)"
+             autofocus>
+      <button class="autocomplete-inline-btn"
+              *ngIf="autocompleteTitle && (ghostText || searchQuery.toLowerCase() !== autocompleteTitle.toLowerCase())"
+              (click)="applySuggestion(autocompleteTitle)">
+        <span>{{ ghostText ? 'Tab' : 'Correct' }}</span>
+      </button>
+      <button class="mobileSearchClose" (click)="toggleMobileSearch()" title="Close search">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar (Netflix Mobile App Style) -->
+<nav class="mobileBottomNav" aria-label="Mobile Navigation">
+  <a (click)="onLogoClick()" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="mobileBottomTab">
+    <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+      <polyline points="9 22 9 12 15 12 15 22"></polyline>
+    </svg>
+    <span class="mobileTabLabel">Home</span>
+  </a>
+
+  <a (click)="clearGenre.emit()" [routerLink]="['/']" [queryParams]="{filter: 'movies'}" routerLinkActive="active" class="mobileBottomTab">
+    <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+      <line x1="7" y1="2" x2="7" y2="22"></line>
+      <line x1="17" y1="2" x2="17" y2="22"></line>
+      <line x1="2" y1="12" x2="22" y2="12"></line>
+    </svg>
+    <span class="mobileTabLabel">Movies</span>
+  </a>
+
+  <a (click)="clearGenre.emit()" [routerLink]="['/']" [queryParams]="{filter: 'series'}" routerLinkActive="active" class="mobileBottomTab">
+    <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+      <polyline points="17 2 12 7 7 2"></polyline>
+    </svg>
+    <span class="mobileTabLabel">TV Shows</span>
+  </a>
+
+  <a routerLink="/downloads" routerLinkActive="active" class="mobileBottomTab">
+    <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    <span class="mobileTabLabel">Downloads</span>
+  </a>
+</nav>

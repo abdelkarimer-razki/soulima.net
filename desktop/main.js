@@ -155,7 +155,14 @@ function startStreamServer() {
 
 function stopServers() {
   if (serverProc) {
-    serverProc.kill();
+    try {
+      if (process.platform === 'win32') {
+        const { exec } = require('child_process');
+        exec(`taskkill /pid ${serverProc.pid} /T /F`, () => {});
+      } else {
+        serverProc.kill('SIGTERM');
+      }
+    } catch {}
     serverProc = null;
   }
   if (webServer) {
