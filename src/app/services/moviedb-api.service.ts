@@ -8,10 +8,27 @@ import { tap } from 'rxjs/operators';
 })
 export class MoviedbAPIService {
 
-  private apiKey = 'acc5f02e54fa612710d3245f53f29600';
+  private apiKey = '';
   private cache = new Map<string, { data: any; expiresAt: number }>();
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {
+    this.fetchConfig();
+  }
+
+  private fetchConfig() {
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const configUrl = typeof window !== 'undefined' && window.location.port === '3030'
+      ? '/api/config'
+      : `http://${host}:3030/api/config`;
+    this.http.get<{ tmdbApiKey?: string }>(configUrl).subscribe({
+      next: (cfg) => {
+        if (cfg?.tmdbApiKey) {
+          this.apiKey = cfg.tmdbApiKey;
+        }
+      },
+      error: () => {}
+    });
+  }
 
   private getCached(key: string, ttlMs: number, fetcher: () => Observable<any>): Observable<any> {
     const hit = this.cache.get(key);

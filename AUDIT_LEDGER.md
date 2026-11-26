@@ -706,4 +706,40 @@ node -c streaming-server/server.js                                    ✓ Exit 0
 node -c desktop/resources/streaming-server/server.js                  ✓ Exit 0
 diff -u streaming-server/server.js desktop/resources/streaming-server/server.js  ✓ No diff (100% Parity)
 node scripts/test-player-and-server.js                                ✓ ALL 9 TESTS PASSED
+npm run build                                                         ✓ Exit 0 (1.03MB main, 1.08MB initial total)
+rsync -av --delete docs/ desktop/resources/web/                       ✓ Synced (100% Web Parity)
 ```
+
+### Build Hash: `main.533f660102986b4f.js` @ 2026-11-26T21:01:38.519Z — 1.08MB initial total
+
+---
+
+## Iteration 24 — 2026-11-26T21:26:00Z
+
+### Status: COMPLETE ✓
+
+### Objective: Secret Sanitization & Dynamic Configuration Service
+
+Purge hardcoded TMDB API keys from tracked source files to secure the public repository, introduce `/api/config` dynamic key injection from environment variables, and clean up lingering binary format ignore rules.
+
+### Enhancements & Refactorings Applied
+
+| # | Domain | Files | Description & Implementation |
+|---|--------|-------|------------------------------|
+| 1 | **Server Secret Sanitization & Config Endpoint** | `streaming-server/server.js`, `desktop/resources/streaming-server/server.js` | Removed hardcoded fallback TMDB API key (`const TMDB_API_KEY = process.env.TMDB_API_KEY || '';`). Added `/api/config` endpoint that exposes the configured key securely from `.env` or system environment without checking secrets into git. |
+| 2 | **Frontend Dynamic Key Injection** | `src/app/services/moviedb-api.service.ts`, `src/app/services/torrent.service.ts` | Removed hardcoded API key constants. `MoviedbAPIService` dynamically fetches configuration on startup from `/api/config`. |
+| 3 | **Local Environment Isolation** | `.env`, `streaming-server/.env` | Created local gitignored `.env` files with local credentials so existing local instances continue uninterrupted without committing secrets to git. |
+| 4 | **Gitignore Cleanup** | `.gitignore` | Removed obsolete `*.sprx`, `*.prx`, and `*.elf` console binary rules. |
+
+### Verification Results
+
+```
+node -c streaming-server/server.js                                    ✓ Exit 0
+node -c desktop/resources/streaming-server/server.js                  ✓ Exit 0
+diff -u streaming-server/server.js desktop/resources/streaming-server/server.js  ✓ No diff (100% Parity)
+node scripts/test-player-and-server.js                                ✓ ALL 9 TESTS PASSED
+npm run build                                                         ✓ Exit 0 (1.03MB main, 1.08MB initial total)
+rsync -av --delete docs/ desktop/resources/web/                       ✓ Synced (100% Web Parity)
+```
+
+### Build Hash: `main.8c523b8ee09c5db1.js` @ 2026-11-26T21:26:49.591Z — 1.08MB initial total

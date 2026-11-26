@@ -55,12 +55,7 @@ streaming-server/.env
 *.exe
 *.zip
 *.tar.gz
-*.sprx
-*.prx
 *.bin
-*.elf
-*.o
-*.a
 
 # Electron desktop dist & bundled ffmpeg binary
 desktop/dist/

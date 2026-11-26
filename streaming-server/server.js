@@ -1573,8 +1573,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', streams: streams.size });
 });
 
+app.get('/api/config', (req, res) => {
+  res.json({
+    tmdbApiKey: TMDB_API_KEY || ''
+  });
+});
+
 /* ─── TMDB Live Catalog & Image Proxy ─────────────────────────────────────── */
-const TMDB_API_KEY = process.env.TMDB_API_KEY || 'acc5f02e54fa612710d3245f53f29600';
+const TMDB_API_KEY = process.env.TMDB_API_KEY || '';
 let cachedCatalog = null;
 let lastCatalogFetch = 0;
 
