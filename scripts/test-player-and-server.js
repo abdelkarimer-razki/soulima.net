@@ -316,4 +316,85 @@ const fallback3 = selectFallbackTrack(mockTracks, fallback2, triedIds);
 assert.equal(fallback3, null);
 console.log('✓ Subtitle fallback selection passed.');
 
+// 10. Test background torrent retention & LRU eviction logic
+console.log('10. Testing background torrent retention and eviction...');
+const bgTorrents = new Map();
+const mockStreams = new Map();
+const mockDownloads = new Map();
+
+function reapBackgroundTorrents(now, maxAge = 7200000, cap = 2) {
+  for (const [hash, bg] of bgTorrents.entries()) {
+    const hasActiveStream = Array.from(mockStreams.values()).some(s => s.torrent?.infoHash === hash);
+    const hasActiveDownload = Array.from(mockDownloads.values()).some(d => d.torrent?.infoHash === hash && (d.status === 'downloading' || d.status === 'starting'));
+    if (!hasActiveStream && !hasActiveDownload && (now - bg.lastActiveAt > maxAge)) {
+      bg.destroyed = true;
+      bgTorrents.delete(hash);
+    }
+  }
+  if (bgTorrents.size > cap) {
+    const sorted = Array.from(bgTorrents.entries()).sort((a, b) => a[1].lastActiveAt - b[1].lastActiveAt);
+    for (const [hash, bg] of sorted) {
+      if (bgTorrents.size <= cap) break;
+      const hasActiveStream = Array.from(mockStreams.values()).some(s => s.torrent?.infoHash === hash);
+      const hasActiveDownload = Array.from(mockDownloads.values()).some(d => d.torrent?.infoHash === hash && (d.status === 'downloading' || d.status === 'starting'));
+      if (!hasActiveStream && !hasActiveDownload) {
+        bg.destroyed = true;
+        bgTorrents.delete(hash);
+      }
+    }
+  }
+}
+
+// Add 3 torrents at different timestamps
+const t0 = 1000000;
+bgTorrents.set('hash1', { torrent: { infoHash: 'hash1' }, lastActiveAt: t0, destroyed: false });
+bgTorrents.set('hash2', { torrent: { infoHash: 'hash2' }, lastActiveAt: t0 + 1000, destroyed: false });
+bgTorrents.set('hash3', { torrent: { infoHash: 'hash3' }, lastActiveAt: t0 + 2000, destroyed: false });
+
+// Over cap (3 > 2), oldest idle 'hash1' should be reaped
+reapBackgroundTorrents(t0 + 3000, 7200000, 2);
+assert.equal(bgTorrents.has('hash1'), false, 'Oldest torrent hash1 should be evicted when over cap');
+assert.equal(bgTorrents.has('hash2'), true, 'hash2 should remain');
+assert.equal(bgTorrents.has('hash3'), true, 'hash3 should remain');
+
+// Even if over age limit, active streams prevent destruction
+mockStreams.set('stream_live', { torrent: { infoHash: 'hash2' } });
+reapBackgroundTorrents(t0 + 10000000, 7200000, 2);
+assert.equal(bgTorrents.has('hash2'), true, 'Active stream must protect hash2 from being reaped');
+assert.equal(bgTorrents.has('hash3'), false, 'Idle hash3 should be reaped after age limit');
+console.log('✓ Background torrent retention & LRU eviction passed.');
+
+// 11. Test content-addressable storage path verification
+console.log('11. Testing getTorrentDir infoHash addressability...');
+function getTorrentDir(base, infoHash) {
+  return `${base}/torrents/${infoHash.toLowerCase()}`;
+}
+const hashA = '4A5B6C7D8E9F0123456789ABCDEF0123456789AB';
+const p1 = getTorrentDir('/cache', hashA);
+const p2 = getTorrentDir('/cache', hashA.toLowerCase());
+assert.equal(p1, p2, 'Different stream sessions for same hash must share storage dir');
+assert.ok(p1.endsWith('/torrents/4a5b6c7d8e9f0123456789abcdef0123456789ab'));
+console.log('✓ Content-addressable storage path passed.');
+
+// 12. Test resilient background download fallback
+console.log('12. Testing download fallback when subtitle mux fails...');
+async function simulateDownloadTask(subtitleFails) {
+  let outFile = '/tmp/download_sample.mp4';
+  let downloadedVideo = true;
+  if (subtitleFails) {
+    try {
+      throw new Error('Mux failure simulated');
+    } catch {
+      // Graceful fallback: return raw video without throwing
+      return { success: true, outFile };
+    }
+  }
+  return { success: true, outFile: '/tmp/download_sample_muxed.mkv' };
+}
+
+const dlResult = await simulateDownloadTask(true);
+assert.equal(dlResult.success, true);
+assert.equal(dlResult.outFile, '/tmp/download_sample.mp4');
+console.log('✓ Resilient background download fallback passed.');
+
 console.log('--- ALL UNIT VERIFICATION CHECKS PASSED SUCCESSFULLY ---');

@@ -260,6 +260,19 @@ export class TorrentService {
     });
   }
 
+  activeDownloadState$ = new BehaviorSubject<{
+    downloadId: string;
+    streamId: string;
+    status: string;
+    progress: number;
+    message: string;
+    downloaded: number;
+    total: number;
+    fileUrl?: string;
+  } | null>(null);
+
+  private downloadPollTimer: any = null;
+
   /** Start a server-side tracked download; returns a downloadId to poll. */
   async startTrackedDownload(streamId: string, subtitleId?: string, lang?: string, offset?: number): Promise<string> {
     let url = `${this.streamServerUrl}/api/stream/${streamId}/download?tracked=1`;
@@ -270,7 +283,48 @@ export class TorrentService {
       url += `&offset=${encodeURIComponent(offset)}`;
     }
     const data: any = await this.http.get(url).toPromise();
-    return data.downloadId;
+    const downloadId = data.downloadId;
+    this.trackBackgroundDownload(downloadId, streamId);
+    return downloadId;
+  }
+
+  trackBackgroundDownload(downloadId: string, streamId: string) {
+    if (this.downloadPollTimer) clearInterval(this.downloadPollTimer);
+    this.activeDownloadState$.next({
+      downloadId,
+      streamId,
+      status: 'starting',
+      progress: 0,
+      message: 'Preparing download…',
+      downloaded: 0,
+      total: 0,
+    });
+    this.downloadPollTimer = setInterval(async () => {
+      try {
+        const st: any = await this.getDownloadStatus(downloadId);
+        const cur = this.activeDownloadState$.value;
+        if (!cur || cur.downloadId !== downloadId) {
+          clearInterval(this.downloadPollTimer);
+          this.downloadPollTimer = null;
+          return;
+        }
+        this.activeDownloadState$.next({
+          ...cur,
+          status: st.status,
+          progress: st.progress,
+          message: st.message,
+          downloaded: st.downloaded,
+          total: st.total,
+          fileUrl: st.status === 'complete' ? this.getDownloadFileUrl(downloadId) : undefined,
+        });
+        if (st.status === 'complete' || st.status === 'error' || st.status === 'cancelled') {
+          clearInterval(this.downloadPollTimer);
+          this.downloadPollTimer = null;
+        }
+      } catch {
+        // Keep polling on transient network drops
+      }
+    }, 1500);
   }
 
   getDownloadStatus(downloadId: string): Promise<any> {
@@ -282,6 +336,11 @@ export class TorrentService {
   }
 
   cancelDownload(downloadId: string): Promise<any> {
+    if (this.downloadPollTimer) {
+      clearInterval(this.downloadPollTimer);
+      this.downloadPollTimer = null;
+    }
+    this.activeDownloadState$.next(null);
     return this.http.delete(`${this.streamServerUrl}/api/downloads/${downloadId}`).toPromise().catch(() => null);
   }
 

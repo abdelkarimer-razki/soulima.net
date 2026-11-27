@@ -148,6 +148,19 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
       }
       this.largeSubtitles = localStorage.getItem(this.SUBTITLE_SIZE_KEY) === 'large';
     } catch {}
+
+    const activeDl = this.torrentService.activeDownloadState$.value;
+    if (activeDl && (activeDl.status === 'starting' || activeDl.status === 'downloading' || activeDl.status === 'muxing')) {
+      this.currentDownloadId = activeDl.downloadId;
+      this.downloadState = {
+        status: activeDl.status,
+        progress: activeDl.progress,
+        message: activeDl.message,
+        downloaded: activeDl.downloaded,
+        total: activeDl.total,
+      };
+      this.pollDownload(activeDl.downloadId);
+    }
   }
 
   get bufferedRatio(): number {

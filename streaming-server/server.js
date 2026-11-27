@@ -231,12 +231,21 @@ function normalizeMagnet(rawMagnet) {
 }
 
 const streams = new Map();
+const backgroundTorrents = new Map(); // infoHash -> { torrent, lastActiveAt }
 const prefetches = new Map();
 const inProgressSyncs = new Set();
 const failedSyncs = new BoundedMap(500);
 
+function getTorrentDir(infoHash) {
+  const dir = path.join(CACHE_BASE_DIR, 'torrents', infoHash);
+  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+  return dir;
+}
+
 function getTempDir(id) {
-  return path.join(CACHE_BASE_DIR, 'stream', id);
+  const dir = path.join(CACHE_BASE_DIR, 'tmp', id);
+  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+  return dir;
 }
 
 function pickVideoFile(files, season, episode) {
@@ -345,6 +354,7 @@ app.post('/api/stream', async (req, res) => {
       } catch {}
 
       streams.set(id, { id, torrent: existing, file, createdAt: Date.now(), duration: 0 });
+      backgroundTorrents.set(infoHash, { torrent: existing, lastActiveAt: Date.now() });
       startDurationProbe(id);
       const base = `${req.protocol}://${req.get('host')}`;
       return res.json({
@@ -361,7 +371,7 @@ app.post('/api/stream', async (req, res) => {
       let t;
       try {
         t = client.add(enrichedMagnet, {
-          path: getTempDir(id),
+          path: getTorrentDir(infoHash),
           announce: BOOTSTRAP_TRACKERS,
           maxConns: 300,
           strategy: 'sequential',
@@ -425,6 +435,7 @@ app.post('/api/stream', async (req, res) => {
     } catch {}
 
     streams.set(id, { id, torrent, file, createdAt: Date.now(), duration: 0 });
+    backgroundTorrents.set(infoHash, { torrent, lastActiveAt: Date.now() });
     startDurationProbe(id);
     const base = `${req.protocol}://${req.get('host')}`;
 
@@ -456,7 +467,7 @@ app.post('/api/stream/prefetch', async (req, res) => {
     let existing = client.get(`magnet:?xt=urn:btih:${infoHash}`);
     if (!existing) {
       existing = client.add(enrichedMagnet, {
-        path: path.join(CACHE_BASE_DIR, 'prefetch', infoHash),
+        path: getTorrentDir(infoHash),
         announce: BOOTSTRAP_TRACKERS,
         maxConns: 100,
         strategy: 'sequential',
@@ -471,6 +482,7 @@ app.post('/api/stream/prefetch', async (req, res) => {
         } catch {}
       });
     }
+    backgroundTorrents.set(infoHash, { torrent: existing, lastActiveAt: Date.now() });
     prefetches.set(infoHash, { torrent: existing, createdAt: Date.now() });
     res.json({ ok: true, infoHash });
   } catch (err) {
@@ -1075,7 +1087,7 @@ async function copyToFile(s, state) {
 // Mux a subtitle into a complete copy of the video, writing to outFile.
 async function muxToFile(s, outFile, subtitleId, lang, offsetSec, onProgress) {
   const { torrent, file } = s;
-  const sourcePath = path.join(torrent.path, file.path);
+  const sourcePath = fs.existsSync(outFile) ? outFile : path.join(torrent.path, file.path);
   const subBuf = await getSubtitleBufferForMux(s, subtitleId);
   if (!subBuf) throw new Error('subtitle fetch failed');
   let srt = toSrt(subBuf);
@@ -1134,23 +1146,33 @@ async function muxToFile(s, outFile, subtitleId, lang, offsetSec, onProgress) {
 }
 
 async function startDownloadTask(s, state, subtitleId, lang, offsetSec) {
+  try {
+    if (s.file && typeof s.file.select === 'function') {
+      s.file.select(1);
+    }
+  } catch {}
+
+  state.status = 'downloading';
+  state.message = 'Downloading video…';
+  await copyToFile(s, state);
+
   if (subtitleId) {
-    state.status = 'downloading';
-    state.message = 'Downloading video…';
-    const done = await waitForFileDone(s, state);
-    if (!done) throw new Error('Source download timed out');
     state.status = 'muxing';
     state.message = 'Embedding subtitles…';
     state.progress = 0;
-    const outPath = await muxToFile(s, state.outFile, subtitleId, lang, offsetSec, (p) => {
-      state.progress = p;
-    });
-    state.outFile = outPath;
-  } else {
-    state.status = 'downloading';
-    state.message = 'Downloading…';
-    await copyToFile(s, state);
+    try {
+      const outPath = await muxToFile(s, state.outFile, subtitleId, lang, offsetSec, (p) => {
+        state.progress = p;
+      });
+      if (outPath && outPath !== state.outFile) {
+        fs.promises.unlink(state.outFile).catch(() => {});
+        state.outFile = outPath;
+      }
+    } catch (muxErr) {
+      console.warn('[download] subtitle muxing failed, falling back to raw video copy:', muxErr.message);
+    }
   }
+
   state.status = 'complete';
   state.progress = 100;
   state.message = 'Download complete';
@@ -1168,29 +1190,12 @@ function finishDownload(state) {
   if (s) {
     s.downloading = false;
     if (s.pendingDestroy) {
-      let shared = false;
-      for (const [otherId, otherS] of streams.entries()) {
-        if (otherId !== state.streamId && otherS.torrent === s.torrent) {
-          shared = true;
-          break;
-        }
-      }
-      if (!shared && s.torrent) {
-        try { s.torrent.destroy(); } catch {}
-      }
       streams.delete(state.streamId);
     }
-  } else if (state.torrent) {
-    let shared = false;
-    for (const otherS of streams.values()) {
-      if (otherS.torrent === state.torrent) {
-        shared = true;
-        break;
-      }
-    }
-    if (!shared) {
-      try { state.torrent.destroy(); } catch {}
-    }
+  }
+  const infoHash = state.torrent?.infoHash;
+  if (infoHash && backgroundTorrents.has(infoHash)) {
+    backgroundTorrents.get(infoHash).lastActiveAt = Date.now();
   }
   // Clean the temp files after a grace period so the user can still fetch them
   // (or the app can move them into the persistent media library).
@@ -1528,12 +1533,16 @@ app.get('/api/stream/:id/status', (req, res) => {
   const s = streams.get(req.params.id);
   if (!s) return res.status(404).json({ error: 'stream not found' });
 
-  const { torrent } = s;
-  const ready = torrent.done || torrent.progress > 0.005 || torrent.downloaded > 2 * 1024 * 1024;
+  const { torrent, file } = s;
+  const ready = torrent.done || (file ? file.downloaded > 2 * 1024 * 1024 : torrent.downloaded > 2 * 1024 * 1024) || torrent.progress > 0.005;
+  const infoHash = torrent?.infoHash;
+  if (infoHash && backgroundTorrents.has(infoHash)) {
+    backgroundTorrents.get(infoHash).lastActiveAt = Date.now();
+  }
   res.json({
-    downloaded: torrent.downloaded,
-    total: torrent.length,
-    progress: torrent.progress,
+    downloaded: file ? file.downloaded : torrent.downloaded,
+    total: file ? file.length : torrent.length,
+    progress: file && file.length ? (file.downloaded / file.length) : torrent.progress,
     speed: torrent.downloadSpeed,
     peers: torrent.numPeers,
     ready,
@@ -1551,18 +1560,13 @@ app.delete('/api/stream/:id', (req, res) => {
   const isDownloading = downloadsByStream.has(req.params.id);
   if (isDownloading) {
     s.pendingDestroy = true;
-  } else {
-    let shared = false;
-    for (const [otherId, otherS] of streams.entries()) {
-      if (otherId !== req.params.id && otherS.torrent === s.torrent) {
-        shared = true;
-        break;
-      }
-    }
-    if (!shared && s.torrent) {
-      try { s.torrent.destroy(); } catch {}
-    }
   }
+  const infoHash = s.torrent?.infoHash;
+  if (infoHash && backgroundTorrents.has(infoHash)) {
+    backgroundTorrents.get(infoHash).lastActiveAt = Date.now();
+  }
+  // Detach the HTTP stream, but preserve the underlying torrent downloading in the
+  // background so cached pieces remain intact and playback can resume instantly.
   streams.delete(req.params.id);
   res.json({ ok: true });
 });
@@ -2804,22 +2808,37 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, s] of streams) {
     if (now - s.createdAt > 3600000 && !s.downloading) {
-      // Only destroy the torrent if no other active stream is using it
-      let shared = false;
-      for (const [otherId, otherS] of streams.entries()) {
-        if (otherId !== id && otherS.torrent === s.torrent) { shared = true; break; }
-      }
-      if (!shared && s.torrent) {
-        try { s.torrent.destroy(); } catch {}
-      }
       if (s.ffmpegProc) { try { s.ffmpegProc.kill('SIGKILL'); } catch {} }
       streams.delete(id);
+    }
+  }
+  // Clean up background torrents idle for > 2 hours with no active streams or downloads
+  for (const [hash, bg] of backgroundTorrents.entries()) {
+    const hasActiveStream = Array.from(streams.values()).some(s => s.torrent?.infoHash === hash);
+    const hasActiveDownload = Array.from(downloads.values()).some(d => d.torrent?.infoHash === hash && (d.status === 'downloading' || d.status === 'muxing' || d.status === 'starting'));
+    if (!hasActiveStream && !hasActiveDownload && (now - bg.lastActiveAt > 7200000)) {
+      try { bg.torrent.destroy(); } catch {}
+      backgroundTorrents.delete(hash);
+    }
+  }
+  // Cap background torrents to the 10 most recently active
+  if (backgroundTorrents.size > 10) {
+    const sorted = Array.from(backgroundTorrents.entries()).sort((a, b) => a[1].lastActiveAt - b[1].lastActiveAt);
+    for (const [hash, bg] of sorted) {
+      if (backgroundTorrents.size <= 10) break;
+      const hasActiveStream = Array.from(streams.values()).some(s => s.torrent?.infoHash === hash);
+      const hasActiveDownload = Array.from(downloads.values()).some(d => d.torrent?.infoHash === hash && (d.status === 'downloading' || d.status === 'muxing' || d.status === 'starting'));
+      if (!hasActiveStream && !hasActiveDownload) {
+        try { bg.torrent.destroy(); } catch {}
+        backgroundTorrents.delete(hash);
+      }
     }
   }
   for (const [hash, p] of prefetches) {
     if (now - p.createdAt > 600000) {
       const isStream = Array.from(streams.values()).some(s => s.torrent?.infoHash === hash);
-      if (!isStream) {
+      const isBg = backgroundTorrents.has(hash);
+      if (!isStream && !isBg) {
         try { p.torrent.destroy(); } catch {}
       }
       prefetches.delete(hash);
@@ -2846,6 +2865,12 @@ function gracefulShutdown() {
     if (s.torrent && !destroyedTorrents.has(s.torrent)) {
       destroyedTorrents.add(s.torrent);
       try { s.torrent.destroy(); } catch {}
+    }
+  }
+  for (const [hash, bg] of backgroundTorrents) {
+    if (bg.torrent && !destroyedTorrents.has(bg.torrent)) {
+      destroyedTorrents.add(bg.torrent);
+      try { bg.torrent.destroy(); } catch {}
     }
   }
   for (const [hash, p] of prefetches) {
