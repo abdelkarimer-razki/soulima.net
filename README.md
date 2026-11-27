@@ -81,25 +81,38 @@ Available across **Docker Containers**, **Web Browsers**, **Linux Desktop (Elect
   4. Engineered a virtual continuous timeline in Angular (`streamStartTime + video.currentTime`), ensuring smooth seeking forward (+30s, +120s, +10min) and backward with zero timeline resets.
 
 ### 4. Resilient Subtitle Engine and Frame-Accurate Alignment
+- **Arabic and English Strict Optimization:** Both backend scraping providers (SubDL, YIFY, SubtitleCat, TVSubtitles) and client selectors strictly prioritize Arabic (`ar`) and English (`en`), rejecting hundreds of unneeded language variants to maximize discovery speed and minimize network payloads.
+- **Non-Blocking Subtitle Decoupling:** Subtitle resolution runs asynchronously with a 4-second race timeout and fast fallback cascade (`ar` ↔ `en`). Video playback is never blocked or stalled waiting for external subtitle downloads.
 - **3-Attempt Exponential Backoff Discovery:** Subtitle scraping operates with parity to source discovery resilience, retrying up to 3 times before error propagation.
 - **Dynamic Host URL Resolution:** Resolves subtitle API endpoints dynamically via `window.location.hostname`, preventing localhost blackouts on remote devices and Smart TVs.
 - **Verified `X-Subtitle-Sync` Header Feedback:** Communicates background `ffsubsync` status (`pending`, `syncing`, `synced`, `failed`, `unavailable`) directly to the client player, halting polling immediately upon completion or unsuitability.
 - **Automatic Fallback Chain and Validation:** Validates that cue counts are non-empty. If a subtitle file fails or has 0 cues, the player automatically cascades to the next best track in the same language.
 - **Overlapping Cue Scanner:** Retains all active dialogues across multi-character and singing scenes within a 60-second scanning window.
 
-### 5. Unified Cinema Browsing and Dynamic Billboard
+### 5. Persistent Background Swarm Downloading & Content-Addressable Storage
+- **Detached Swarm Background Downloading:** When streams detach (`DELETE /api/stream/:id`) on pause, episode change, or page navigation, CPU-heavy FFmpeg transcoding processes terminate immediately while the underlying WebTorrent engine remains alive in memory. The swarm continues downloading sequential pieces in the background directly into disk cache.
+- **Unified Content-Addressable Storage (`getTorrentDir`):** Storage paths are keyed deterministically by `infoHash` (`CACHE_BASE_DIR/torrents/<infoHash>`). Re-opening a title or accessing it from a second device on the LAN (e.g., PS4, Smart TV, smartphone) instantly reuses already-downloaded pieces on disk rather than restarting from 0 MB.
+- **LRU Swarm Retention & Reaper:** Inactive background torrent swarms without open streams or active downloads are retained in memory for up to 2 hours before being reaped, with an active background swarm cap of 10.
+- **Resilient Background Tracked Downloads (`/api/downloads`):** Tracked downloads stream files directly to disk via `copyToFile`. If subtitle muxing encounters formatting anomalies, it gracefully falls back to preserving the complete raw video file so downloads never abort or throw errors.
+
+### 6. Real-Time Background Download UI Indicators
+- **Global Navigation Download Pill:** Top navigation bar (desktop and mobile) displays a real-time glowing badge (`Downloads N%`) whenever a background download is in progress, allowing users to browse movies or series while monitoring progress.
+- **Active Downloads Dashboard (`/downloads`):** Dedicated live progress dashboard inside the Downloads section showing card artwork, episode metadata, real-time byte counters (`MB / GB`), status phase (`Downloading video pieces` vs `Embedding Arabic/English subs…`), and instant cancellation controls (`✕`).
+- **Persistent Service State:** The singleton `TorrentService` maintains download tracking across page transitions, preventing progress loss on player unmount.
+
+### 7. Unified Cinema Browsing and Dynamic Billboard
 - **Cohesive Catalog:** Merges Movies and TV Series into a single browsing experience with sticky section filter pills (`All Cinema`, `Movies`, `TV Shows`) and instant genre tags (`Action`, `Sci-Fi`, `Comedy`, `Drama`, `Horror`, `Animation`).
 - **Dynamic Spotlight Billboard:** Automatically switches the hero billboard to a relevant top title matching the selected medium when filters change.
 - **Curated Content Shelves:** Continue Watching (with episode badges and progress bars), Top 10 Trending Today with Netflix-style giant rank typography, Blockbusters, Binge-Worthy TV Series, and Fresh Releases.
 - **Safe Headroom Padding:** Employs a 40px internal headroom padding pattern inside horizontal carousels to ensure poster hover scale (`scale(1.06)`), outlines, and drop shadows never clip against scroll boundaries.
 
-### 6. Modern Search Experience
+### 8. Modern Search Experience
 - **Instant Query Highlighting:** Live query tags and result counters (`All (N)`, `Movies (N)`, `TV Shows (N)`).
 - **Fluid 2:3 Grid:** High-density responsive card grid with media type tags (`MOVIE` vs `TV SHOW`), star ratings, and hover action shortcuts (`Play Now`, `Info`).
 - **Top-Anchored Image Zoom:** Image scaling anchored to `center top` so actor faces and movie titles remain fully visible without clipping inside rounded card masks.
 - **Smart Empty State:** Automatic spelling correction suggestions and popular recommendations for zero-result queries.
 
-### 7. Tier-Aware Smart TV Spatial Navigation
+### 9. Tier-Aware Smart TV Spatial Navigation
 - **10-Foot D-Pad Engine (`SmartTvService`):** Recognizes vertical DOM tiers (Top Nav, Billboard, Filters, Shelves, Search Grid, Footer) in strict order.
 - **Deterministic Row Transitions:** `ArrowDown` and `ArrowUp` keys transition cleanly across shelves, selecting the horizontally nearest card and auto-centering the entire shelf in the TV viewport (`smooth` window scroll).
 - **Index Clamping & Intra-Tier Centering:** `ArrowLeft` and `ArrowRight` navigate cards with automatic horizontal viewport centering (`scrollIntoView({ inline: 'center' })`).
@@ -172,21 +185,22 @@ docker run -d \
 - [FFmpeg](https://ffmpeg.org/) installed and available in `PATH`
 
 #### 1. Run the Web and Streaming Server
+
+**Local Development (Loopback Only):**
+Binds strictly to `127.0.0.1` for private local development without LAN exposure.
 ```bash
-# Clone the repository
-git clone https://github.com/abdelkarimer-razki/soulima.net.git
-cd soulima.net
-
-# Install root dependencies
-npm install
-
-# Install streaming server dependencies
-npm --prefix streaming-server install
-
 # Start both Angular frontend and Streaming Server concurrently
 npm run dev
 ```
-Open **`http://localhost:3030`** in your browser.
+Open **`http://localhost:4200`** (or **`http://localhost:3030`**) in your browser.
+
+**LAN Hosting (PlayStation 4/5, Smart TVs, Mobile on Local Wi-Fi):**
+Binds to `0.0.0.0` and enables private subnet CORS (`192.168.0.0/16`, `10.0.0.0/8`, `172.16.0.0/12`) so any device on your local Wi-Fi can connect directly.
+```bash
+# Start with LAN interfaces enabled
+npm run dev:lan
+```
+Access from other devices using your laptop's local IP (e.g. `http://192.168.1.X:4200` or PS4 Internet Browser).
 
 ---
 
@@ -208,7 +222,7 @@ node streaming-server/server.js
 The repository includes automated unit and integration tests covering the player and streaming pipeline:
 
 ```bash
-# Run unit and integration verification checks
+# Run 13-point unit and integration verification checks
 node scripts/test-player-and-server.js
 
 # Run the intensive MKV & MP4 timeline scrubbing verification
@@ -245,7 +259,7 @@ node tests/e2e/comprehensive_user_loop.mjs
 │   ├── build.mjs                 # Packaging & static binary bundling scripts
 │   └── resources/                # Embedded server and web assets
 ├── scripts/                      # Test suites and build verification helpers
-│   └── test-player-and-server.js # 9-point unit & integration verification suite
+│   └── test-player-and-server.js # 13-point unit & integration verification suite
 ├── tests/                        # Automated Multi-Agent E2E Verification
 │   └── e2e/                      # Headless Puppeteer benchmarks and seeking test loops
 ├── docs/                         # Compiled production web bundle
