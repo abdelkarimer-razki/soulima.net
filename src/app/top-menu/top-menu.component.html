@@ -28,13 +28,17 @@
         </svg>
         <span>TV Shows</span>
       </a>
-      <a routerLink="/downloads" routerLinkActive="active" class="navLink">
+      <a routerLink="/downloads" routerLinkActive="active" class="navLink navLinkDownloads">
         <svg class="navIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
         <span>Downloads</span>
+        <span class="activeDownloadBadge" *ngIf="(activeDownloads$ | async)?.length">
+          <span class="downloadSpinnerDot"></span>
+          <span>{{ (activeDownloads$ | async)?.[0]?.progress }}%</span>
+        </span>
       </a>
     </div>
   </div>
@@ -136,11 +140,19 @@
   </a>
 
   <a routerLink="/downloads" routerLinkActive="active" class="mobileBottomTab">
-    <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-      <polyline points="7 10 12 15 17 10"></polyline>
-      <line x1="12" y1="15" x2="12" y2="3"></line>
-    </svg>
-    <span class="mobileTabLabel">Downloads</span>
+    <div class="mobileTabIconWrap">
+      <svg class="mobileTabIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span class="mobileDownloadDot" *ngIf="(activeDownloads$ | async)?.length"></span>
+    </div>
+    <span class="mobileTabLabel">
+      Downloads
+      <span class="mobileDownloadPercent" *ngIf="(activeDownloads$ | async)?.length">
+        ({{ (activeDownloads$ | async)?.[0]?.progress }}%)
+      </span>
+    </span>
   </a>
 </nav>

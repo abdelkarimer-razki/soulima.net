@@ -1763,7 +1763,14 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
         this.currentStreamId,
         this.activeSubtitle?.fileId,
         this.activeSubtitle?.lang,
-        this.subtitleOffset
+        this.subtitleOffset,
+        {
+          title: this.title || this.info || 'Movie / TV Show',
+          posterUrl: this.posterUrl,
+          mediaType: (this.seasons?.length || this.episodes?.length) ? 'tv' : 'movie',
+          season: this.currentSeason,
+          episode: this.currentEpisode,
+        }
       );
       this.currentDownloadId = downloadId;
       this.pollDownload(downloadId);

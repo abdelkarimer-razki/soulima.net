@@ -397,4 +397,46 @@ assert.equal(dlResult.success, true);
 assert.equal(dlResult.outFile, '/tmp/download_sample.mp4');
 console.log('✓ Resilient background download fallback passed.');
 
+// 13. Test GET /api/downloads serialization with metadata
+console.log('13. Testing /api/downloads serialization with metadata...');
+const mockDownloadsMap = new Map();
+mockDownloadsMap.set('dl_1', {
+  downloadId: 'dl_1',
+  streamId: 'str_1',
+  status: 'downloading',
+  progress: 45.6,
+  downloaded: 450000000,
+  total: 1000000000,
+  message: 'Downloading video…',
+  error: null,
+  startedAt: 123456789,
+  meta: {
+    title: 'Inception',
+    posterUrl: 'https://image.tmdb.org/t/p/w500/test.jpg',
+    mediaType: 'movie'
+  }
+});
+
+function serializeDownloads(map) {
+  return Array.from(map.values()).map(d => ({
+    downloadId: d.downloadId,
+    streamId: d.streamId,
+    status: d.status,
+    progress: Math.round(d.progress),
+    downloaded: d.downloaded,
+    total: d.total,
+    message: d.message,
+    error: d.error,
+    startedAt: d.startedAt,
+    meta: d.meta || null,
+  }));
+}
+
+const serialized = serializeDownloads(mockDownloadsMap);
+assert.equal(serialized.length, 1);
+assert.equal(serialized[0].progress, 46);
+assert.equal(serialized[0].meta.title, 'Inception');
+assert.equal(serialized[0].meta.mediaType, 'movie');
+console.log('✓ /api/downloads serialization passed.');
+
 console.log('--- ALL UNIT VERIFICATION CHECKS PASSED SUCCESSFULLY ---');

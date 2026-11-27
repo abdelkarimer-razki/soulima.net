@@ -23,8 +23,60 @@
       </label>
     </section>
 
+    <!-- Active Background Downloads Section -->
+    <section class="activeDownloadsSection" *ngIf="activeDownloads.length > 0">
+      <div class="activeDownloadsHeader">
+        <h2 class="activeDownloadsTitle">
+          <span class="activePulseDot"></span>
+          Downloading in Background ({{ activeDownloads.length }})
+        </h2>
+        <span class="activeDownloadsHint">Downloads continue saving even if you navigate or close the player</span>
+      </div>
+
+      <div class="activeDownloadsGrid">
+        <div class="activeDlCard" *ngFor="let dl of activeDownloads">
+          <div class="activeDlPosterWrap">
+            <img *ngIf="dl.posterUrl" [src]="dl.posterUrl" class="activeDlPoster" [alt]="dl.title">
+            <div *ngIf="!dl.posterUrl" class="activeDlPoster activeDlPlaceholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </div>
+            <span class="activeDlPercentBadge">{{ dl.progress }}%</span>
+          </div>
+
+          <div class="activeDlBody">
+            <div class="activeDlTitleRow">
+              <h3 class="activeDlTitleText" [title]="dl.title">{{ dl.title }}</h3>
+              <button class="activeDlCancelBtn" title="Cancel download" (click)="cancelActiveDownload(dl.downloadId)">
+                ✕
+              </button>
+            </div>
+
+            <div class="activeDlSubtitle">
+              <span *ngIf="dl.mediaType === 'tv' && dl.season">Season {{ dl.season }} &bull; Episode {{ dl.episode }} &bull; </span>
+              <span class="activeDlMessage">{{ dl.message || 'Downloading…' }}</span>
+            </div>
+
+            <div class="activeDlBar">
+              <div class="activeDlBarFill" [style.width.%]="dl.progress"></div>
+            </div>
+
+            <div class="activeDlFooter">
+              <span class="activeDlBytes">{{ formatBytes(dl.downloaded) }} / {{ formatBytes(dl.total) }}</span>
+              <span class="activeDlPhase" [class.phaseMuxing]="dl.status === 'muxing'">
+                {{ dl.status === 'muxing' ? 'Embedding Arabic/English subs…' : 'Downloading video pieces' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Empty state -->
-    <section class="downloadsEmpty" *ngIf="items.length === 0">
+    <section class="downloadsEmpty" *ngIf="items.length === 0 && activeDownloads.length === 0">
       <svg class="downloadsEmptyIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
         <polyline points="7 10 12 15 17 10"></polyline>

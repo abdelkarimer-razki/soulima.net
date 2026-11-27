@@ -1,11 +1,13 @@
-import { Component, Input, Output, EventEmitter, HostListener } from '@angular/core';
+import { Component, Input, Output, EventEmitter, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { TorrentService, ActiveDownloadItem } from '../services/torrent.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-top-menu',
   templateUrl: './top-menu.component.html',
   styleUrls: ['./top-menu.component.css']
 })
-export class TopMenuComponent {
+export class TopMenuComponent implements OnInit, OnDestroy {
   @Input() searchQuery = '';
   @Input() ghostText = '';
   @Input() autocompleteTitle = '';
@@ -19,6 +21,29 @@ export class TopMenuComponent {
 
   isScrolled = false;
   mobileSearchOpen = false;
+
+  activeDownloads$: Observable<ActiveDownloadItem[]>;
+  private pollSub: any = null;
+
+  constructor(public torrentService: TorrentService) {
+    this.activeDownloads$ = this.torrentService.activeDownloads$;
+  }
+
+  ngOnInit() {
+    this.torrentService.getActiveDownloads();
+    this.pollSub = setInterval(() => {
+      if (this.torrentService.activeDownloads$.value.length > 0) {
+        this.torrentService.getActiveDownloads();
+      }
+    }, 4000);
+  }
+
+  ngOnDestroy() {
+    if (this.pollSub) {
+      clearInterval(this.pollSub);
+      this.pollSub = null;
+    }
+  }
 
   @HostListener('window:scroll')
   onWindowScroll() {

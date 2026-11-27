@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { OfflineStorageService, OfflineMediaItem } from '../services/offline-storage.service';
-import { TorrentService } from '../services/torrent.service';
+import { TorrentService, ActiveDownloadItem } from '../services/torrent.service';
 import { Subscription } from 'rxjs';
 import { SeoService } from '../services/seo.service';
 
@@ -12,6 +12,7 @@ import { SeoService } from '../services/seo.service';
 })
 export class OfflineLibraryComponent implements OnInit, OnDestroy {
   items: OfflineMediaItem[] = [];
+  activeDownloads: ActiveDownloadItem[] = [];
   isOffline = false;
   storageUsedMB = '0';
   storageQuotaMB = '0';
@@ -23,6 +24,7 @@ export class OfflineLibraryComponent implements OnInit, OnDestroy {
   private blobItems: OfflineMediaItem[] = [];
   private desktopItems: OfflineMediaItem[] = [];
   private subs = new Subscription();
+  private activePollTimer: any = null;
 
   constructor(
     private offlineStorage: OfflineStorageService,
@@ -50,6 +52,17 @@ export class OfflineLibraryComponent implements OnInit, OnDestroy {
       })
     );
 
+    this.subs.add(
+      this.torrentService.activeDownloads$.subscribe(dls => {
+        this.activeDownloads = dls;
+      })
+    );
+
+    this.refreshActiveDownloads();
+    this.activePollTimer = setInterval(() => {
+      this.refreshActiveDownloads();
+    }, 2500);
+
     // Desktop app: also list the on-disk media library (MEDIA_DIR) so files
     // saved by the PC app appear here too, streamed straight from disk.
     if (this.isDesktop) {
@@ -57,6 +70,24 @@ export class OfflineLibraryComponent implements OnInit, OnDestroy {
     }
 
     this.updateStorageInfo();
+  }
+
+  async refreshActiveDownloads(): Promise<void> {
+    try {
+      const list = await this.torrentService.getActiveDownloads();
+      const active = list.filter(d => d.status === 'starting' || d.status === 'downloading' || d.status === 'muxing');
+      this.activeDownloads = active;
+      // If a download recently completed, refresh library
+      const justCompleted = list.some(d => d.status === 'complete');
+      if (justCompleted && this.isDesktop) {
+        this.loadDesktopLibrary();
+      }
+    } catch {}
+  }
+
+  async cancelActiveDownload(downloadId: string): Promise<void> {
+    await this.torrentService.cancelDownload(downloadId);
+    this.activeDownloads = this.activeDownloads.filter(d => d.downloadId !== downloadId);
   }
 
   private async loadDesktopLibrary(): Promise<void> {
@@ -90,6 +121,10 @@ export class OfflineLibraryComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.activePollTimer) {
+      clearInterval(this.activePollTimer);
+      this.activePollTimer = null;
+    }
     this.subs.unsubscribe();
   }
 

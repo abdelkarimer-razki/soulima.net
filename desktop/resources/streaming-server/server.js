@@ -1231,6 +1231,13 @@ app.get('/api/stream/:id/download', async (req, res) => {
     const downloadId = crypto.randomBytes(6).toString('hex');
     const outFile = path.join(DOWNLOADS_DIR, downloadId, file.name.replace(/[^\w.\- ]/g, '_'));
     await fs.promises.mkdir(path.dirname(outFile), { recursive: true });
+    const meta = {
+      title: req.query.title ? String(req.query.title) : file.name,
+      posterUrl: req.query.poster ? String(req.query.poster) : '',
+      mediaType: req.query.mediaType === 'tv' ? 'tv' : 'movie',
+      season: req.query.season ? Number(req.query.season) : undefined,
+      episode: req.query.episode ? Number(req.query.episode) : undefined,
+    };
     const state = {
       downloadId,
       streamId: req.params.id,
@@ -1243,6 +1250,7 @@ app.get('/api/stream/:id/download', async (req, res) => {
       message: 'Preparing…',
       error: null,
       startedAt: Date.now(),
+      meta,
     };
     downloads.set(downloadId, state);
     if (!downloadsByStream.has(req.params.id)) downloadsByStream.set(req.params.id, new Set());
@@ -1283,6 +1291,22 @@ app.get('/api/stream/:id/download', async (req, res) => {
   rs.pipe(res);
 });
 
+app.get('/api/downloads', (req, res) => {
+  const list = Array.from(downloads.values()).map(d => ({
+    downloadId: d.downloadId,
+    streamId: d.streamId,
+    status: d.status,
+    progress: Math.round(d.progress),
+    downloaded: d.downloaded,
+    total: d.total,
+    message: d.message,
+    error: d.error,
+    startedAt: d.startedAt,
+    meta: d.meta || null,
+  }));
+  res.json({ downloads: list });
+});
+
 app.get('/api/downloads/:id/status', (req, res) => {
   const d = downloads.get(req.params.id);
   if (!d) return res.status(404).json({ error: 'download not found' });
@@ -1294,6 +1318,7 @@ app.get('/api/downloads/:id/status', (req, res) => {
     total: d.total,
     message: d.message,
     error: d.error,
+    meta: d.meta || null,
   });
 });
 

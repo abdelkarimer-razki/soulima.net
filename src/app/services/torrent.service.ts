@@ -29,6 +29,23 @@ export interface StreamInfo {
   duration?: number;
 }
 
+export interface ActiveDownloadItem {
+  downloadId: string;
+  streamId: string;
+  status: string;
+  progress: number;
+  message: string;
+  downloaded: number;
+  total: number;
+  fileUrl?: string;
+  title?: string;
+  posterUrl?: string;
+  mediaType?: string;
+  season?: number;
+  episode?: number;
+  meta?: any;
+}
+
 const TMDB_API_KEY = atob('YWNjNWYwMmU1NGZhNjEyNzEwZDMyNDVmNTNmMjk2MDA=');
 
 const TRACKERS = [
@@ -260,21 +277,19 @@ export class TorrentService {
     });
   }
 
-  activeDownloadState$ = new BehaviorSubject<{
-    downloadId: string;
-    streamId: string;
-    status: string;
-    progress: number;
-    message: string;
-    downloaded: number;
-    total: number;
-    fileUrl?: string;
-  } | null>(null);
+  activeDownloads$ = new BehaviorSubject<ActiveDownloadItem[]>([]);
+  activeDownloadState$ = new BehaviorSubject<ActiveDownloadItem | null>(null);
 
   private downloadPollTimer: any = null;
 
   /** Start a server-side tracked download; returns a downloadId to poll. */
-  async startTrackedDownload(streamId: string, subtitleId?: string, lang?: string, offset?: number): Promise<string> {
+  async startTrackedDownload(
+    streamId: string,
+    subtitleId?: string,
+    lang?: string,
+    offset?: number,
+    meta?: { title?: string; posterUrl?: string; mediaType?: string; season?: number; episode?: number }
+  ): Promise<string> {
     let url = `${this.streamServerUrl}/api/stream/${streamId}/download?tracked=1`;
     if (subtitleId) {
       url += `&subtitle=${encodeURIComponent(subtitleId)}&lang=${encodeURIComponent(lang || '')}`;
@@ -282,15 +297,62 @@ export class TorrentService {
     if (offset) {
       url += `&offset=${encodeURIComponent(offset)}`;
     }
+    if (meta?.title) {
+      url += `&title=${encodeURIComponent(meta.title)}`;
+    }
+    if (meta?.posterUrl) {
+      url += `&poster=${encodeURIComponent(meta.posterUrl)}`;
+    }
+    if (meta?.mediaType) {
+      url += `&mediaType=${encodeURIComponent(meta.mediaType)}`;
+    }
+    if (meta?.season != null) {
+      url += `&season=${encodeURIComponent(meta.season)}`;
+    }
+    if (meta?.episode != null) {
+      url += `&episode=${encodeURIComponent(meta.episode)}`;
+    }
     const data: any = await this.http.get(url).toPromise();
     const downloadId = data.downloadId;
-    this.trackBackgroundDownload(downloadId, streamId);
+    this.trackBackgroundDownload(downloadId, streamId, meta);
     return downloadId;
   }
 
-  trackBackgroundDownload(downloadId: string, streamId: string) {
+  async getActiveDownloads(): Promise<ActiveDownloadItem[]> {
+    try {
+      const data: any = await this.http.get(`${this.streamServerUrl}/api/downloads`).toPromise();
+      const list = (data?.downloads || []).map((d: any): ActiveDownloadItem => ({
+        downloadId: d.downloadId,
+        streamId: d.streamId,
+        status: d.status,
+        progress: d.progress,
+        message: d.message,
+        downloaded: d.downloaded,
+        total: d.total,
+        fileUrl: d.status === 'complete' ? this.getDownloadFileUrl(d.downloadId) : undefined,
+        title: d.meta?.title || 'Video Download',
+        posterUrl: d.meta?.posterUrl || '',
+        mediaType: d.meta?.mediaType || 'movie',
+        season: d.meta?.season,
+        episode: d.meta?.episode,
+        meta: d.meta,
+      }));
+      const active = list.filter((d: any) => d.status === 'starting' || d.status === 'downloading' || d.status === 'muxing');
+      this.activeDownloads$.next(active);
+      if (active.length > 0) {
+        this.activeDownloadState$.next(active[0]);
+      } else if (this.activeDownloadState$.value && this.activeDownloadState$.value.status !== 'complete') {
+        this.activeDownloadState$.next(null);
+      }
+      return list;
+    } catch {
+      return [];
+    }
+  }
+
+  trackBackgroundDownload(downloadId: string, streamId: string, meta?: any) {
     if (this.downloadPollTimer) clearInterval(this.downloadPollTimer);
-    this.activeDownloadState$.next({
+    const initialItem: ActiveDownloadItem = {
       downloadId,
       streamId,
       status: 'starting',
@@ -298,7 +360,16 @@ export class TorrentService {
       message: 'Preparing download…',
       downloaded: 0,
       total: 0,
-    });
+      title: meta?.title || 'Downloading Video',
+      posterUrl: meta?.posterUrl || '',
+      mediaType: meta?.mediaType || 'movie',
+      season: meta?.season,
+      episode: meta?.episode,
+      meta,
+    };
+    this.activeDownloadState$.next(initialItem);
+    this.activeDownloads$.next([initialItem]);
+
     this.downloadPollTimer = setInterval(async () => {
       try {
         const st: any = await this.getDownloadStatus(downloadId);
@@ -308,7 +379,7 @@ export class TorrentService {
           this.downloadPollTimer = null;
           return;
         }
-        this.activeDownloadState$.next({
+        const updatedItem: ActiveDownloadItem = {
           ...cur,
           status: st.status,
           progress: st.progress,
@@ -316,7 +387,13 @@ export class TorrentService {
           downloaded: st.downloaded,
           total: st.total,
           fileUrl: st.status === 'complete' ? this.getDownloadFileUrl(downloadId) : undefined,
-        });
+        };
+        this.activeDownloadState$.next(updatedItem);
+        if (st.status === 'starting' || st.status === 'downloading' || st.status === 'muxing') {
+          this.activeDownloads$.next([updatedItem]);
+        } else {
+          this.activeDownloads$.next([]);
+        }
         if (st.status === 'complete' || st.status === 'error' || st.status === 'cancelled') {
           clearInterval(this.downloadPollTimer);
           this.downloadPollTimer = null;
@@ -341,6 +418,7 @@ export class TorrentService {
       this.downloadPollTimer = null;
     }
     this.activeDownloadState$.next(null);
+    this.activeDownloads$.next([]);
     return this.http.delete(`${this.streamServerUrl}/api/downloads/${downloadId}`).toPromise().catch(() => null);
   }
 
