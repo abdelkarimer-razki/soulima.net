@@ -51,7 +51,8 @@ export class SubtitleService {
     if (releaseName) url += `&release=${encodeURIComponent(releaseName)}`;
 
     const data: any = await this.http.get(url).toPromise();
-    return data?.tracks || [];
+    const tracks: SubtitleTrack[] = data?.tracks || [];
+    return tracks.filter(t => t.lang === 'ar' || t.lang === 'en');
   }
 
   prefetchSubtitles(tmdbId: number, season?: number, episode?: number): void {

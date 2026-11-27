@@ -2102,6 +2102,8 @@ function extractSrtFromZip(buf) {
   return null;
 }
 
+const ALLOWED_SUBTITLE_LANGS = new Set(['ar', 'en']);
+
 async function fetchYifyTracks(imdbId) {
   let res = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -2128,6 +2130,7 @@ async function fetchYifyTracks(imdbId) {
     if (!parts) continue;
     const langSlug = parts[1].toLowerCase().replace(/-(hi|sdh)$/, '');
     const lang = YIFY_LANG_MAP[langSlug] || langSlug;
+    if (!ALLOWED_SUBTITLE_LANGS.has(lang)) continue;
     if (seen.has(lang)) continue;
     seen.add(lang);
     tracks.push({
@@ -2278,6 +2281,8 @@ async function searchSubdl(tmdbId, season, episode) {
       const dlUrl = f.url ? `${SUBDL_DL}${f.url}` : '';
       if (!fileId || !dlUrl) continue;
       const lang = String(f.language || 'EN').toLowerCase();
+      const code = SUBDL_LANG_CODES[lang] || lang.slice(0, 2);
+      if (!ALLOWED_SUBTITLE_LANGS.has(code)) continue;
       subtitleCache.set(fileId, { url: dlUrl, buf: null });
       if (!byLang.has(lang)) {
         byLang.set(lang, { lang, langName: SUBTITLE_LANG_NAMES[lang] || lang.toUpperCase(), fileId });
@@ -2403,6 +2408,7 @@ async function tvsEpisodeTracks(episodeUrl) {
     if (!lm) continue;
     const langName = lm[1].trim();
     const lang = TVS_LANG_CODES[langName.toLowerCase()] || langName.toLowerCase().replace(/\s+/g, '-');
+    if (!ALLOWED_SUBTITLE_LANGS.has(lang)) continue;
     if (seen.has(lang)) continue;
     const link = sections[i].match(/<a href="\/subtitle-(\d+)\.html"/);
     if (!link) continue;
@@ -2557,7 +2563,7 @@ async function fetchSubtitleCat(title, season, episode) {
     for (const page of pages) {
       for (const s of page) {
         const lang = normalizeLangCode(s.lang);
-        if (!lang || byLang.has(lang)) continue;
+        if (!lang || !ALLOWED_SUBTITLE_LANGS.has(lang) || byLang.has(lang)) continue;
         byLang.set(lang, {
           lang,
           langName: SUBTITLE_LANG_NAMES[lang] || lang.toUpperCase(),
@@ -2581,6 +2587,7 @@ function mergeTracks(lists) {
   for (const list of lists) {
     for (const t of list || []) {
       if (!t || !t.lang || !t.fileId) continue;
+      if (!ALLOWED_SUBTITLE_LANGS.has(t.lang)) continue;
       if (!byLang.has(t.lang)) byLang.set(t.lang, t);
     }
   }

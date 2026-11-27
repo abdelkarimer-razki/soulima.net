@@ -448,10 +448,9 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
         this.subtitleStatusMessage = '';
       } else {
         this.activeSubtitle =
-          (saved ? this.subtitles.find(s => s.lang === saved) : null)
+          (saved && (saved === 'ar' || saved === 'en') ? this.subtitles.find(s => s.lang === saved) : null)
           || this.subtitles.find(s => s.lang === 'ar')
           || this.subtitles.find(s => s.lang === 'en')
-          || this.subtitles[0]
           || null;
         if (!this.activeSubtitle && this.sourcesLoading) {
           this.subtitleState = 'discovering';
@@ -654,13 +653,20 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
     this.triedSubtitleIds.add(fileId);
     const streamId = this.currentStreamId;
 
-    const contentPromise = this.directUrl
-      ? fetch(fileId)
-          .then(r => r.text())
-          .then(text => ({ text, syncStatus: 'unavailable' as const }))
-          .catch(() => ({ text: '', syncStatus: 'unavailable' as const }))
-      : this.subtitleService.getSubtitleContent(fileId, streamId)
-          .catch(() => ({ text: '', syncStatus: 'failed' as const }));
+    const fetchTimeout = new Promise<{ text: string; syncStatus: 'failed' }>(r =>
+      setTimeout(() => r({ text: '', syncStatus: 'failed' }), 4000)
+    );
+
+    const contentPromise = Promise.race([
+      this.directUrl
+        ? fetch(fileId)
+            .then(r => r.text())
+            .then(text => ({ text, syncStatus: 'unavailable' as const }))
+            .catch(() => ({ text: '', syncStatus: 'unavailable' as const }))
+        : this.subtitleService.getSubtitleContent(fileId, streamId)
+            .catch(() => ({ text: '', syncStatus: 'failed' as const })),
+      fetchTimeout
+    ]);
 
     contentPromise.then(res => {
       if (seq !== this.applySubtitleSeq) return;
@@ -687,7 +693,9 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
     if (seq !== this.applySubtitleSeq) return;
     const curLang = this.activeSubtitle?.lang;
     const sameLangAlt = this.subtitles.find(s => !this.triedSubtitleIds.has(s.fileId) && s.lang === curLang);
-    const fallbackTrack = sameLangAlt || this.subtitles.find(s => !this.triedSubtitleIds.has(s.fileId));
+    const otherLang = curLang === 'ar' ? 'en' : 'ar';
+    const otherLangTrack = this.subtitles.find(s => !this.triedSubtitleIds.has(s.fileId) && s.lang === otherLang);
+    const fallbackTrack = sameLangAlt || otherLangTrack || null;
 
     if (fallbackTrack) {
       this.activeSubtitle = fallbackTrack;
@@ -698,7 +706,7 @@ export class TorrentPlayerComponent implements OnInit, OnChanges, OnDestroy, Aft
       this.activeSubtitleText = '';
       this.subtitleState = 'failed';
       this.subtitleStatusMessage = 'Subtitles unavailable';
-      this.showToast('Subtitles unavailable for this title');
+      this.showToast('Subtitles unavailable');
     }
   }
 
