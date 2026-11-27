@@ -156,6 +156,7 @@ const BOOTSTRAP_TRACKERS = [
 
 const app = express();
 const PORT = process.env.PORT || 3030;
+const HOST = process.env.HOST || '127.0.0.1';
 
 const ALLOWED_ORIGIN_PATTERNS = [
   /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
@@ -2904,4 +2905,4 @@ if (fs.existsSync(staticPath)) {
 }
 
 loadBudget().catch(() => {});
-app.listen(PORT, '0.0.0.0', () => console.log(`soulima streaming server running on http://0.0.0.0:${PORT}`));
+app.listen(PORT, HOST, () => console.log(`soulima streaming server running on http://${HOST}:${PORT}`));
